@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------
-#  Root CMake file for PaGRO.
+#  Root CMake file for PaRGO.
 #
 #     Please from the off-tree build directory, invoke:
-#       $ cmake <path/to/PaGRO>
+#       $ cmake <path/to/PaRGO>
 #
 #  Routine testing platforms and compilers include:
 #     1. Windows 10 with Visual Studio 2013, MSMPI-v8, GDAL-1.11.4
@@ -23,7 +23,7 @@ FATAL: In-source builds are not allowed.
 )
 ENDIF()
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0 FATAL_ERROR)
-PROJECT(PaGRO CXX C)
+PROJECT(PaRGO CXX C)
 
 ### Set default or specified installation directory.
 IF (INSTALL_PREFIX)

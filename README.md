@@ -1,4 +1,4 @@
-# 栅格地理计算并行算子 （PaGRO）
+# 栅格地理计算并行算子 （PaRGO）
 
 # 1. 简介
 
@@ -8,7 +8,7 @@ Parallel Raster-based Geocomputation Operators
 
 ## 2.1. 编译环境
 
-PaGRO依赖GDAL，根据不同并行版本依赖MPI（MSMPI，OpenMPI，MPICH，或Intel MPI）、CUDA。
+PaRGO依赖GDAL，根据不同并行版本依赖MPI（MSMPI，OpenMPI，MPICH，或Intel MPI）、CUDA。
 
 +　Windows 10 with Visual Studio 2013, MSMPI-v8, GDAL-1.11.4
 +　Windows 10 with mingw64 (GCC-4.9.3), MSMPI-v8, GDAL-1.11.5
@@ -21,7 +21,8 @@ PaGRO依赖GDAL，根据不同并行版本依赖MPI（MSMPI，OpenMPI，MPICH，
 + Windows 10-64bit with Visual Studio 2012
 
   ```shell
-  cmake -G "Visual Studio 12 2013 Win64" C:/z_code/DTA/PaGRO -DMPI=1 -DOPENMP=1 -DINSTALL_PREFIX=D:/compile/bin/pagro
+  cmake -G "Visual Studio 12 2013 Win64" C:/z_code/DTA/PaRGO -DMPI=1 -DOPENMP=1 -DINSTALL_PREFIX=D:/compile/bin/pargo
   ```
 
   ​
+
