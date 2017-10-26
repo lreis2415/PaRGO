@@ -1,7 +1,9 @@
-### GDAL (REQUIRED)
-FIND_PACKAGE(GDAL REQUIRED)
-IF(NOT GDAL_FOUND)
-  MESSAGE(FATAL_ERROR "FATAL: Could not find GDAL!")
+### GDAL
+IF (WITH_GDAL)
+  FIND_PACKAGE(GDAL REQUIRED)
+  IF(NOT GDAL_FOUND)
+    MESSAGE(FATAL_ERROR "FATAL: Could not find GDAL!")
+  ENDIF()
 ENDIF()
 
 # Fixup GDAL variable.
@@ -30,7 +32,7 @@ IF(WIN32 AND MINGW)
     ENDIF()
 ENDIF()
 
-### MPI (REQUIRED)
+### MPI
 # currently, for mingw64 on Windows, you must specify MPI_LIBRARIES and DMPI_INCLUDE_PATH through CMake command.
 IF (WITH_MPI)
   IF(NOT DEFINED MPI_LIBRARIES)
@@ -50,14 +52,22 @@ IF (WITH_MPI)
     ENDIF ()
   ENDIF()
 ENDIF()
+
 ### OpenMP
 IF(WITH_OPENMP)
   FIND_PACKAGE(OpenMP)
   IF(OPENMP_FOUND)
+    ADD_DEFINITIONS(-DSUPPORT_OMP)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   ELSE ()
-    MESSAGE(FATAL_ERROR "CMake fails to determine OpenMP.
-    Please check your compiler to make sure the support of OpenMP.")
+      MESSAGE(WARNING "CMake fails to determine OpenMP.
+Please check your compiler to make sure the support of OpenMP.")
   ENDIF()
+ENDIF()
+
+### Bson and MongoC.
+IF (WITH_MONGOC)
+  INCLUDE(FindBson)
+  INCLUDE(FindMongoC)
 ENDIF()

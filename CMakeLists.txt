@@ -22,14 +22,20 @@ FATAL: In-source builds are not allowed.
        You should create a separate directory for build files."
 )
 ENDIF()
-CMAKE_MINIMUM_REQUIRED(VERSION 3.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1 FATAL_ERROR)
 PROJECT(PaRGO CXX C)
+
+### Set cmake find path
+set(CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+        ${CMAKE_MODULE_PATH}
+        )
 
 ### Set default or specified installation directory.
 IF (INSTALL_PREFIX)
-  SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX})
-ELSE ()
-  SET(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/bin)
+  SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE PATH "Set specified install path" FORCE)
+ELSEIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  SET(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/bin CACHE PATH "Set default install path" FORCE)
 ENDIF ()
 SET(INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
 
@@ -61,19 +67,20 @@ IF (CUDA)  # TODO
 ENDIF()
 
 ### Detect compiler and target platform architecture.
-INCLUDE(cmake/Utils.cmake)
+INCLUDE(Utils)
 SET(ENABLE_CXX11 1)
-INCLUDE(cmake/DetectCXXCompiler.cmake)
+INCLUDE(DetectCXXCompiler)
 
 ### Add standard paths or specified paths for Find libraries and headers.
-INCLUDE(cmake/AddFindPaths.cmake)
+INCLUDE(AddFindPaths)
 #STATUS(${CMAKE_PREFIX_PATH})
 ### Find packages.
-INCLUDE(cmake/FindPackages.cmake)
+SET(WITH_GDAL 1)
+INCLUDE(FindPackages)
 
 ### Use statically or dynamically linked CRT? Default: dynamic
 IF(MSVC)
-  INCLUDE(cmake/CRTLinkage.cmake)
+  INCLUDE(CRTLinkage)
 ENDIF(MSVC)
 
 SET(GPRO_DIR ${CMAKE_SOURCE_DIR}/gpro)
