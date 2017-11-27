@@ -45,7 +45,7 @@ class SCAOperator : public RasterOperator<double>
   public:
 	double cellSize;
 	double noData;
-	int num;	//控制当前迭代次数
+	int num;	//鎺у埗褰撳墠杩唬娆℃暟
 	bool flag;
 	int kc_Meth;
 	float StepR;

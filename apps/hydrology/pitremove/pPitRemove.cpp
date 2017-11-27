@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 	
 	double starttime1;
 	double endtime1;
-	MPI_Barrier(MPI_COMM_WORLD);	//µÈ´ıÃ¿¸öÏß³Ì¶¼Êä³ö×Ô¼ºµÄĞĞÁĞÊı
+	MPI_Barrier(MPI_COMM_WORLD);	//ç­‰å¾…æ¯ä¸ªçº¿ç¨‹éƒ½è¾“å‡ºè‡ªå·±çš„è¡Œåˆ—æ•°
 	starttime1 = MPI_Wtime();
 
 	PitRemoveOperator PitOper;

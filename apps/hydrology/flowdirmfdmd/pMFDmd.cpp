@@ -63,9 +63,9 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	RasterLayer<double> demLayer("demLayer"); //创建图层
-	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
-	demLayer.readFile(inputfilename);  //读取栅格数据
+	RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
+	demLayer.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+	demLayer.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
 
 	//creat output filenamme for weight matrix layers
 	//string filepath = neighborfile;
@@ -112,9 +112,9 @@ int main(int argc, char *argv[])
 	}
 	
 	MPI_Barrier(MPI_COMM_WORLD);
-	//pOutputfilenames释放内存
+	//pOutputfilenames閲婃斁鍐呭瓨
 	delete []pOutputfilenames;
-	//weightLayers释放内存
+	//weightLayers閲婃斁鍐呭瓨
 
 	Application::END();
 	return 0;

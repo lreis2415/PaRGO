@@ -18,8 +18,8 @@ namespace GPRO{
 
 		void cleanDataLayers();
 		vector<RasterLayer<elemType>* >* dataLayers();
-		const vector<RasterLayer<elemType>* >* dataLayers() const;	//ÕâÀï·µ»ØµØÖ·²»¿ÉÒÔÊÇconst,why
-		//µÚÒ»¸öconst,ĞŞÊÎ·µ»ØÖµ£»µÚ¶ş¸öconst,Àà³ÉÔ±º¯ÊıÎªconst£¬¼´´Ëº¯Êı²»»áĞŞ¸ÄÊı¾İ³ÉÔ±
+		const vector<RasterLayer<elemType>* >* dataLayers() const;	//è¿™é‡Œè¿”å›åœ°å€ä¸å¯ä»¥æ˜¯const,why
+		//ç¬¬ä¸€ä¸ªconst,ä¿®é¥°è¿”å›å€¼ï¼›ç¬¬äºŒä¸ªconst,ç±»æˆå‘˜å‡½æ•°ä¸ºconstï¼Œå³æ­¤å‡½æ•°ä¸ä¼šä¿®æ”¹æ•°æ®æˆå‘˜
 
 		bool newMetaData( const MetaData& rhs, int compuSize );
 		bool transformation();
@@ -58,7 +58,7 @@ template <class elemType>
 inline GPRO::ComputLayer<elemType>::
 	~ComputLayer() 
 {
-	//ÕâÀï»á×Ô¶¯µ÷ÓÃ»ùÀàµÄÎö¹¹º¯Êı£¬Ö»ĞèÒªÔÙÊÍ·Å_pDataLayers³ÉÔ±¼´¿É
+	//è¿™é‡Œä¼šè‡ªåŠ¨è°ƒç”¨åŸºç±»çš„ææ„å‡½æ•°ï¼Œåªéœ€è¦å†é‡Šæ”¾_pDataLayersæˆå‘˜å³å¯
 	cleanDataLayers();
 }
 
@@ -66,8 +66,8 @@ template <class elemType>
 void GPRO::ComputLayer<elemType>::
 	cleanDataLayers() 
 {
-	//dataLayersÖĞ´æ·ÅµÄÊÇÍ¼²ãµÄÖ¸Õë£¬ÕâÀïÖµÊÍ·Åvector£¬²¢²»ÕæÕıÊÍ·ÅÕâĞ©Ö¸ÕëËùÖ¸µÄÍ¼²ã
-	//ÕâĞ©Í¼²ãºóĞø»á¼ÌĞøÊ¹ÓÃ£¬Ö±µ½¼ÆËã½áÊø£¬µ÷ÓÃ×ÔÉíÎö¹¹º¯ÊıÈ¥ÊÍ·Å
+	//dataLayersä¸­å­˜æ”¾çš„æ˜¯å›¾å±‚çš„æŒ‡é’ˆï¼Œè¿™é‡Œå€¼é‡Šæ”¾vectorï¼Œå¹¶ä¸çœŸæ­£é‡Šæ”¾è¿™äº›æŒ‡é’ˆæ‰€æŒ‡çš„å›¾å±‚
+	//è¿™äº›å›¾å±‚åç»­ä¼šç»§ç»­ä½¿ç”¨ï¼Œç›´åˆ°è®¡ç®—ç»“æŸï¼Œè°ƒç”¨è‡ªèº«ææ„å‡½æ•°å»é‡Šæ”¾
 	vector<RasterLayer<elemType>* > vTemp;
 	vTemp.swap(_pDataLayers);
 }
@@ -89,12 +89,12 @@ inline vector<GPRO::RasterLayer<elemType>* >* GPRO::ComputLayer<elemType>::
 template <class elemType>
 bool GPRO::ComputLayer<elemType>::
 newMetaData( const MetaData& rhs, int compuSize ){
-		//_pMetaData = new MetaData();	//VSÕâÑùµÄ·½Ê½Í¨¹ı£¬¶øgc++²»ÔÊĞíÖ±½ÓÊ¹ÓÃÀ´×Ô»ùÀà²¿·ÖµÄÊı¾İ³ÉÔ±
+		//_pMetaData = new MetaData();	//VSè¿™æ ·çš„æ–¹å¼é€šè¿‡ï¼Œè€Œgc++ä¸å…è®¸ç›´æ¥ä½¿ç”¨æ¥è‡ªåŸºç±»éƒ¨åˆ†çš„æ•°æ®æˆå‘˜
 		RasterLayer<elemType>::_pMetaData = new MetaData();
-		MetaData* &pMetaData = RasterLayer<elemType>::_pMetaData;	//Ö¸ÕëµÄÒıÓÃ£¬Ö»ÊÇÎªÁË¼ò»¯ÊéĞ´,ÇÒÓÃ±ÏÎŞĞèÊÍ·Å
+		MetaData* &pMetaData = RasterLayer<elemType>::_pMetaData;	//æŒ‡é’ˆçš„å¼•ç”¨ï¼Œåªæ˜¯ä¸ºäº†ç®€åŒ–ä¹¦å†™,ä¸”ç”¨æ¯•æ— éœ€é‡Šæ”¾
 
 		pMetaData->cellSize = rhs.cellSize * compuSize;
-		pMetaData->row = rhs._localworkBR.nRows() / compuSize;	//ÕâÀïµÄÔªÊı¾İ¶¼ĞèÒª¸ù¾İÁ£¶È»»Ëã
+		pMetaData->row = rhs._localworkBR.nRows() / compuSize;	//è¿™é‡Œçš„å…ƒæ•°æ®éƒ½éœ€è¦æ ¹æ®ç²’åº¦æ¢ç®—
 		pMetaData->row += (rhs._localworkBR.nRows() % compuSize) ? 1 : 0;
 		pMetaData->column = rhs._localworkBR.nCols() / compuSize;
 		pMetaData->column += (rhs._localworkBR.nCols() % compuSize) ? 1 : 0;
@@ -103,15 +103,15 @@ newMetaData( const MetaData& rhs, int compuSize ){
 		pMetaData->noData = rhs.noData;
 		pMetaData->myrank = rhs.myrank;
 		//pMetaData->processor_number = rhs.processor_number;
-		pMetaData->processor_number = 0;	//Ä¿Ç°Ö»ÊÇ´®ĞĞ¹¹½¨
-		pMetaData->_domDcmpType = rhs._domDcmpType;	//¼ÆËãÓòµÄ»®·Ö·½Ê½Î´±ØÓëÊı¾İÓòÏàÍ¬;Ä¿Ç°ÊÇ´®ĞĞµÄ
+		pMetaData->processor_number = 0;	//ç›®å‰åªæ˜¯ä¸²è¡Œæ„å»º
+		pMetaData->_domDcmpType = rhs._domDcmpType;	//è®¡ç®—åŸŸçš„åˆ’åˆ†æ–¹å¼æœªå¿…ä¸æ•°æ®åŸŸç›¸åŒ;ç›®å‰æ˜¯ä¸²è¡Œçš„
 		SpaceDims sdim(pMetaData->row, pMetaData->column);
 		pMetaData->_glbDims = sdim;
 		if( pMetaData->_domDcmpType == NON_DCMP ){
 			CoordBR _glbWorkBR;
 			//Neighborhood<elemType>* &pNbrhood = RasterLayer<elemType>::_pNbrhood;
-			RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims );	//¸ù¾İ¼ÆËãÓòµÄÁÚÓò·¶Î§È¥Çó¼ÆËã¿Õ¼ä
-			//¼ÆËãÓòÕâÀïÒ²Ö»´¦Àí¡°Êı¾İ·¶Î§-ÁÚÓò·¶Î§¡±µÄ·¶Î§
+			RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims );	//æ ¹æ®è®¡ç®—åŸŸçš„é‚»åŸŸèŒƒå›´å»æ±‚è®¡ç®—ç©ºé—´
+			//è®¡ç®—åŸŸè¿™é‡Œä¹Ÿåªå¤„ç†â€œæ•°æ®èŒƒå›´-é‚»åŸŸèŒƒå›´â€çš„èŒƒå›´
 			pMetaData->_localworkBR = _glbWorkBR;
 			//cout<<"comptLayer L113 "<<*(RasterLayer<elemType>::_pNbrhood)<<endl;
 			//int glbBegin = _glbWorkBR.nwCorner().iRow();
@@ -138,22 +138,22 @@ newMetaData( const MetaData& rhs, int compuSize ){
 		{
 			pMetaData->pTransform[i] = rhs.pTransform[i];
 		}
-		pMetaData->pTransform[0] += rhs._localworkBR.minICol()*rhs.cellSize;//¼ÆËãÓò×óÉÏ½Ç×ø±êÊÇ¹¤×÷¿Õ¼ä·¶Î§¿ªÊ¼µÄ
+		pMetaData->pTransform[0] += rhs._localworkBR.minICol()*rhs.cellSize;//è®¡ç®—åŸŸå·¦ä¸Šè§’åæ ‡æ˜¯å·¥ä½œç©ºé—´èŒƒå›´å¼€å§‹çš„
 		pMetaData->pTransform[3] -= rhs._localworkBR.minIRow()*rhs.cellSize;
-		pMetaData->pTransform[1] *= compuSize;//¶«Î÷¡¢ÄÏ±±·½ÏòÒ»¸öÏñËØ¶ÔÓ¦µÄ¾àÀë£¬Ğè¸üĞÂ
+		pMetaData->pTransform[1] *= compuSize;//ä¸œè¥¿ã€å—åŒ—æ–¹å‘ä¸€ä¸ªåƒç´ å¯¹åº”çš„è·ç¦»ï¼Œéœ€æ›´æ–°
 		pMetaData->pTransform[5] *= compuSize;
 
 		//newCellSpace(pMetaData->_localdims,pMetaData->noData); //allocate
-		RasterLayer<elemType>::newCellSpace(pMetaData->_localdims,0); //allocate,¼ÆËãÓòÕ¤¸ñÖµ³õÊ¼»¯Îª0
+		RasterLayer<elemType>::newCellSpace(pMetaData->_localdims,0); //allocate,è®¡ç®—åŸŸæ …æ ¼å€¼åˆå§‹åŒ–ä¸º0
 
 		return true;
 }
 
-//ÓÃ»§½Ó¿Úº¯Êı£¬¿É¿¼ÂÇµ¥Ğ´Ò»¸ötransformationÀàÀ´¼Ì³Ğ£¬½µµÍÓÃ»§µÄÒÑÖªĞÅÏ¢Á¿£¬¾¡Á¿Í¸Ã÷
+//ç”¨æˆ·æ¥å£å‡½æ•°ï¼Œå¯è€ƒè™‘å•å†™ä¸€ä¸ªtransformationç±»æ¥ç»§æ‰¿ï¼Œé™ä½ç”¨æˆ·çš„å·²çŸ¥ä¿¡æ¯é‡ï¼Œå°½é‡é€æ˜
 template <class elemType>
 bool GPRO::ComputLayer<elemType>::
 transformation(){
-	//ÕâÀïĞ´¼ÆËãÇ¿¶Èº¯Êı£¬Çó½â¼ÆËãÓòÍ¼²ãÕ¤¸ñÖµ
+	//è¿™é‡Œå†™è®¡ç®—å¼ºåº¦å‡½æ•°ï¼Œæ±‚è§£è®¡ç®—åŸŸå›¾å±‚æ …æ ¼å€¼
 	//cout<<RasterLayer<elemType>::_pMetaData->_localworkBR<<endl;
 	CoordBR &workBR = RasterLayer<elemType>::_pMetaData->_localworkBR;
 	//cout<<"L159 done"<<workBR.minIRow()<<" "<<workBR.maxIRow()<<" "<<workBR.minICol()<<" "<<workBR.maxICol()<<endl;
@@ -161,7 +161,7 @@ transformation(){
 	CellSpace<elemType> &dataL = *(_pDataLayers[0]->cellSpace());
 	double dataNoData = _pDataLayers[0]->_pMetaData->noData;
 	int computSize = RasterLayer<elemType>::_pMetaData->cellSize / _pDataLayers[0]->_pMetaData->cellSize;
-	//¼ÆËãÓòÍ¼²ã²»´æÔÚ¿ÕÖµ£¬Ö»ÓĞ0Öµ
+	//è®¡ç®—åŸŸå›¾å±‚ä¸å­˜åœ¨ç©ºå€¼ï¼Œåªæœ‰0å€¼
 	//cout<<dataNoData<<endl;
 	//dataNoData = -9999;
 	int maxDRow = _pDataLayers[0]->_pMetaData->row;
@@ -174,13 +174,13 @@ transformation(){
 		for(int cCol = workBR.minICol(); cCol <= workBR.maxICol(); cCol++) 
 		{
 			//cout<<computL[cRow][cCol]<<endl;
-			//ÒÔ±¾¼ÆËãÓòcellÄÚÓĞĞ§Êı¾İÁ¿Îª¸ºÔØ¼ÆËã
+			//ä»¥æœ¬è®¡ç®—åŸŸcellå†…æœ‰æ•ˆæ•°æ®é‡ä¸ºè´Ÿè½½è®¡ç®—
 			for( int dRow = cRow*computSize+glbBeginRow; dRow < (cRow+1)*computSize+glbBeginRow; ++dRow ){
 				for( int dCol = cCol*computSize+glbBeginCol; dCol < (cCol+1)*computSize+glbBeginCol; ++dCol ){
 					if( dRow > maxDRow-1 || dCol > maxDCol-1 ){
 						continue;
 					}else{
-						if( fabs(dataL[dRow][dCol] - dataNoData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){	//9999ÊÇÕë¶ÔÎÒÃÇµÄ²âÊÔÊı¾İ¶ø¶àĞ´µÄ£¬ÆäÊµÃ»±ØÒª£¬ÊôÓÚÊı¾İÎÊÌâ£¬²»ÊôÓÚ³ÌĞòÎÊÌâ
+						if( fabs(dataL[dRow][dCol] - dataNoData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){	//9999æ˜¯é’ˆå¯¹æˆ‘ä»¬çš„æµ‹è¯•æ•°æ®è€Œå¤šå†™çš„ï¼Œå…¶å®æ²¡å¿…è¦ï¼Œå±äºæ•°æ®é—®é¢˜ï¼Œä¸å±äºç¨‹åºé—®é¢˜
 							computL[cRow][cCol] += 10;
 						}else{
 							computL[cRow][cCol] += 1;
@@ -197,23 +197,23 @@ template <class elemType>
 bool GPRO::ComputLayer<elemType>::
 getCompuLoad( int* pDcmpIdx, DomDcmpType dcmpType, const int computSize, const int nSubSpcs ){
 		vector<CoordBR> vDcmpBR;
-		//¸ù¾İÁÚÓò£¬Ö÷½ø³ÌÏÈ¶Á¼ÆËãÓòËùĞèÍ¼²ãÊı¾İ£¬Çó½â³ö¹¤×÷¿Õ¼ä·¶Î§£¨Êı¾İÍ¼²ãÊÇÓĞÁÚÓò³ÉÔ±µÄ£¬¼ÆËãÓòÍ¼²ãÔİÊ±Ã»ÓĞ»òÓëÆäÒ»ÖÂ£©£¬ÔÙ¸ù¾İÁ£¶È£¬´´½¨¼ÆËãÓòÍ¼²ã£»£¨×Ü·¶Î§Óë×Ü¹¤×÷¿Õ¼ä·¶Î§×óÉÏ¶ÔÆë£¬»ù±¾Ò»ÖÂ£©
-		//µ÷ÓÃÇó½âº¯Êı£¬¼´forÑ­»·compuLayerµÄÃ¿¸öÕ¤¸ñ£¬ÅäºÏÁ£¶ÈÖµ£¬Çó½â³öcompuLayerµÄ¸÷Õ¤¸ñÖµ
-		//´´½¨decomp¶ÔÏó£¬µ÷ÓÃ»®·Öº¯ÊıvalRowDcmp()£¬¸ù¾İcompuLayerÖµ¶ÔÆä½øĞĞ·¶Î§»®·Ö£¬½á¹ûÓÉvector<CoordBR>& ·µ»Ø
-		//¸ù¾İcompuLayerÍ¼²ãµÄ»®·Ö½á¹û£¬Ó³Éäµ½Êı¾İµÄ¹¤×÷¿Õ¼ä·¶Î§£¬·µ»Ø¸øÖ÷º¯ÊıµÄvDcmpIdx
-		//ÏÈ´®ĞĞÇó½â£¬Ö÷½ø³Ì¸üĞÂÁËmetedataºó£¬Í¨ĞÅ¸ø¸÷×Ó½ø³Ì
+		//æ ¹æ®é‚»åŸŸï¼Œä¸»è¿›ç¨‹å…ˆè¯»è®¡ç®—åŸŸæ‰€éœ€å›¾å±‚æ•°æ®ï¼Œæ±‚è§£å‡ºå·¥ä½œç©ºé—´èŒƒå›´ï¼ˆæ•°æ®å›¾å±‚æ˜¯æœ‰é‚»åŸŸæˆå‘˜çš„ï¼Œè®¡ç®—åŸŸå›¾å±‚æš‚æ—¶æ²¡æœ‰æˆ–ä¸å…¶ä¸€è‡´ï¼‰ï¼Œå†æ ¹æ®ç²’åº¦ï¼Œåˆ›å»ºè®¡ç®—åŸŸå›¾å±‚ï¼›ï¼ˆæ€»èŒƒå›´ä¸æ€»å·¥ä½œç©ºé—´èŒƒå›´å·¦ä¸Šå¯¹é½ï¼ŒåŸºæœ¬ä¸€è‡´ï¼‰
+		//è°ƒç”¨æ±‚è§£å‡½æ•°ï¼Œå³forå¾ªç¯compuLayerçš„æ¯ä¸ªæ …æ ¼ï¼Œé…åˆç²’åº¦å€¼ï¼Œæ±‚è§£å‡ºcompuLayerçš„å„æ …æ ¼å€¼
+		//åˆ›å»ºdecompå¯¹è±¡ï¼Œè°ƒç”¨åˆ’åˆ†å‡½æ•°valRowDcmp()ï¼Œæ ¹æ®compuLayerå€¼å¯¹å…¶è¿›è¡ŒèŒƒå›´åˆ’åˆ†ï¼Œç»“æœç”±vector<CoordBR>& è¿”å›
+		//æ ¹æ®compuLayerå›¾å±‚çš„åˆ’åˆ†ç»“æœï¼Œæ˜ å°„åˆ°æ•°æ®çš„å·¥ä½œç©ºé—´èŒƒå›´ï¼Œè¿”å›ç»™ä¸»å‡½æ•°çš„vDcmpIdx
+		//å…ˆä¸²è¡Œæ±‚è§£ï¼Œä¸»è¿›ç¨‹æ›´æ–°äº†metedataåï¼Œé€šä¿¡ç»™å„å­è¿›ç¨‹
 		if( _pDataLayers.empty() ){
 			return false;
 		}
 
-		newMetaData( *(_pDataLayers[0]->_pMetaData), computSize );	//³õÊ¼»¯ÁË»ùÀàrasterLayer²¿·ÖÊı¾İ³ÉÔ±
+		newMetaData( *(_pDataLayers[0]->_pMetaData), computSize );	//åˆå§‹åŒ–äº†åŸºç±»rasterLayeréƒ¨åˆ†æ•°æ®æˆå‘˜
 		//cout<<"L207 done"<<RasterLayer<elemType>::_pMetaData->cellSize<<" "<<RasterLayer<elemType>::_pMetaData->row<<" "<<RasterLayer<elemType>::_pMetaData->column<<endl;
-		//comptLayer¸²¸ÇµÄ·¶Î§Ö»ÓĞmetaLayerµÄglbWorkBR·¶Î§
-		transformation();	//Çó½âcomputLayer._pCellSpaceÊı¾İ³ÉÔ±
-		vector<CoordBR> vComptDcmpBR;	//´ı¸ÄÃûÎªvComptDcmpBR
+		//comptLayerè¦†ç›–çš„èŒƒå›´åªæœ‰metaLayerçš„glbWorkBRèŒƒå›´
+		transformation();	//æ±‚è§£computLayer._pCellSpaceæ•°æ®æˆå‘˜
+		vector<CoordBR> vComptDcmpBR;	//å¾…æ”¹åä¸ºvComptDcmpBR
 		DeComposition<elemType> deComp(RasterLayer<elemType>::_pMetaData->_glbDims, *(RasterLayer<elemType>::_pNbrhood));
 		if( dcmpType == ROWWISE_DCMP ){
-			deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs);	//°´Öµ»®·Ö£¬¹ÊĞèÒªÍ¼²ãÎª²ÎÊı;»®·Ö½á¹û»áÒÔÒıÓÃ´«»Ø¸øvComptDcmpBR
+			deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs);	//æŒ‰å€¼åˆ’åˆ†ï¼Œæ•…éœ€è¦å›¾å±‚ä¸ºå‚æ•°;åˆ’åˆ†ç»“æœä¼šä»¥å¼•ç”¨ä¼ å›ç»™vComptDcmpBR
 			_pDataLayers[0]->_pMetaData->_domDcmpType = ROWWISE_DCMP;
 		}else{
 			cerr<<"not support until now."<<endl;
@@ -221,10 +221,10 @@ getCompuLoad( int* pDcmpIdx, DomDcmpType dcmpType, const int computSize, const i
 		//for( vector<CoordBR>::iterator iter = vComptDcmpBR.begin(); iter!=vComptDcmpBR.end(); ++iter ){
 		//	cout<<*iter<<endl;
 		//}
-		//½«»®·Ö½á¹ûÓ³Éä¸øÊı¾İ¿Õ¼äµÄ×Ó·¶Î§
+		//å°†åˆ’åˆ†ç»“æœæ˜ å°„ç»™æ•°æ®ç©ºé—´çš„å­èŒƒå›´
 		CoordBR _glbWorkBR;
 		Neighborhood<elemType> *pDataNbrhood = _pDataLayers[0]->nbrhood();
-		pDataNbrhood->calcWorkBR( _glbWorkBR, _pDataLayers[0]->_pMetaData->_glbDims );	//Êı¾İÍ¼²ãµÄÈ«¾Ö¹¤×÷¿Õ¼ä
+		pDataNbrhood->calcWorkBR( _glbWorkBR, _pDataLayers[0]->_pMetaData->_glbDims );	//æ•°æ®å›¾å±‚çš„å…¨å±€å·¥ä½œç©ºé—´
 		int subBegin = _glbWorkBR.minIRow(), subEnd = _glbWorkBR.minIRow()-1;
 		int i = 0;
 		for( ;i<nSubSpcs-1; ++i ){
@@ -251,9 +251,9 @@ getCompuLoad( int* pDcmpIdx, DomDcmpType dcmpType, const int computSize, const i
 		//for( vector<CoordBR>::iterator iter = vDcmpBR.begin(); iter != vDcmpBR.end(); ++iter ){
 		//	cout<<*iter<<endl;	//it's ok here
 		//}
-		//ÒòÎªÄ¿Ç°MPI²»Ö§³ÖÍ¨ĞÅ×Ô¶¨ÒåÀàĞÍ£¬¹ÊvDcmpIdxÔİÊ±Êµ¼ÊÉÏ²¢Ã»ÓÃ
+		//å› ä¸ºç›®å‰MPIä¸æ”¯æŒé€šä¿¡è‡ªå®šä¹‰ç±»å‹ï¼Œæ•…vDcmpIdxæš‚æ—¶å®é™…ä¸Šå¹¶æ²¡ç”¨
 
-		////²âÊÔÈçºÎ·ÃÎÊ¸÷ÔªÊı¾İ¼°Õ¤¸ñÖµ
+		////æµ‹è¯•å¦‚ä½•è®¿é—®å„å…ƒæ•°æ®åŠæ …æ ¼å€¼
 		//CoordBR* pWorkBR = &(_pMetaData->_localworkBR);
 		//cout<<pWorkBR->minIRow()<<" "<<pWorkBR->maxIRow()<<" "<<pWorkBR->minICol()<<" "<<pWorkBR->maxICol()<<endl;
 		//for(int iRow = pWorkBR->minIRow(); iRow <= pWorkBR->minIRow()+1; iRow++) 
@@ -274,7 +274,7 @@ template <class elemType>
 bool GPRO::ComputLayer<elemType>::
 writeComptFile(const char* outputfile)
 {
-	//Ä¿Ç°½öÖ§³Ö´®ĞĞĞ´³ö
+	//ç›®å‰ä»…æ”¯æŒä¸²è¡Œå†™å‡º
 	GDALAllRegister();
 
 	if(!RasterLayer<elemType>::createFile(outputfile))
@@ -284,7 +284,7 @@ writeComptFile(const char* outputfile)
 	}
 	GDALDataset* poDataset = NULL;
 	poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
-	if( poDataset == NULL /*¼ì²éÊÇ·ñÕı³£´ò¿ªÎÄ¼ş*/)
+	if( poDataset == NULL /*æ£€æŸ¥æ˜¯å¦æ­£å¸¸æ‰“å¼€æ–‡ä»¶*/)
 	{
 		//do something
 		cout<<"data file is not open correct"<<endl;

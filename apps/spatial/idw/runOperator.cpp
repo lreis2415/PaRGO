@@ -53,7 +53,7 @@ bool RUNOperator::Operator(const CellCoord &coord, bool operFlag)
 	}
 
 
-	//这一堆代码只是之前为了测试效率加速，并无实际意义
+	//杩欎竴鍫嗕唬鐮佸彧鏄箣鍓嶄负浜嗘祴璇曟晥鐜囧姞閫燂紝骞舵棤瀹為檯鎰忎箟
 	//if( num==0 ){
 	//	//if( iRow==1 && iCol==1 && _pDEMLayer->_pMetaData->myrank==0 )
 	//	//	cout<<_noData<<endl;
@@ -86,7 +86,7 @@ bool RUNOperator::Operator(const CellCoord &coord, bool operFlag)
 	//			int k = 0;
 	//			int tag=0;
 	//			for( int tmp=0; tmp<20; ++tmp ){
-	//				//这个循环里的内容都只是为了增加单栅格计算代价，没别的含义
+	//				//杩欎釜寰幆閲岀殑鍐呭閮藉彧鏄负浜嗗鍔犲崟鏍呮牸璁＄畻浠ｄ环锛屾病鍒殑鍚箟
 	//				k = 0;
 	//				tag=0;
 	//				for(int i = iRow - iNeighborCells; i <= iRow + iNeighborCells; i++){

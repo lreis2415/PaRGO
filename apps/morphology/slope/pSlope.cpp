@@ -54,9 +54,9 @@ int main(int argc, char *argv[])
 		//threadNUM = atoi(argv[4]);
 	}
 	//omp_set_num_threads(threadNUM);
-	RasterLayer<double> demLayer("demLayer"); //创建图层
-	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
-	demLayer.readFile(inputfilename);  //读取栅格数据
+	RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
+	demLayer.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+	demLayer.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
 
 	RasterLayer<double> slopeLayer("slopeLayer");
 	slopeLayer.copyLayerInfo(demLayer);

@@ -1,7 +1,7 @@
 #include"reliefOperator.h"
 
 
-//Ìí¼ÓÊäÈëÍ¼²ã
+//æ·»åŠ è¾“å…¥å›¾å±‚
 void reliefOperator::
 demLayer(RasterLayer<double> &layerD) 
 {
@@ -13,14 +13,14 @@ demLayer(RasterLayer<double> &layerD)
   Configure(_pDEMLayer, false);
 }
 
-//Ìí¼ÓÊä³öÍ¼²ã
+//æ·»åŠ è¾“å‡ºå›¾å±‚
 void reliefOperator::reliefLayer(RasterLayer<double> &layerD) 
 {
   _pReliefLayer = &layerD;
   Configure(_pReliefLayer,false);
 }
 
-//ÅĞ¶Ïµü´ú
+//åˆ¤æ–­è¿­ä»£
 bool reliefOperator::isTermination()
 {
 	num--;
@@ -34,25 +34,25 @@ bool reliefOperator::isTermination()
 	}
 }
 
-//¼ÆËãÆğ·ü¶ÈµÄËã·¨ÊµÏÖ
+//è®¡ç®—èµ·ä¼åº¦çš„ç®—æ³•å®ç°
 bool reliefOperator::Operator(const CellCoord &coord)
 {
-	CellSpace<double> &dem = *(_pDEMLayer->cellSpace());//ÊäÈëÍ¼²ãµÄÕ¤¸ñÊı¾İ
+	CellSpace<double> &dem = *(_pDEMLayer->cellSpace());//è¾“å…¥å›¾å±‚çš„æ …æ ¼æ•°æ®
 
-	CellSpace<double> &relief = *(_pReliefLayer->cellSpace());//Êä³öÍ¼²ãµÄÕ¤¸ñÊı¾İ
+	CellSpace<double> &relief = *(_pReliefLayer->cellSpace());//è¾“å‡ºå›¾å±‚çš„æ …æ ¼æ•°æ®
 	  
-	Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);//·ÖÎö´°¿Ú
+	Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);//åˆ†æçª—å£
 	
 	int iRow = coord.iRow();
 	int iCol = coord.iCol();
 	
-	double d[9];//´æ·Å3*3ÁÚÓò´°¿Ú
+	double d[9];//å­˜æ”¾3*3é‚»åŸŸçª—å£
 	int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
-	int dCellSize = _pDEMLayer->_pMetaData->cellSize;//DEM¸ñÍø³¤¶È
+	int dCellSize = _pDEMLayer->_pMetaData->cellSize;//DEMæ ¼ç½‘é•¿åº¦
 	int nodata = _pDEMLayer->_pMetaData->noData;
 	int iRow1, iCol1;
 	
-	//´æ´¢·ÖÎö´°¿Ú·¶Î§ÄÚµÄDEMÖµ
+	//å­˜å‚¨åˆ†æçª—å£èŒƒå›´å†…çš„DEMå€¼
 	int k = 0;
 	int tag=0;
 	for(iRow1 = iRow - iNeighborCells; iRow1 <= iRow + iNeighborCells; iRow1++)
@@ -74,7 +74,7 @@ bool reliefOperator::Operator(const CellCoord &coord)
 		}
 		else
 		{
-			//Æğ·ü¶È£¨¸ß²î£©Ëã·¨
+			//èµ·ä¼åº¦ï¼ˆé«˜å·®ï¼‰ç®—æ³•
 			double max,min;
 			max=d[0];	min=d[0];
 			for(int m=1;m<9;m++)

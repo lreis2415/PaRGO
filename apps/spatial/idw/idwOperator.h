@@ -27,7 +27,7 @@ struct extent_info {
 };
 
 struct Sample_block{
-	//CoordBR _MBR;	//ÊÇ·ñĞèÒª´ı¶¨
+	//CoordBR _MBR;	//æ˜¯å¦éœ€è¦å¾…å®š
 	//extent_info blockExtent;
 	vector<Sample_Point> sample_Points;
 };
@@ -40,7 +40,7 @@ public:
 		 _iterNum(0), flag(true), _sample_nums(0)
 		{}
 
-	//±äÁ¿µÄ³õÊ¼»¯
+	//å˜é‡çš„åˆå§‹åŒ–
 	IDWOperator( float cellsize, int nbrPoints, int idw_power, int bufferSize, int grain )
 		:RasterOperator<double>(),
 		_iterNum(0), flag(true), _sample_nums(0), _cellSize(cellsize), _nbrPoints(nbrPoints), _idw_power(idw_power), _idw_buffer(bufferSize), _blockGrain(grain), _noData(NODATA_DEFINE)
@@ -62,23 +62,23 @@ public:
 
 private:
 	float _cellSize;
-	int _xSize, _ySize;	//µ±Ç°½ø³ÌÖĞDEM¿éµÄĞĞÊı
-	int _nRows, _nCols; //ÊäÈëÍ¼²ã×ÜĞĞÊıºÍ×ÜÁĞÊı
+	int _xSize, _ySize;	//å½“å‰è¿›ç¨‹ä¸­DEMå—çš„è¡Œæ•°
+	int _nRows, _nCols; //è¾“å…¥å›¾å±‚æ€»è¡Œæ•°å’Œæ€»åˆ—æ•°
 	double _noData;
 	int _myRank;
-	int _iterNum;//µü´ú´ÎÊı
+	int _iterNum;//è¿­ä»£æ¬¡æ•°
 	bool flag;
 	double starttime, endtime;
 
 protected:
-	int _nbrPoints;	//²åÖµÁÚÓòÑùµãÊı
+	int _nbrPoints;	//æ’å€¼é‚»åŸŸæ ·ç‚¹æ•°
 	int _idw_power;
 	int _idw_buffer;
-	extent_info _glb_extent;	//Ëù¹¹½¨µÄ²åÖµÕ¤¸ñÍ¼²ãÈ«Çø·¶Î§£¬¸ù¾İÑùµãÊı¾İ·¶Î§ÍâÀ©È·¶¨
-	extent_info _sub_extent;	//±¾½ø³ÌÕ¤¸ñ·¶Î§
-	int _sample_nums;	//È«Çø×ÜÑùµãÊıÁ¿
+	extent_info _glb_extent;	//æ‰€æ„å»ºçš„æ’å€¼æ …æ ¼å›¾å±‚å…¨åŒºèŒƒå›´ï¼Œæ ¹æ®æ ·ç‚¹æ•°æ®èŒƒå›´å¤–æ‰©ç¡®å®š
+	extent_info _sub_extent;	//æœ¬è¿›ç¨‹æ …æ ¼èŒƒå›´
+	int _sample_nums;	//å…¨åŒºæ€»æ ·ç‚¹æ•°é‡
 	int _blockGrain;
-	Sample_block* _pSampleBlocks;	//ÒÔ´ÖÍø¸ñ¿é,°´ĞĞ×éÖ¯µÄÑùµã;Ã¿¸ö½ø³Ì¶¼´æÁËÈ«²¿¿é£¬Îö¹¹º¯ÊıÖĞÒªÊÍ·Å£»
+	Sample_block* _pSampleBlocks;	//ä»¥ç²—ç½‘æ ¼å—,æŒ‰è¡Œç»„ç»‡çš„æ ·ç‚¹;æ¯ä¸ªè¿›ç¨‹éƒ½å­˜äº†å…¨éƒ¨å—ï¼Œææ„å‡½æ•°ä¸­è¦é‡Šæ”¾ï¼›
 
 	RasterLayer<double> *_pIDWLayer;
 

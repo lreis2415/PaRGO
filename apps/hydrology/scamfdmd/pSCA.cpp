@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 	}
 	//omp_set_num_threads(threadNUM);
 
-	vector<char *> weightfilenameVec; //ÊäÈëÎÄ¼ş
+	vector<char *> weightfilenameVec; //è¾“å…¥æ–‡ä»¶
 	char* token = strtok(inputfilename,",");
 	char *pathfile;
 	while(NULL != token)
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 		RasterLayer<double> *tmpLayer=new RasterLayer<double>("unnamed");
 		weightLayerVec.push_back(tmpLayer);
 		weightLayerVec[i]->readNeighborhood(neighborfile);
-		weightLayerVec[i]->readFile(weightfilenameVec[i]);  //¶ÁÈ¡·ÖÅä±ÈÍ¼²ã
+		weightLayerVec[i]->readFile(weightfilenameVec[i]);  //è¯»å–åˆ†é…æ¯”å›¾å±‚
 	}
 	
 	RasterLayer<double> scaLayer("scaLayer");

@@ -66,12 +66,12 @@ bool SlopeOperator::Operator(const CellCoord &coord, bool operFlag)
 	}
 	else
 	{
-			//Èı½×·´¾àÀëÆ½·½È¨²î·Ö
+			//ä¸‰é˜¶åè·ç¦»å¹³æ–¹æƒå·®åˆ†
 	double dx = (d[8] + 2*d[5] + d[2] - d[6] -2*d[3] - d[0])/(8.0*cellSize);
 	double dy = (d[2] + 2*d[1] + d[0] - d[6] -2*d[7] - d[8])/(8.0*cellSize);
 
 
-	//Èı½×²»´øÈ¨²î·Ö
+	//ä¸‰é˜¶ä¸å¸¦æƒå·®åˆ†
 	/*double dx = (d[8] + d[5] + d[2] - d[0] - d[3] - d[6])/(6.0*dCellSize);
 	double dy = (d[2] + d[1] + d[0] - d[6] - d[7] - d[6])/(6.0*dCellSize);
 */

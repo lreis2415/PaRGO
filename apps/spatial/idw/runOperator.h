@@ -17,7 +17,7 @@ public:
 	RUNOperator()
 		:RasterOperator<double>(),
 		_pDEMLayer(0), _pPitLayer(0), num(0), flag(true) {}
-	//±äÁ¿µÄ³õÊ¼»¯
+	//å˜é‡çš„åˆå§‹åŒ–
 
 	~RUNOperator() {}
 
@@ -31,11 +31,11 @@ public:
 
 private:
 	int _cellSize;
-	int _xSize, _ySize;	//µ±Ç°½ø³ÌÖĞDEM¿éµÄĞĞÊı
-	int _nRows, _nCols; //ÊäÈëÍ¼²ã×ÜĞĞÊıºÍ×ÜÁĞÊı
+	int _xSize, _ySize;	//å½“å‰è¿›ç¨‹ä¸­DEMå—çš„è¡Œæ•°
+	int _nRows, _nCols; //è¾“å…¥å›¾å±‚æ€»è¡Œæ•°å’Œæ€»åˆ—æ•°
 	double _noData;
 	int _rank;
-	int num;//µü´ú´ÎÊı
+	int num;//è¿­ä»£æ¬¡æ•°
 	bool flag;
 
 	RasterLayer<double> * _pDEMLayer;

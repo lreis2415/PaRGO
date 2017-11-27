@@ -1,7 +1,6 @@
-#include"SCAOperator.h"
-#include "stdio.h"
-#include<cmath>
-#include<iomanip>
+#include "SCAOperator.h"
+
+#include <iomanip>
 
 void SCAOperator::demLayer(RasterLayer<double> &layerD,int kc_meth2,float StepRatio2,int threadNUM2)
 {
@@ -319,12 +318,12 @@ bool SCAOperator::Operator(const CellCoord &coord)
 								//if(fabs(tmpAsp-prevAsp) <= 0.8){
 								//	nextStepL = 1.5*curStepL;
 								//	if(nextStepL/dCellSize > 10){
-								//		nextStepL = dCellSize * 10;	//·ÀÖ¹²½³¤¹ý´ó
+								//		nextStepL = dCellSize * 10;	//ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 								//	}
 								//}else{
 								//	nextStepL = 0.5*curStepL;
 								//	if(nextStepL/dCellSize < 0.1){
-								//		nextStepL = dCellSize * 0.1;	//·ÀÖ¹²½³¤¹ýÐ¡
+								//		nextStepL = dCellSize * 0.1;	//ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡
 								//		cout<<"too short step length for "<<iRow<<" "<<iCol<<" with "<<stepL.size()<<endl;
 								//	}
 								//}
@@ -380,7 +379,7 @@ bool SCAOperator::Operator(const CellCoord &coord)
 									prevAsp = 180.0-57.29578*atan(q/p)+90.0*p/fabs(p);
 								}
 							}
-							//Çóµ±Ç°µãµÄÉÏÓÎµãËùÔÚÕ¤¸ñ¼°Æä¾Ö²¿×ø±ê£¬²½³¤curStepL
+							//ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îµï¿½ï¿½ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ê£¬ï¿½ï¿½ï¿½ï¿½curStepL
 							int upRow,upCol;
 							double upx,upy;
 							upx = curX - curStepL*sin(prevAsp/180.0*3.1415926);

@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 	/*  enum ProgramType{MPI_Type = 0,
 				   MPI_OpenMP_Type,
 				   CUDA_Type};*/
-	Application::START(MPI_Type, argc, argv); //init初始化，选择mpi版本
+	Application::START(MPI_Type, argc, argv); //init鍒濆鍖栵紝閫夋嫨mpi鐗堟湰
 
 	char* inputfilename0;
 	char* inputfilename1;
