@@ -2,18 +2,19 @@
 #  Root CMake file for PaRGO.
 #
 #     Please from the off-tree build directory, invoke:
-#       $ cmake <path/to/PaRGO>
+#       $ cmake -G "<Generator>" <path/to/PaRGO> -DMPI=1 -DOPENMP=1 -DINSTALL_PREFIX=<path/to/install>
 #
 #  Routine testing platforms and compilers include:
-#     1. Windows 10 with Visual Studio 2013, MSMPI-v8, GDAL-1.11.4
-#     2. Windows 10 with mingw64 (GCC-4.9.3), MSMPI-v8, GDAL-1.11.5
+#     1. Windows 10 with Visual Studio 2013, MSMPI-v8.1, GDAL-1.11.4
+#     2. Windows 10 with mingw64 (GCC-4.9.3), MSMPI-v8.1, GDAL-1.11.5
 #     3. CentOS 6.2 (cluster) with GCC-4.8.4, MPICH-3.1.4, GDAL-1.9.0
 #     4. Red Hat Server 6.2 (cluster) with ICC-12.1.0, Intel MPI 4.0, GDAL-1.11.5
 #     5. macOS 10.12.6 with Clang-8.0 (or GCC-4.9.3), OpenMPI-1.10.4, GDAL-1.11.4 (Framework)
 #     TODO: Add CUDA test enviroments.
 #
 #  Created and maintained by Liang-Jun Zhu (zlj@lreis.ac.cn)
-#  Latest updated: Oct. 14, 2017
+#  Latest updated: Dec. 6, 2018
+#  Copyright (C) 2018 Lreis, IGSNRR, CAS
 # ----------------------------------------------------------------------------
 ### Disable in-source builds to prevent source tree corruption.
 IF(" ${CMAKE_SOURCE_DIR}" STREQUAL " ${CMAKE_BINARY_DIR}")
@@ -24,7 +25,8 @@ FATAL: In-source builds are not allowed.
 ENDIF()
 CMAKE_MINIMUM_REQUIRED(VERSION 3.1 FATAL_ERROR)
 PROJECT(PaRGO CXX C)
-
+### PaRGO Version.
+SET(PRJNAME "PaRGO")
 ### Set cmake find path
 set(CMAKE_MODULE_PATH
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake
@@ -44,7 +46,7 @@ IF(CMAKE_GENERATOR MATCHES "Makefiles|Ninja" AND "${CMAKE_BUILD_TYPE}" STREQUAL 
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 ### Allow project folders in MSVC.
-IF(MSVC)
+IF(MSVC OR XCODE)
   SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 ENDIF()
 
@@ -73,10 +75,43 @@ INCLUDE(DetectCXXCompiler)
 
 ### Add standard paths or specified paths for Find libraries and headers.
 INCLUDE(AddFindPaths)
-#STATUS(${CMAKE_PREFIX_PATH})
+
 ### Find packages.
-SET(WITH_GDAL 1)
-INCLUDE(FindPackages)
+### Find MPI which is required
+FIND_PACKAGE(MPI REQUIRED)
+IF(MPI_FOUND)
+  SET(WITH_MPI 1)
+  SET(PRJNAME ${PRJNAME}_MPI)
+  MESSAGE(STATUS "Compiling with MPI...")
+ELSE()
+  MESSAGE(FATAL_ERROR "FATAL: Could not find MPI, which is required!")
+ENDIF()
+### Find OMP which is optional
+IF(WITH_OPENMP)
+    FIND_PACKAGE(OpenMP)
+    IF(OPENMP_FOUND)
+      SET(PRJNAME ${PRJNAME}_OMP)
+      ADD_DEFINITIONS(-DSUPPORT_OMP)
+      INCLUDE(SetFlagOpenMP)
+      MESSAGE(STATUS "Compiling with OpenMP...")
+    ELSE()
+      SET(WITH_OPENMP 0)
+    ENDIF()
+ENDIF()
+### Find GDAL which is required.
+FIND_PACKAGE(GDAL REQUIRED)
+IF (GDAL_FOUND)
+  SET(WITH_GDAL 1)
+  ADD_DEFINITIONS(-DUSE_GDAL)
+  INCLUDE(SetFlagGDAL)
+  geo_include_directories(${GDAL_INCLUDE_DIR})
+  MESSAGE(STATUS "Compiling with GDAL...")
+ELSE()
+  MESSAGE(FATAL_ERROR "FATAL: Could not find GDAL, which is required!")
+ENDIF ()
+
+### Set final project name
+PROJECT(${PRJNAME})
 
 ### Use statically or dynamically linked CRT? Default: dynamic
 IF(MSVC)
