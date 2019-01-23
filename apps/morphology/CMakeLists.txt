@@ -2,15 +2,46 @@
 # relief
 SET(RELIEFDIR ./relief)
 SET(RELIEFFILES ${RELIEFDIR}/reliefOperator.cpp ${RELIEFDIR}/pRelief.cpp ${GPRO_SRCS})
-# slope using ?? algorithm
+# slope 
 SET(SLPDIR ./slope)
 SET(SLPFILES ${SLPDIR}/slopeOperator.cpp ${SLPDIR}/pSlope.cpp ${GPRO_SRCS})
+# slopeFFD 
+SET(SLPFFDDIR ./slopeFFD)
+SET(SLPFFDFILES ${SLPFFDDIR}/slopeOperator.cpp ${SLPFFDDIR}/pSlope.cpp ${GPRO_SRCS})
+# slopeMD
+SET(SLPMDDIR ./slopeMD)
+SET(SLPMDFILES ${SLPMDDIR}/slopeOperator.cpp ${SLPMDDIR}/pSlope.cpp ${GPRO_SRCS})
+# slopeSD 
+SET(SLPSDDIR ./slopeSD)
+SET(SLPSDFILES ${SLPSDDIR}/slopeOperator.cpp ${SLPSDDIR}/pSlope.cpp ${GPRO_SRCS})
+# slopeSFD
+SET(SLPSFDDIR ./slopeSFD)
+SET(SLPSFDFILES ${SLPSFDDIR}/slopeOperator.cpp ${SLPSFDDIR}/pSlope.cpp ${GPRO_SRCS})
+# slopeTFD
+SET(SLPTFDDIR ./slopeTFD)
+SET(SLPTFDFILES ${SLPTFDDIR}/slopeOperator.cpp ${SLPTFDDIR}/pSlope.cpp ${GPRO_SRCS})
+# slopeTFDW
+SET(SLPTFDWDIR ./slopeTFDW)
+SET(SLPTFDWFILES ${SLPTFDWDIR}/slopeOperator.cpp ${SLPTFDWDIR}/pSlope.cpp ${GPRO_SRCS})
 
 ADD_EXECUTABLE(relief ${RELIEFFILES})
 ADD_EXECUTABLE(slope ${SLPFILES})
+ADD_EXECUTABLE(slopeFFD ${SLPFFDFILES})
+ADD_EXECUTABLE(slopeMD ${SLPMDFILES})
+ADD_EXECUTABLE(slopeSD ${SLPSDFILES})
+ADD_EXECUTABLE(slopeSFD ${SLPSFDFILES})
+ADD_EXECUTABLE(slopeTFD ${SLPTFDFILES})
+ADD_EXECUTABLE(slopeTFDW ${SLPTFDWFILES})
+
 
 SET(MORPH_TARGETS relief
                   slope
+				  slopeFFD
+				  slopeMD
+				  slopeSD
+				  slopeSFD
+				  slopeTFD
+				  slopeTFDW
                   )
 
 foreach (c_target ${MORPH_TARGETS})

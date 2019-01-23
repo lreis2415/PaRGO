@@ -1,5 +1,6 @@
 #include"slopeOperator.h"
 
+
 void SlopeOperator::
 demLayer(RasterLayer<double> &layerD) 
 {
@@ -51,7 +52,7 @@ bool SlopeOperator::Operator(const CellCoord &coord, bool operFlag)
 		for(iCol1 = iCol - iNeighborCells; iCol1 <= iCol + iNeighborCells; iCol1++)
 		{
 			d[k] = dem[iRow1][iCol1];
-			if( fabs(d[k]-noData)<Eps )
+			if( fabs(d[k]-noData)<Eps ) 
 			{
 				tag = 1;
 			}
@@ -66,16 +67,11 @@ bool SlopeOperator::Operator(const CellCoord &coord, bool operFlag)
 	}
 	else
 	{
-			//三阶反距离平方权差分
+    //三阶反距离平方权差分（Third-order finite difference weighted by reciprocal of squared distance）
 	double dx = (d[8] + 2*d[5] + d[2] - d[6] -2*d[3] - d[0])/(8.0*cellSize);
 	double dy = (d[2] + 2*d[1] + d[0] - d[6] -2*d[7] - d[8])/(8.0*cellSize);
-
-
-	//三阶不带权差分
-	/*double dx = (d[8] + d[5] + d[2] - d[0] - d[3] - d[6])/(6.0*dCellSize);
-	double dy = (d[2] + d[1] + d[0] - d[6] - d[7] - d[6])/(6.0*dCellSize);
-*/
-	slope[iRow][iCol] = sqrt(dx*dx + dy*dy);
+	
+		slope[iRow][iCol] = sqrt(dx*dx + dy*dy);
 
 	return true;
 
