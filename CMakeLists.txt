@@ -5,16 +5,16 @@
 #       $ cmake -G "<Generator>" <path/to/PaRGO> -DMPI=1 -DOPENMP=1 -DINSTALL_PREFIX=<path/to/install>
 #
 #  Routine testing platforms and compilers include:
-#     1. Windows 10 with Visual Studio 2013, MSMPI-v8.1, GDAL-1.11.4
-#     2. Windows 10 with mingw64 (GCC-4.9.3), MSMPI-v8.1, GDAL-1.11.5
+#     1. Windows 10 with Visual Studio 2010/2013/2015, MSMPI-v8.1, GDAL-1.11.4
+#     2. Windows 10 with msys2/mingw64 (GCC-9.1.0), MSMPI-v8.1, GDAL-3.0
 #     3. CentOS 6.2 (cluster) with GCC-4.8.4, MPICH-3.1.4, GDAL-1.9.0
 #     4. Red Hat Server 6.2 (cluster) with ICC-12.1.0, Intel MPI 4.0, GDAL-1.11.5
 #     5. macOS 10.12.6 with Clang-8.0 (or GCC-4.9.3), OpenMPI-1.10.4, GDAL-1.11.4 (Framework)
 #     TODO: Add CUDA test enviroments.
 #
 #  Created and maintained by Liang-Jun Zhu (zlj@lreis.ac.cn)
-#  Latest updated: Dec. 6, 2018
-#  Copyright (C) 2018 Lreis, IGSNRR, CAS
+#  Latest updated: Jul. 18, 2019
+#  Copyright (C) 2018-2019 Lreis, IGSNRR, CAS
 # ----------------------------------------------------------------------------
 ### Disable in-source builds to prevent source tree corruption.
 IF(" ${CMAKE_SOURCE_DIR}" STREQUAL " ${CMAKE_BINARY_DIR}")
@@ -24,6 +24,16 @@ FATAL: In-source builds are not allowed.
 )
 ENDIF()
 CMAKE_MINIMUM_REQUIRED(VERSION 3.1 FATAL_ERROR)
+if(POLICY CMP0015)
+  cmake_policy(SET CMP0015 NEW)
+endif()
+if(POLICY CMP0054)
+  cmake_policy(SET CMP0054 NEW)
+endif()
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 NEW)
+endif()
+
 PROJECT(PaRGO CXX C)
 ### PaRGO Version.
 SET(PRJNAME "PaRGO")
@@ -45,10 +55,26 @@ SET(INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
 IF(CMAKE_GENERATOR MATCHES "Makefiles|Ninja" AND "${CMAKE_BUILD_TYPE}" STREQUAL "")
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
-### Allow project folders in MSVC.
+
+### Allow project folders in MSVC or XCODE.
 IF(MSVC OR XCODE)
   SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 ENDIF()
+
+### OS platform.
+if (WIN32)
+  add_definitions(-Dwindows)
+  if (MSVC)
+    add_definitions(-DMSVC)
+  endif ()
+elseif (APPLE)
+  add_definitions(-Dmacos)
+  if (XCODE)
+    add_definitions(-DXCODE)
+  endif ()
+else ()
+  add_definitions(-Dlinux)
+endif ()
 
 ### Break in case of popular CMake configuration mistakes.
 IF(NOT CMAKE_SIZEOF_VOID_P GREATER 0)
@@ -122,7 +148,7 @@ SET(GPRO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gpro)
 SET(APPS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/apps)
 
 # GPRO source code
-SET(GPRO_SRCS ${GPRO_DIR}/application.cpp)
+FILE(GLOB GPRO_SRCS ${GPRO_DIR}/*.cpp ${GPRO_DIR}/*.h)
 # Adds include directories in such a way that directories from the TauDEM source tree go first.
 geo_include_directories(${GPRO_DIR} ${GDAL_INCLUDE_DIR} ${MPI_INCLUDE_PATH})
 ADD_SUBDIRECTORY(${APPS_DIR})

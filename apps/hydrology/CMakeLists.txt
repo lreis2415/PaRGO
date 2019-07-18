@@ -1,25 +1,31 @@
 ### Set each program separatly.
-# Remove pit and falt
-SET(PITREMDIR ./pitremove)
-SET(PITREMFILES ${PITREMDIR}/pitRemoveOperator.cpp ${PITREMDIR}/pPitRemove.cpp ${GPRO_SRCS})
+# Remove pit and flat
+FILE(GLOB PITREMFILES ./pitremove/*.cpp)
+SET(PITREMFILES ${PITREMFILES} ${GPRO_SRCS})
+
 # Single flow direction D8
-SET(D8DIR ./flowdird8)
-SET(D8FILES ${D8DIR}/d8Operator.cpp ${D8DIR}/pD8.cpp ${GPRO_SRCS})
+FILE(GLOB D8FILES ./flowdird8/*.cpp)
+SET(D8FILES ${D8FILES} ${GPRO_SRCS})
+
 # Multi-flow direction MFD-md
-SET(MFDMDDIR ./flowdirmfdmd)
-SET(MFDMDFILES ${MFDMDDIR}/mfdOperator.cpp ${MFDMDDIR}/pMFDmd.cpp ${GPRO_SRCS})
+FILE(GLOB MFDMDFILES ./flowdirmfdmd/*.cpp)
+SET(MFDMDFILES ${MFDMDFILES} ${GPRO_SRCS})
+
 # SCA D8
-SET(SCAD8DIR ./scad8)
-SET(SCAD8FILES ${SCAD8DIR}/scaOperator.cpp ${SCAD8DIR}/pSCA.cpp ${GPRO_SRCS})
+FILE(GLOB SCAD8FILES ./scad8/*.cpp)
+SET(SCAD8FILES ${SCAD8FILES} ${GPRO_SRCS})
+
 # SCA Differential
-SET(SCADIFFERDIR ./scadiffer)
-SET(SCADIFFERFILES ${SCADIFFERDIR}/SCAOperator.cpp ${SCADIFFERDIR}/pSCA.cpp ${GPRO_SRCS})
+FILE(GLOB SCADIFFERFILES ./scadiffer/*.cpp)
+SET(SCADIFFERFILES ${SCADIFFERFILES} ${GPRO_SRCS})
+
 # SCA MFD-md
-SET(SCAMFDMDDIR ./scamfdmd)
-SET(SCAMFDMDFILES ${SCAMFDMDDIR}/scaOperator.cpp ${SCAMFDMDDIR}/pSCA.cpp ${GPRO_SRCS})
-# TWI ?? algorithm
-SET(TWIDIR ./twi)
-SET(TWIFILES ${TWIDIR}/TWIOperator.cpp ${TWIDIR}/pTWI.cpp ${GPRO_SRCS})
+FILE(GLOB SCAMFDMDFILES ./scamfdmd/*.cpp)
+SET(SCAMFDMDFILES ${SCAMFDMDFILES} ${GPRO_SRCS})
+
+# TWI algorithm
+FILE(GLOB TWIFILES ./twi/*.cpp)
+SET(TWIFILES ${TWIFILES} ${GPRO_SRCS})
 
 ADD_EXECUTABLE(pitremove ${PITREMFILES})
 ADD_EXECUTABLE(flowdird8 ${D8FILES})
