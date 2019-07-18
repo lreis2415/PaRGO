@@ -21,14 +21,7 @@ void D8Operator::d8Layer(RasterLayer<double> &layerD)
 bool D8Operator::isTermination()
 {
 	num--;
-	if(num > 0)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+    return num > 0;
 }
 
 

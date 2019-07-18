@@ -19,6 +19,8 @@
 #include <sstream>
 #include <omp.h>
 #include "mpi.h"
+
+#include "utility.h"
 #include "neighborhood.h"
 #include "cellSpace.h"
 #include "basicTypes.h"
@@ -39,7 +41,7 @@ int main(int argc, char *argv[])
 				   Serial_Type};*/
 	Application::START(MPI_Type, argc, argv); //init
 
-	char* inputfilename;
+	string inputfilename;
 	char* neighborfile;
 	char* outputfilename;
 	//int threadNUM;
@@ -54,22 +56,15 @@ int main(int argc, char *argv[])
 	}
 	//omp_set_num_threads(threadNUM);
 
-	vector<char *> weightfilenameVec; //输入文件
-	char* token = strtok(inputfilename,",");
-	char *pathfile;
-	while(NULL != token)
-	{
-		pathfile=token;
-		weightfilenameVec.push_back(pathfile);
-		token=strtok(NULL,",");
-	}
+    vector<string> weightfilenameVec = SplitString(inputfilename, ',');
+
 	vector<RasterLayer<double> *> weightLayerVec;
 	for(int i=0; i<8; i++)
 	{
 		RasterLayer<double> *tmpLayer=new RasterLayer<double>("unnamed");
 		weightLayerVec.push_back(tmpLayer);
 		weightLayerVec[i]->readNeighborhood(neighborfile);
-		weightLayerVec[i]->readFile(weightfilenameVec[i]);  //读取分配比图层
+		weightLayerVec[i]->readFile(weightfilenameVec[i].c_str());  //读取分配比图层
 	}
 	
 	RasterLayer<double> scaLayer("scaLayer");

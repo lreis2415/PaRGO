@@ -16,6 +16,7 @@
 * 
 ****************************************************************************/
 
+#include "utility.h"
 #include "basicTypes.h"
 #include "basicCell.h"
 #include "metaData.h"
@@ -41,14 +42,14 @@ namespace GPRO
   {
     public:
       RasterOperator()
-        :_pCellSpace(NULL),
-         _pNbrhood(NULL),
-		 pWorkBR(NULL),
+        :_pCellSpace(nullptr),
+         _pNbrhood(nullptr),
+		 pWorkBR(nullptr),
 		 comm(false),
 		 Termination(true)
          {}
 
-      virtual ~RasterOperator() {}
+      virtual ~RasterOperator() DEFAULT;
 
       virtual bool Operator(const CellCoord &coord,bool operFlag) {return operFlag;}
 
@@ -73,7 +74,7 @@ template <class elemType>
 bool GPRO::RasterOperator<elemType>::
 Configure(RasterLayer<elemType>* pLayer, bool isCommunication)
 {
-	if(pWorkBR == NULL)
+	if(pWorkBR == nullptr)
 	{
 		pWorkBR = &pLayer->_pMetaData->_localworkBR;
 	}
@@ -81,7 +82,7 @@ Configure(RasterLayer<elemType>* pLayer, bool isCommunication)
 	{
 		CommVec.push_back( pLayer );
 		//cout<<"_pCommVec->size is "<<endl;
-		if(comm == false)
+		if(!comm)
 		{
 			comm = true;
 		}
@@ -162,7 +163,7 @@ Work(const CoordBR *const pWBR)
 					CellCoord coord(iRow, iCol);
 					if(!Operator(coord,true)) 
 					{
-						cout<<"Operator is not sucessess!"<<endl;
+						cout<<"Operator is not successes!"<<endl;
 						flag = false;
 						break;
 					}    

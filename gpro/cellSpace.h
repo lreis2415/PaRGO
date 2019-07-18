@@ -90,12 +90,12 @@ namespace GPRO
       }
 
       virtual bool evaluate(vector<pair<int, elemType> > &vUpdtedCells,
-                            const CellCoord &coord) {}
+                            const CellCoord &coord) { return true; }
 
       virtual bool finalize(const elemType &val,
-                            const CellCoord &coord) {}
+                            const CellCoord &coord) { return true; }
 
-      virtual int workload(const CoordBR &workBR) {}
+//      virtual int workload(const CoordBR &workBR) {}  // Currently not used? by ljzhu
 
     protected:
       CellSpace<elemType> *_pCellSpace;
@@ -382,7 +382,7 @@ operator>>(istream &is,
 //	}
 //	GDALDataset* poDataset = NULL;
 //	poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
-//	if( poDataset == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/)
+//	if( poDataset == NULL /*ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½*/)
 //	{
 //		//do something
 //		cout<<"data file is not open correct"<<endl;
@@ -419,7 +419,7 @@ operator>>(istream &is,
 //	//cout<<inputfile<<endl;
 //	GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
 //	//GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
-//	if( poDatasetsrc == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/)
+//	if( poDatasetsrc == NULL /*ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½*/)
 //	{
 //		//do something
 //		cout<<"[ERROR] data file is not open correct"<<endl;
