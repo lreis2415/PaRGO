@@ -97,7 +97,7 @@ bool SlopeOperator::Operator(const CellCoord& coord, bool operFlag) {
                 if (max_diff < d[4] - dem[tmpr][tmpc]) {
                     max_diff = d[4] - dem[tmpr][tmpc];
                 }
-                hori_dist = cellSize * sqrt((tmpr - iRow) * (tmpr - iRow) + (tmpc - iCol) * (tmpc - iCol));
+                hori_dist = cellSize * sqrt(double((tmpr - iRow) * (tmpr - iRow) + (tmpc - iCol) * (tmpc - iCol)));
             }
         }
         slope[iRow][iCol] = max_diff / hori_dist;
