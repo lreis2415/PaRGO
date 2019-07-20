@@ -606,8 +606,8 @@ readFile(const char* inputfile)
 		exit(1);
 	}
 
-	
-	poDatasetsrc->GetGeoTransform(_pMetaData->pTransform);
+    CPLErr result = CE_None;
+    result = poDatasetsrc->GetGeoTransform(_pMetaData->pTransform);
 	_pMetaData->projection = poDatasetsrc->GetProjectionRef();
 	GDALRasterBand* poBandsrc = poDatasetsrc->GetRasterBand( 1 );
 
@@ -640,10 +640,10 @@ readFile(const char* inputfile)
 
 	//cout<<"_pMetaData->myrank "<<_pMetaData->myrank<<"  _pMetaData->row "<<_pMetaData->row<<endl;
 	//cout<<"_pMetaData->myrank "<<_pMetaData->myrank<<"  _pMetaData->_MBR.minIRow() "<<_pMetaData->_MBR.minIRow()<<"  _pMetaData->_localdims.nRows()  "<<_pMetaData->_localdims.nRows()<<"  _pNbrhood->minIRow()  "<<_pNbrhood->minIRow()<<endl;
-	
-	poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
 
-	if (poDatasetsrc != NULL)
+    result = poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
+
+	if (result != CE_None)
 	{
 		//
 		//poDatasetsrc->~GDALDataset();
@@ -714,7 +714,8 @@ writeFile(const char* outputfile)
 		MPI_Finalize();
 	}
 	GDALDataset* poDataset = NULL;
-	poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
+    CPLErr result = CE_None;
+    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
 	if( poDataset == NULL /*检查是否正常打开文件*/)
 	{
 		//do something
@@ -730,38 +731,39 @@ writeFile(const char* outputfile)
 	}
 	if(_pMetaData->myrank == 0)
 	{
-		poBanddest->SetNoDataValue(_pMetaData->noData);
+        result = poBanddest->SetNoDataValue(_pMetaData->noData);
 	}
 
 	if(_pMetaData->processor_number == 1)
 	{
 		//cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_glbDims.nCols() "<<_pMetaData->_glbDims.nCols()<<"   _pMetaData->_glbDims.nRows() "<<_pMetaData->_glbDims.nRows()<<endl;
-			
-		poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(),_pMetaData->_glbDims.nRows(), _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(), _pMetaData->dataType, 0, 0);
+
+        result = poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(),_pMetaData->_glbDims.nRows(), _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(), _pMetaData->dataType, 0, 0);
 	}
 	else
 	{
 		if(_pMetaData->myrank == 0)
 		{
 			//cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-		
-			poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
+
+            result = poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
 		}
 		else if(_pMetaData->myrank == ( _pMetaData->processor_number - 1) )
 		{
 			//poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
 			//cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow() "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-			poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow()*_pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
+            result = poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow()*_pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
 			
 		}
 		else
 		{
-			poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow()*_pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(),  _pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1, _pMetaData->dataType, 0, 0);
+            result = poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow()*_pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(),  _pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1, _pMetaData->dataType, 0, 0);
 		}
 	}
-	
-	if (poDataset != NULL)
+
+	if (result != CE_None)
 	{
+        cout << "RaterIO trouble: " << CPLGetLastErrorMsg() << endl;
 		GDALClose((GDALDatasetH)poDataset);
 		poDataset = NULL;
 	}

@@ -1,7 +1,7 @@
 ### Set each program separatly.
 # Inverse Distance Weight for interpolation.
-SET(IDWDIR ./idw)
-SET(IDWFILES ${IDWDIR}/idwOperator.cpp ${IDWDIR}/runOperator.cpp ${IDWDIR}/main.cpp ${GPRO_SRCS})
+FILE(GLOB IDWFILES ./idw/*.cpp)
+SET(IDWFILES ${IDWFILES} ${GPRO_SRCS})
 
 ADD_EXECUTABLE(idw ${IDWFILES})
 

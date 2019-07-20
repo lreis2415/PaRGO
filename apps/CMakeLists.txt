@@ -1,5 +1,5 @@
 # GPRO source code
-SET(GPRO_SRCS ${GPRO_DIR}/application.cpp)
+SET(GPRO_SRCS ${GPRO_SRCS} PARENT_SCOPE)
 # Adds include directories in such a way that directories from the TauDEM source tree go first.
 geo_include_directories(${GPRO_DIR} ${GDAL_INCLUDE_DIR} ${MPI_INCLUDE_PATH})
 
