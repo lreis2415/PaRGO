@@ -52,13 +52,13 @@
 #include <cstring> // strcasecmp in GCC
 
 /// platform
-#if defined windows
+#if defined WINDOWS
 // For MSVC and MINGW64 in Windows OS
 // #define _WINSOCKAPI_    // In order to stop windows.h including winsock.h
 // _WINSOCKAPI_ is defined by <winsock2.h>
 #include <winsock2.h>
 #include <windows.h>
-#endif /* windows */
+#endif /* WINDOWS */
 
 #if defined CPP_GCC
 #include <dirent.h>
@@ -181,11 +181,11 @@
 #endif /* Ignore warnings of GDAL */
 #endif /* USE_GDAL */
 
-#ifdef windows
+#ifdef WINDOWS
 #define SEP             "\\"
 #else
 #define SEP             "/"
-#endif /* windows */
+#endif /* WINDOWS */
 
 /*! Default NoData value for raster data etc. */
 #ifndef NODATA_VALUE
