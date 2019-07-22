@@ -46,7 +46,7 @@ SET(HYDRO_TARGETS pitremove
 
 foreach (c_target ${HYDRO_TARGETS})
     target_link_libraries(${c_target} ${MPI_LIBRARIES} ${GDAL_LIBRARIES})
-    ### Forr Xcode generator, specific LLVM-Clang installed by brew, and add link library of OpenMP explicitly.
+    ### For Xcode generator, specific LLVM-Clang installed by brew, and add link library of OpenMP explicitly.
     IF(XCODE AND LLVM_FOUND)
         TARGET_LINK_LIBRARIES(${c_target} ${OpenMP_LIBRARY})
         SET_TARGET_PROPERTIES(${c_target} PROPERTIES XCODE_ATTRIBUTE_CC ${LLVM_ROOT_DIR}/bin/clang)
