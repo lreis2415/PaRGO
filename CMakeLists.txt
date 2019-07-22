@@ -2,18 +2,22 @@
 #  Root CMake file for PaRGO.
 #
 #     Please from the off-tree build directory, invoke:
-#       $ cmake -G "<Generator>" <path/to/PaRGO> -DMPI=1 -DOPENMP=1 -DINSTALL_PREFIX=<path/to/install>
+#       $ cmake -G "<Generator>" <path/to/PaRGO>
+#
+#       Optional cmake options:
+#         -DINSTALL_PREFIX=<path/to/install>
+#         -DLLVM_ROOT_DIR Specific the root directory of brew installed LLVM, e.g., /usr/local/opt/llvm
 #
 #  Routine testing platforms and compilers include:
 #     1. Windows 10 with Visual Studio 2010/2013/2015, MSMPI-v8.1, GDAL-1.11.4
 #     2. Windows 10 with msys2/mingw64 (GCC-9.1.0), MSMPI-v8.1, GDAL-3.0
 #     3. CentOS 6.2 (cluster) with GCC-4.8.4, MPICH-3.1.4, GDAL-1.9.0
 #     4. Red Hat Server 6.2 (cluster) with ICC-12.1.0, Intel MPI 4.0, GDAL-1.11.5
-#     5. macOS 10.12.6 with Clang-8.0 (or GCC-4.9.3), OpenMPI-1.10.4, GDAL-1.11.4 (Framework)
+#     5. macOS 10.14.5 with Clang-10.0 with Xcode, OpenMPI-4.0.1, GDAL-2.4.2 (brew installed)
 #     TODO: Add CUDA test enviroments.
 #
 #  Created and maintained by Liang-Jun Zhu (zlj@lreis.ac.cn)
-#  Latest updated: Jul. 18, 2019
+#  Latest updated: Jul. 21, 2019
 #  Copyright (C) 2018-2019 Lreis, IGSNRR, CAS
 # ----------------------------------------------------------------------------
 ### Disable in-source builds to prevent source tree corruption.
@@ -34,9 +38,12 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+### Set coding language
 PROJECT(PaRGO CXX C)
-### PaRGO Version.
+
+### PaRGO Project name with configuration.
 SET(PRJNAME "PaRGO")
+
 ### Set cmake find path
 set(CMAKE_MODULE_PATH
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake
@@ -63,18 +70,27 @@ ENDIF()
 
 ### OS platform.
 if (WIN32)
-  add_definitions(-Dwindows)
+  add_definitions(-DWINDOWS)
   if (MSVC)
     add_definitions(-DMSVC)
   endif ()
 elseif (APPLE)
-  add_definitions(-Dmacos)
+  add_definitions(-DMACOSX)
   if (XCODE)
     add_definitions(-DXCODE)
   endif ()
 else ()
-  add_definitions(-Dlinux)
+  add_definitions(-DLINUX)
 endif ()
+
+### Assume built-in pthreads on macOS X
+IF(APPLE)
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_WIN32_THREADS_INIT 0)
+    set(CMAKE_USE_PTHREADS_INIT 1)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+ENDIF()
 
 ### Break in case of popular CMake configuration mistakes.
 IF(NOT CMAKE_SIZEOF_VOID_P GREATER 0)
@@ -83,13 +99,9 @@ IF(NOT CMAKE_SIZEOF_VOID_P GREATER 0)
 )
 ENDIF()
 
-### Set compiling version.
-IF (OPENMP)
-  SET(WITH_OPENMP 1)
-ENDIF()
-IF (MPI)
-  SET(WITH_MPI 1)
-ENDIF()
+### Set compiling version, MPI and OpenMP are required!
+SET(WITH_OPENMP 1)
+SET(WITH_MPI 1)
 IF (CUDA)  # TODO
   SET(WITH_CUDA 1)
 ENDIF()
@@ -112,18 +124,35 @@ IF(MPI_FOUND)
 ELSE()
   MESSAGE(FATAL_ERROR "FATAL: Could not find MPI, which is required!")
 ENDIF()
-### Find OMP which is optional
-IF(WITH_OPENMP)
-    FIND_PACKAGE(OpenMP)
-    IF(OPENMP_FOUND)
-      SET(PRJNAME ${PRJNAME}_OMP)
-      ADD_DEFINITIONS(-DSUPPORT_OMP)
-      INCLUDE(SetFlagOpenMP)
-      MESSAGE(STATUS "Compiling with OpenMP...")
-    ELSE()
-      SET(WITH_OPENMP 0)
-    ENDIF()
+
+### Find OMP which is required
+IF(XCODE)
+  # To use OpenMP in Xcode built by CMake, the recommended way is to 
+  #   install llvm by 'brew install llvm', which has builtin 'libomp'
+  IF (NOT LLVM_ROOT_DIR)
+    SET(LLVM_ROOT_DIR "/usr/local/opt/llvm")
+  ENDIF ()
+  FIND_PACKAGE(LLVM)
+  IF(LLVM_FOUND)
+    geo_include_directories(${LLVM_LIBRARY_DIRS}/clang/${LLVM_VERSION_BASE_STRING}/include)
+	SET(OpenMP_CXX_FLAGS "-fopenmp")
+    SET(OpenMP_C_FLAGS "-fopenmp")
+	FIND_LIBRARY(OpenMP_LIBRARY
+		NAMES "omp"
+		HINTS ${LLVM_LIBRARY_DIRS}) 
+    SET(OPENMP_FOUND 1)
+  ENDIF ()
+ELSE ()  
+  FIND_PACKAGE(OpenMP)
+ENDIF ()
+IF(OPENMP_FOUND)
+  SET(WITH_OPENMP 1)
+  SET(PRJNAME ${PRJNAME}_OMP)
+  ADD_DEFINITIONS(-DSUPPORT_OMP)
+  INCLUDE(SetFlagOpenMP)
+  MESSAGE(STATUS "Compiling with OpenMP...")
 ENDIF()
+
 ### Find GDAL which is required.
 FIND_PACKAGE(GDAL REQUIRED)
 IF (GDAL_FOUND)
