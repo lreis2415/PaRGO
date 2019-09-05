@@ -28,7 +28,7 @@
 #include "basicTypes.h"
 #include "rasterLayer.h"
 #include "application.h"
-#include "reliefOperator.h"
+#include "LEOperator.h"
 #include "communication.h"
 
 
@@ -42,52 +42,59 @@ int main(int argc, char *argv[])
 				   CUDA_Type,
 				   Serial_Type};*/
 	Application::START(MPI_Type, argc, argv); //init
-
 	//...
 	char* inputfilename;
 	char* neighborfile;
 	char* outputfilename;
+	//char* outputfile2name;
 	int threadNUM;
 	if (argc < 6)
 	{
 		inputfilename = argv[1];
 		neighborfile = argv[2]; 
 		outputfilename = argv[3];
-		//threadNUM = atoi(argv[4]);
 	}
-	//omp_set_num_threads(threadNUM);
-	RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
-	demLayer.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
-	demLayer.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
+	RasterLayer<double> demLayer("demLayer"); //创建图层
+	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
+	demLayer.readFile(inputfilename);  //读取栅格数据
 
-	RasterLayer<double> reliefLayer("reliefLayer");
 
-	reliefLayer.copyLayerInfo(demLayer);
-	
+    RasterLayer<double> demLayer2("demLayer2"); //创建图层
+    demLayer2.readNeighborhood(neighborfile);  //读取分析窗口文件
+    demLayer2.readFile(inputfilename);  //读取栅格数据
+
+	RasterLayer<double> LELayer("LELayer");
+
+	LELayer.copyLayerInfo(demLayer);
 
 	double starttime;
 	double endtime;
 
 	MPI_Barrier(MPI_COMM_WORLD);
-	starttime = MPI_Wtime();
-	reliefOperator relOper;
-	
-	//cout<<"SlopeOperator SlpOper;"<<endl;
-	relOper.demLayer(demLayer);
-	
-	relOper.reliefLayer(reliefLayer);
-	
-	//cout<<"SlpOper.slopeLayer(slopeLayer);"<<endl;
-	relOper.Run();
-	
-	MPI_Barrier(MPI_COMM_WORLD);
+    starttime = MPI_Wtime();
+    cout <<"program start:"<< endl;
+	LEOperator LEOper;
+
+	LEOper.demLayer(demLayer);
+	LEOper.LELayer(LELayer);
+
+    for (int i = 0; i < LEOper.GetRowNum() - 2; i++)
+    {
+        LELayer.copyLayerInfo(demLayer2);
+        LEOper.SetCurrentScale(i);
+        LEOper.Run();
+        MPI_Barrier(MPI_COMM_WORLD);
+        string fileNameStr = string(outputfilename);
+        string fileNameAtCurrentScale = fileNameStr.insert(fileNameStr.find_last_of('.'), "_" + std::to_string(i + 1)); // out.tif => out_1.tif
+        MPI_Barrier(MPI_COMM_WORLD);
+        LELayer.writeFile(fileNameAtCurrentScale.data());
+
+        endtime = MPI_Wtime();
+        cout << i << " run time is " << endtime - starttime << endl;
+    }
 
 	endtime = MPI_Wtime();
-
-
-	cout<<"run time is "<<endtime-starttime<<endl;
-	reliefLayer.writeFile(outputfilename);
-	
+	cout<<"total run time is "<<endtime-starttime<<endl;
 	
 	Application::END();
 	return 0;

@@ -23,6 +23,9 @@ SET(SLPFILES ${SLPFILES} ${GPRO_SRCS})
 ## slopeTFDW
 #SET(SLPTFDWDIR ./slopeTFDW)
 #SET(SLPTFDWFILES ${SLPTFDWDIR}/slopeOperator.cpp ${SLPTFDWDIR}/pSlope.cpp ${GPRO_SRCS})
+# multiScaleLE
+FILE(GLOB LEFILES ./MultiScaleLE/*.cpp)
+SET(LEFILES ${LEFILES} ${GPRO_SRCS})
 
 ADD_EXECUTABLE(relief ${RELIEFFILES})
 ADD_EXECUTABLE(slope ${SLPFILES})
@@ -32,7 +35,7 @@ ADD_EXECUTABLE(slope ${SLPFILES})
 #ADD_EXECUTABLE(slopeSFD ${SLPSFDFILES})
 #ADD_EXECUTABLE(slopeTFD ${SLPTFDFILES})
 #ADD_EXECUTABLE(slopeTFDW ${SLPTFDWFILES})
-
+ADD_EXECUTABLE(multiScaleLE ${LEFILES})
 
 SET(MORPH_TARGETS relief
                   slope
@@ -42,6 +45,7 @@ SET(MORPH_TARGETS relief
 #                  slopeSFD
 #                  slopeTFD
 #                  slopeTFDW
+                  multiScaleLE
                   )
 
 foreach (c_target ${MORPH_TARGETS})
