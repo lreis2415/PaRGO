@@ -19,18 +19,15 @@
 #include "basicTypes.h"
 #include "mpi.h"
 
-namespace GPRO
-{
-  class Application 
-  {
+namespace GPRO {
+    class Application {
     public:
-	  static bool START(ProgramType programType, int argc, char *argv[]);
-      static bool END();
+        static bool START( ProgramType programType, int argc, char *argv[] );
+        static bool END();
 
-	public:
-      static ProgramType _programType;
-  };
+    public:
+        static ProgramType _programType;
+    };
 };
-
 
 #endif

@@ -1,4 +1,4 @@
-ï»¿#ifndef RasterLayer_H
+#ifndef RasterLayer_H
 #define RasterLayer_H
 
 /***************************************************************************
@@ -6,13 +6,13 @@
 *
 * Project: GPRO, v 1.0
 * Purpose: Header file for class GPRO::RasterLayer
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
+* Author:  Qin ChengZhi
+* E-mail:  Qincz@lreis.ac.cn
 ****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
+* Copyright (c) 2018. Qin ChengZhi
 * NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
 * purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
+* contacted and a permission is granted.
 * 
 ****************************************************************************/
 
@@ -24,753 +24,1225 @@
 #include <fstream>
 #include <sstream>
 
-#include"mpi.h"
-#include<gdal_priv.h>
+#include "mpi.h"
+#include <gdal_priv.h>
+
 using namespace std;
 
-namespace GPRO
-{
-  template <class elemType>
-  class RasterLayer
-  {
+namespace GPRO {
+    template<class elemType>
+    class RasterLayer {
     public:
-      RasterLayer();
-      RasterLayer(const string RasterLayerName = "Untitled");
-      RasterLayer(const RasterLayer<elemType> &rhs);
-      ~RasterLayer();
+        RasterLayer();
+        RasterLayer( const string layerName );
+        RasterLayer( const RasterLayer<elemType> &rhs );
+        virtual ~RasterLayer();
 
-      RasterLayer<elemType>& operator=(const RasterLayer<elemType> &rhs);
+        RasterLayer<elemType> &operator=( const RasterLayer<elemType> &rhs );
 
-      const string &name() const;
-      void name(const string &RasterLayerName);
-     
-      int id() const;
-      const string title() const;
-     
+        const string &name() const;
+        void name( const string &layerName );
+        unsigned int id() const;
+        void id(const int layerID);
+        const string title() const;
 
-      void cleanCellSpace();
-      void cleanNbrhood();
-      void cleanMetaData();
+        void cleanCellSpace();
+        void cleanNbrhood();
+        void cleanMetaData();
 
-      bool hasCellSpace() const;
-      bool hasNbrhood() const;
-	  bool hasMetaData() const;
+        bool hasCellSpace() const;
+        bool hasNbrhood() const;
+        bool hasMetaData() const;
 
-     
-      bool newCellSpace();
-      bool newCellSpace(const SpaceDims& dims);
-      bool newCellSpace(const SpaceDims& dims,
-                        const elemType &initVal);
-      bool newCellSpace(int nRows, int nCols);
-      bool newCellSpace(int nRows, int nCols,
-                        const elemType &initVal);
+        bool newCellSpace();
+        bool newCellSpace( const SpaceDims &dims );
+        bool newCellSpace( const SpaceDims &dims, const elemType &initVal );
+        bool newCellSpace( int nRows, int nCols );
+        bool newCellSpace( int nRows, int nCols, const elemType &initVal );
 
-      bool newNbrhood();
-      bool newNbrhood(const vector<CellCoord> &vNbrCoords,
-                      double weight = 1.0);
-      bool newNbrhood(const vector<CellCoord> &vNbrCoords,
-                      const vector<double> &vNbrWeights);
-                      
-      template<class elemType2>
-      bool newNbrhood(const Neighborhood<elemType2> &nbr);
+        bool newNbrhood();
+        bool newNbrhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 );
+        bool newNbrhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights );
+        template<class elemType2>
+        bool newNbrhood( const Neighborhood<elemType2> &nbr );
 
-     
+        CellSpace<elemType> *cellSpace();
+        const CellSpace<elemType> *cellSpace() const;
+        Neighborhood<elemType> *nbrhood();
+        const Neighborhood<elemType> *nbrhood() const;
+        MetaData *metaData();
 
-      CellSpace<elemType> *cellSpace();
-      const CellSpace<elemType> *cellSpace() const;
-      Neighborhood<elemType> *nbrhood();
-      const Neighborhood<elemType> *nbrhood() const;
-      MetaData *metaData();
+        GDALDataType getGDALType();
+        MPI_Datatype getMPIType();
 
-	  bool copyLayerInfo(const RasterLayer<elemType> &rhs);
+        //IO function
+        bool readNeighborhood( const char *neighborfile );
+        bool readFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
+        bool readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
+		//Ã¿¸ö½ø³Ì¶¼¶ÁÕû¸öÎÄ¼þ;È«Çø¼ÆËãºÍÖ÷½ø³Ì¹¹½¨¼ÆËãÓòÕâÁ½²½³£ÓÃ£»»òÕß£¬Ö÷½ø³Ì¶ÁÁË£¬È»ºó·¢ËÍ£¿
+        bool serialReadFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
+		//ÉÏÃæÕâ¸ö²»ÊÇ´®ÐÐ¶Á£¬´®ÐÐ¶ÁµÄÒâË¼Ó¦¸ÃÊÇÖ÷½ø³Ì¶ÁÈ»ºó·¢²¼¸ø¸÷½ø³Ì£¬Ã»±ØÒª£»ÉÏÃæÕâ¸öÆäÊµÊÇ¶ÁÈ«Çø£¬ºÏ²¢µ½subWorkBRÄÇÖÖÀàÐÍ
+		//Todo:¸ÄÖ¸¶¨ÐÐÁÐ·¶Î§À´¶Á
 
-	  GDALDataType getType();
-	  MPI_Datatype getMPIType();
-	  //IO function
-	  bool readNeighborhood(const char* neighborfile);
-	  bool readFile(const char* inputfile);
-	  bool writeFile(const char* outputfile);
-	  bool createFile(const char *outputfile);
+		bool copyLayerInfo( const RasterLayer<elemType> &rhs );
 
+		//void col2row( int &subRows, int &lastSubRows );	//°´ÁÐÐ´³öµÄÊý¾ÝÖØ·Ö²¼Îª°´ÐÐÐ´³ö
+		//IO£º´®ÐÐ+ÐÐÁÐ¿é²¢ÐÐ,´ý²¹³ä´®ÐÐµÄIO
+		bool writeFile( const char *outputfile );
+        bool updateMetadata( const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
+        //bool createFileBlock(const char *outputfile);
+        //bool writeFileBlock(const char* outputfile);
+    protected:
+        bool createFile( const char *outputfile );
+        bool rowWriteFile( const char *outputfile );
+        bool colWriteFile( const char *outputfile );
 
-  public:
-	  MetaData* _pMetaData;
+    public:
+        MetaData *_pMetaData;
 
     protected:
-      string _name;
-      CellSpace<elemType> *_pCellSpace; // 
-      Neighborhood<elemType> *_pNbrhood; // 
-	  
-      
-  };
+        string _strLayerName;
+        CellSpace<elemType> *_pCellSpace;
+        Neighborhood<elemType> *_pNbrhood;
+        int _nLayerID;
+    };
 };
 
-template <class elemType>
+template<class elemType>
 inline GPRO::RasterLayer<elemType>::
 RasterLayer()
-  :
-   _name("Untitled"),
-   _pCellSpace(0),
-   _pNbrhood(0)
-   {}
+    :
+    _strLayerName( "Untitled" ),
+    _pCellSpace( 0 ),
+    _pNbrhood( 0 ),
+    _pMetaData( 0 ),
+	_nLayerID(-1) {}
 
-template <class elemType>
+template<class elemType>
 inline GPRO::RasterLayer<elemType>::
-RasterLayer(const string RasterLayerName)
-  :_name(RasterLayerName),
-   _pCellSpace(0),
-   _pNbrhood(0)
-   //_pMetaData(0)
-{
-  
-}
+RasterLayer( const string layerName )
+    :_strLayerName( layerName ),
+     _pCellSpace( 0 ),
+     _pNbrhood( 0 ),
+	 _pMetaData( 0 ),
+	 _nLayerID(-1) {}
 
-
-
-template <class elemType>
+template<class elemType>
 inline GPRO::RasterLayer<elemType>::
-~RasterLayer() 
-{
-  cleanCellSpace();
-  cleanNbrhood();
-  cleanMetaData();
-}
-
-template <class elemType>
-inline GPRO::RasterLayer<elemType>& GPRO::RasterLayer<elemType>::
-operator=(const RasterLayer<elemType> &rhs) 
-{
-  if(this == &rhs)
-  {
-    return *this;
-  }
-  
-  /*
-  if(_name == "Untitled") {
-    _name = rhs._name + "_copy";
-  }
-  */
-  if(rhs._pCellSpace) 
-  {
-    if(_pCellSpace)
-	{
-      *(_pCellSpace) = *(rhs._pCellSpace);
-    }
-    else 
-	{
-      _pCellSpace = new CellSpace<elemType>(*(rhs._pCellSpace));
-    }
-  }
-  else 
-  {
+~RasterLayer() {
     cleanCellSpace();
-  }
-  
-  if(rhs._pNbrhood)
-  {
-    if(_pNbrhood)
-	{
-      *(_pNbrhood) = *(rhs._pNbrhood);
-    }
-    else 
-	{
-      _pNbrhood = new Neighborhood<elemType>(*(rhs._pNbrhood));
-    }
-  }
-  else 
-  {
     cleanNbrhood();
-  }
-
-  return *this;
+    cleanMetaData();
 }
 
-template <class elemType>
-inline const string& GPRO::RasterLayer<elemType>::
-name() const
-{
-  return _name;
+template<class elemType>
+inline GPRO::RasterLayer<elemType> &GPRO::RasterLayer<elemType>::
+operator=( const RasterLayer<elemType> &rhs ) {
+    if ( this == &rhs ) {
+        return *this;
+    }
+
+    //if( NULL != _strLayerName ){
+    if( !_strLayerName.empty() ){
+        _strLayerName = rhs._strLayerName + "_copy";
+    }
+
+	////Todo:LayerIDµÄ¸´ÖÆ
+
+    if ( rhs._pCellSpace ) {
+        if ( _pCellSpace ) {
+			cleanCellSpace();
+            *( _pCellSpace ) = *( rhs._pCellSpace );
+        } else {
+            _pCellSpace = new CellSpace<elemType>( *( rhs._pCellSpace ));
+        }
+    } else {
+        cleanCellSpace();
+    }
+
+    if ( rhs._pNbrhood ) {
+        if ( _pNbrhood ) {
+			cleanNbrhood();
+            *( _pNbrhood ) = *( rhs._pNbrhood );
+        } else {
+            _pNbrhood = new Neighborhood<elemType>( *( rhs._pNbrhood ));
+        }
+    } else {
+        cleanNbrhood();
+    }
+
+    return *this;
 }
 
-template <class elemType>
+template<class elemType>
+inline const string &GPRO::RasterLayer<elemType>::
+name() const {
+    return _strLayerName;
+}
+
+template<class elemType>
 inline void GPRO::RasterLayer<elemType>::
-name(const string &RasterLayerName) 
-{
-  _name = RasterLayerName;
+name( const string &layerName ) {
+    _strLayerName = layerName;
 }
 
-
-
-template <class elemType>
-inline int GPRO::RasterLayer<elemType>::
-id() const 
-{
-  int myID = -1;
-  
-  return myID;
+template<class elemType>
+inline unsigned int GPRO::RasterLayer<elemType>::
+id() const {
+    //int myID = -1;
+    //return myID;
+	return _nLayerID;
 }
 
-template <class elemType>
+template<class elemType>
+inline void GPRO::RasterLayer<elemType>::
+id( const int layerID ) {
+	if( layerID < 0 ){
+		cout << "The layerID should be bigger than zero."<<endl;
+	}
+	_nLayerID = layerID;
+}
+
+template<class elemType>
 inline const string GPRO::RasterLayer<elemType>::
-title() const 
-{
-  ostringstream myTitle;
-  myTitle << _name << id();
-  return myTitle.str();
+title() const {
+    ostringstream myTitle;
+    //myTitle << _strLayerName << id();
+    return myTitle.str();
 }
 
-
-
-template <class elemType>
+template<class elemType>
 void GPRO::RasterLayer<elemType>::
-cleanCellSpace() 
-{
-  if(_pCellSpace) 
-  {
-    delete _pCellSpace;
-    _pCellSpace = 0;
-  }
+cleanCellSpace() {
+    if ( _pCellSpace ) {
+        delete _pCellSpace;
+        _pCellSpace = 0;
+    }
 }
 
-template <class elemType>
+template<class elemType>
 void GPRO::RasterLayer<elemType>::
-cleanNbrhood() 
-{
-  if(_pNbrhood) 
-  {
-    delete _pNbrhood;
-    _pNbrhood = 0;
-  }
+cleanNbrhood() {
+    if ( _pNbrhood ) {
+        delete _pNbrhood;
+        _pNbrhood = 0;
+    }
 }
 
-template <class elemType>
+template<class elemType>
 void GPRO::RasterLayer<elemType>::
-cleanMetaData() 
-{
-  if(_pMetaData) 
-  {
-    delete _pMetaData;
-    _pMetaData = 0;
-  }
-}
-
-template <class elemType>
-bool GPRO::RasterLayer<elemType>::
-hasCellSpace() const
-{
-  bool hasIt = true;
-  if(!_pCellSpace ||
-     _pCellSpace->empty()) 
-  {
-    cerr << __FILE__ << " " << __FUNCTION__ \
-         << " Error: no CellSpace associated with RasterLayer[" \
-         << title() << "]" << endl;
-    hasIt = false;
-  }
-  return hasIt;
-}
-
-template <class elemType>
-bool GPRO::RasterLayer<elemType>::
-hasNbrhood() const 
-{
-  bool hasIt = true;
-  if(!_pNbrhood) 
-  {
-    cerr << __FILE__ << " " << __FUNCTION__ \
-         << " Error: no neighborhood associated with RasterLayer[" \
-         << title() << "]" << endl;
-    hasIt = false;
-  }
-  return hasIt;
+cleanMetaData() {
+    if ( _pMetaData ) {
+        delete _pMetaData;
+        _pMetaData = 0;
+    }
 }
 
 
-
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newCellSpace() 
-{
- 
+hasCellSpace() const {
+    bool hasIt = true;
+    if ( !_pCellSpace || _pCellSpace->empty()) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: no CellSpace associated with RasterLayer[" \
+			 << title() << "]" << endl;
+        hasIt = false;
+    }
+
+    return hasIt;
+}
+
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+hasNbrhood() const {
+    bool hasIt = true;
+    if ( !_pNbrhood ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: no neighborhood associated with RasterLayer[" \
+			 << title() << "]" << endl;
+        hasIt = false;
+    }
+
+    return hasIt;
+}
+
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+hasMetaData() const {
+	bool hasIt = true;
+	if ( !_pMetaData ) {
+		cerr << __FILE__ << " " << __FUNCTION__ \
+			<< " Error: no metaData associated with RasterLayer[" \
+			<< title() << "]" << endl;
+		hasIt = false;
+	}
+
+	return hasIt;
+}
+
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+newCellSpace() {
     cleanCellSpace();
-  
+
     _pCellSpace = new CellSpace<elemType>();
-    if(!_pCellSpace) 
-	{
-      cerr << __FILE__ << " " << __FUNCTION__ \
-           << " Error: unable to new a CellSpace" \
-           << endl;
-      return false;
+    if ( !_pCellSpace ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: unable to new a CellSpace" \
+			 << endl;
+        return false;
     }
-  
-  return true;
+
+    return true;
 }
 
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newCellSpace(const SpaceDims& dims) 
-{
-  
-	cleanCellSpace();
- 
-	_pCellSpace = new CellSpace<elemType>(dims);
-	if(!_pCellSpace) 
-	{
-		cerr << __FILE__ << " " << __FUNCTION__ \
-			<< " Error: unable to new a CellSpace" \
-			<< endl;
-		return false;
-	}
-  
-  return true;
-}
-
-template <class elemType>
-bool GPRO::RasterLayer<elemType>::
-newCellSpace(const SpaceDims& dims,
-             const elemType &initVal) 
-{
- 
+newCellSpace( const SpaceDims &dims ) {
     cleanCellSpace();
-
-    _pCellSpace = new CellSpace<elemType>(dims, initVal);
-    if(!_pCellSpace)
-	{
-		cerr << __FILE__ << " " << __FUNCTION__ \
-			<< " Error: unable to new a CellSpace" \
-			<< endl;
-		return false;
+    _pCellSpace = new CellSpace<elemType>( dims );
+    if ( !_pCellSpace ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+            << " Error: unable to new a CellSpace" \
+            << endl;
+        return false;
     }
-  
-  return true;
+
+    return true;
 }
 
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newCellSpace(int nRows, int nCols)
-{
-  return newCellSpace(SpaceDims(nRows, nCols));
+newCellSpace( const SpaceDims &dims, const elemType &initVal ) {
+    cleanCellSpace();
+    _pCellSpace = new CellSpace<elemType>( dims, initVal );
+    if ( !_pCellSpace ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: unable to new a CellSpace" \
+			 << endl;
+        return false;
+    }
+
+    return true;
 }
 
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newCellSpace(int nRows, int nCols,
-             const elemType &initVal)
-{
-  return newCellSpace(SpaceDims(nRows, nCols), initVal);
+newCellSpace( int nRows, int nCols ) {
+    return newCellSpace( SpaceDims( nRows, nCols ));
 }
 
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newNbrhood() 
-{
-  cleanNbrhood();
-  _pNbrhood = new Neighborhood<elemType>();
-  if(!_pNbrhood) {
-    cerr << __FILE__ << " " << __FUNCTION__ \
-         << " Error: unable to new a Neighborhood on process[" \
-         << title() << "]" << endl;
-    return false;
-  }
-  return true;
+newCellSpace( int nRows, int nCols, const elemType &initVal ) {
+    return newCellSpace( SpaceDims( nRows, nCols ), initVal );
 }
 
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newNbrhood(const vector<CellCoord> &vNbrCoords,
-           double weight) 
-{
- 
-  
-  cleanNbrhood();
-  _pNbrhood = new Neighborhood<elemType>(vNbrCoords, weight);
-  if(!_pNbrhood) {
-    cerr << __FILE__ << " " << __FUNCTION__ \
-         << " Error: unable to new a Neighborhood on process[" \
-         << title() << "]" << endl;
-    return false;
-  }
-  return true;
+newNbrhood() {
+    cleanNbrhood();
+    _pNbrhood = new Neighborhood<elemType>();
+    if ( !_pNbrhood ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: unable to new a Neighborhood on process[" \
+			 << title() << "]" << endl;
+        return false;
+    }
+    
+	return true;
 }
 
-template <class elemType>
-inline GPRO::CellSpace<elemType>* GPRO::RasterLayer<elemType>::
-cellSpace() 
-{
-  return _pCellSpace;
-}
-
-template <class elemType>
-inline const GPRO::CellSpace<elemType>* GPRO::RasterLayer<elemType>::
-cellSpace() const 
-{
-  return _pCellSpace;
-}
-
-template <class elemType>
-inline GPRO::Neighborhood<elemType>* GPRO::RasterLayer<elemType>::
-nbrhood() 
-{
-  return _pNbrhood;
-}
-
-template <class elemType>
-inline const GPRO::Neighborhood<elemType>* GPRO::RasterLayer<elemType>::
-nbrhood() const 
-{
-  return _pNbrhood;
-}
-
-
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newNbrhood(const vector<CellCoord> &vNbrCoords,
-           const vector<double> &vNbrWeights) 
-{
-  
-  
-  cleanNbrhood();
-  _pNbrhood = new Neighborhood<elemType>(vNbrCoords, vNbrWeights);
-  if(!_pNbrhood) 
-  {
-    cerr << __FILE__ << " " << __FUNCTION__ \
-         << " Error: unable to new a Neighborhood on process[" \
-         << title() << "]" << endl;
-    return false;
-  }
-  return true;
+newNbrhood( const vector<CellCoord> &vNbrCoords, double weight ) {
+
+    cleanNbrhood();
+    _pNbrhood = new Neighborhood<elemType>( vNbrCoords, weight );
+    if ( !_pNbrhood ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: unable to new a Neighborhood on process[" \
+			 << title() << "]" << endl;
+        return false;
+    }
+
+    return true;
 }
 
-template<class elemType> template<class elemType2>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-newNbrhood(const Neighborhood<elemType2> &nbr) 
-{
-  
-  cleanNbrhood();
-  _pNbrhood = new Neighborhood<elemType>(nbr);
-  if(!_pNbrhood) 
-  {
-    cerr << __FILE__ << " " << __FUNCTION__ \
-         << " Error: unable to new a Neighborhood on process[" \
-         << title() << "]" << endl;
-    return false;
-  }
-  return true;
-}
-   
+newNbrhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights ) {
+	cleanNbrhood();
+	_pNbrhood = new Neighborhood<elemType>( vNbrCoords, vNbrWeights );
+	if ( !_pNbrhood ) {
+		cerr << __FILE__ << " " << __FUNCTION__ \
+			<< " Error: unable to new a Neighborhood on process[" \
+			<< title() << "]" << endl;
+		return false;
+	}
 
-template <class elemType>
-MPI_Datatype  GPRO::RasterLayer<elemType>::
-getMPIType()
-{
-	elemType style;
-	if( typeid(style) == typeid(float) )
-	{
-		return MPI_FLOAT;
-	}
-	else if ( typeid(style) == typeid(double) )
-	{
-		return MPI_DOUBLE;
-		//cout<<"double"<<endl;
-	}
-	else if ( typeid(style) == typeid(int) )
-	{
-		return MPI_INT;
-		//cout<<"int"<<endl;
-	}
-	else if ( typeid(style) == typeid(unsigned int) )
-	{
-		return MPI_UNSIGNED;
-		//cout<<"unsigned int"<<endl;
-	}
-	else if ( typeid(style) == typeid(char) )
-	{
-		return MPI_CHAR;
-		//cout<<"char"<<endl;
-	}
-	else
-	{
-		return MPI_BYTE;
-	}
+	return true;
 }
 
-template <class elemType>
+template<class elemType>
+template<class elemType2>
+bool GPRO::RasterLayer<elemType>::
+newNbrhood( const Neighborhood<elemType2> &nbr ) {
+	cleanNbrhood();
+	_pNbrhood = new Neighborhood<elemType>( nbr );
+	if ( !_pNbrhood ) {
+		cerr << __FILE__ << " " << __FUNCTION__ \
+			<< " Error: unable to new a Neighborhood on process[" \
+			<< title() << "]" << endl;
+		return false;
+	}
+
+	return true;
+}
+
+template<class elemType>
+inline GPRO::CellSpace<elemType> *GPRO::RasterLayer<elemType>::
+cellSpace() {
+    return _pCellSpace;
+}
+
+template<class elemType>
+inline const GPRO::CellSpace<elemType> *GPRO::RasterLayer<elemType>::
+cellSpace() const {
+    return _pCellSpace;
+}
+
+template<class elemType>
+inline GPRO::Neighborhood<elemType> *GPRO::RasterLayer<elemType>::
+nbrhood() {
+    return _pNbrhood;
+}
+
+template<class elemType>
+inline const GPRO::Neighborhood<elemType> *GPRO::RasterLayer<elemType>::
+nbrhood() const {
+    return _pNbrhood;
+}
+
+template<class elemType>
+inline GPRO::MetaData *GPRO::RasterLayer<elemType>::
+metaData() {
+    return _pMetaData;
+}
+
+template<class elemType>
+MPI_Datatype GPRO::RasterLayer<elemType>::
+getMPIType() {
+    elemType style;
+    if ( typeid( style ) == typeid( float ) ) {
+        return MPI_FLOAT;
+    } else if ( typeid( style ) == typeid( double ) ) {
+        return MPI_DOUBLE;
+        //cout<<"double"<<endl;
+    } else if ( typeid( style ) == typeid( int ) ) {
+        return MPI_INT;
+        //cout<<"int"<<endl;
+    } else if ( typeid( style ) == typeid( unsigned int ) ) {
+        return MPI_UNSIGNED;
+        //cout<<"unsigned int"<<endl;
+    } else if ( typeid( style ) == typeid( char ) ) {
+        return MPI_CHAR;
+        //cout<<"char"<<endl;
+    } else {
+        return MPI_BYTE;
+    }
+}
+
+template<class elemType>
 GDALDataType GPRO::RasterLayer<elemType>::
-getType()
-{
-	elemType style;
-	GDALDataType dataType;
-	//cout<<typeid(style).name()<<endl;
-	if( typeid(style) == typeid(float) )
-	{
-		dataType = GDT_Float32;
-		//cout<<"float"<<endl;
-	}
-	else if ( typeid(style) == typeid(double) )
-	{
-		dataType = GDT_Float64;
-		//cout<<"double"<<endl;
-	}
-	else if ( typeid(style) == typeid(int) )
-	{
-		dataType = GDT_Int32;
-		//cout<<"int"<<endl;
-	}
-	else if ( typeid(style) == typeid(unsigned int) )
-	{
-		dataType = GDT_UInt32;
-		//cout<<"unsigned int"<<endl;
-	}
-	else if ( typeid(style) == typeid(char) )
-	{
-		dataType = GDT_Byte;
-		//cout<<"char"<<endl;
-	}
-	else
-	{
-		dataType = GDT_Unknown;
-	}
-	return dataType;
+getGDALType() {
+    elemType style;
+    GDALDataType dataType;
+    //cout<<typeid(style).name()<<endl;
+    if ( typeid( style ) == typeid( float ) ) {
+        dataType = GDT_Float32;
+        //cout<<"float"<<endl;
+    } else if ( typeid( style ) == typeid( double ) ) {
+        dataType = GDT_Float64;
+        //cout<<"double"<<endl;
+    } else if ( typeid( style ) == typeid( int ) ) {
+        dataType = GDT_Int32;
+        //cout<<"int"<<endl;
+    } else if ( typeid( style ) == typeid( unsigned int ) ) {
+        dataType = GDT_UInt32;
+        //cout<<"unsigned int"<<endl;
+    } else if ( typeid( style ) == typeid( char ) ) {
+        dataType = GDT_Byte;
+        //cout<<"char"<<endl;
+    } else {
+        dataType = GDT_Unknown;
+    }
+    return dataType;
 }
 
-template <class elemType>
+/* Initialize the Neighborhood object by loading the neighbors stored in a ASCII file */
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-readNeighborhood(const char* neighborfile)
-{
-	newNbrhood();
-	
-	fstream nbrFile(neighborfile, ios::in);
-	nbrFile >> (*_pNbrhood); /* Initialize the Neighborhood object by loading the neighbors stored in a ASCII file */
-	nbrFile.close();
-	return true;
+readNeighborhood( const char *neighborfile ) {
+    newNbrhood();
+    fstream nbrFile( neighborfile, ios::in );
+    nbrFile >> ( *_pNbrhood );
+    nbrFile.close();
+
+    return true;
 }
 
-template <class elemType>
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-copyLayerInfo(const RasterLayer<elemType> &rhs)
-{
-	_pMetaData = new MetaData();
-	if(_pMetaData == NULL)
-	{
-		//do something
-		cout<<"[ERROR] MetaData is not allocate correct"<<endl;
-		exit(1);
-	}
-	_pMetaData->cellSize = rhs._pMetaData->cellSize;
-	_pMetaData->row = rhs._pMetaData->row;
-	_pMetaData->column = rhs._pMetaData->column;
-	_pMetaData->format = rhs._pMetaData->format;
-	_pMetaData->projection = rhs._pMetaData->projection;
-	_pMetaData->noData = rhs._pMetaData->noData;
-	_pMetaData->myrank = rhs._pMetaData->myrank;
-	_pMetaData->processor_number = rhs._pMetaData->processor_number;
-	_pMetaData->_domDcmpType = rhs._pMetaData->_domDcmpType;
-	_pMetaData->_glbDims = rhs._pMetaData->_glbDims;
-	_pMetaData->_MBR = rhs._pMetaData->_MBR;
-	_pMetaData->_localdims = rhs._pMetaData->_localdims;
-	_pMetaData->_localworkBR = rhs._pMetaData->_localworkBR;
-	_pMetaData->dataType = getType();
+copyLayerInfo( const RasterLayer<elemType> &rhs ) {
+    _pMetaData = new MetaData();
+    if ( _pMetaData == NULL ) {
+        cout << "[ERROR] MetaData is not allocate correct" << endl;
+        exit( 1 );
+    }
 
-	for(int i = 0; i < 6; i++)
-	{
-		_pMetaData->pTransform[i] = rhs._pMetaData->pTransform[i];
-	}
-	
-	newNbrhood(*(rhs.nbrhood())); //allocate and init
-	newCellSpace(_pMetaData->_localdims,_pMetaData->noData); //allocate
-	//newCellSpace(_pMetaData->_localdims,0); //allocate
+    _pMetaData->cellSize = rhs._pMetaData->cellSize;
+    _pMetaData->row = rhs._pMetaData->row;
+    _pMetaData->column = rhs._pMetaData->column;
+    _pMetaData->format = rhs._pMetaData->format;
+    _pMetaData->projection = rhs._pMetaData->projection;
+    _pMetaData->noData = rhs._pMetaData->noData;
+    _pMetaData->myrank = rhs._pMetaData->myrank;
+    _pMetaData->processor_number = rhs._pMetaData->processor_number;
+    _pMetaData->_domDcmpType = rhs._pMetaData->_domDcmpType;
+    _pMetaData->_glbDims = rhs._pMetaData->_glbDims;
+    _pMetaData->_MBR = rhs._pMetaData->_MBR;
+    _pMetaData->_localdims = rhs._pMetaData->_localdims;
+    _pMetaData->_localworkBR = rhs._pMetaData->_localworkBR;
+    _pMetaData->dataType = getGDALType();
 
-	return true;
+    for ( int i = 0; i < 6; i++ ) {
+        _pMetaData->pTransform[i] = rhs._pMetaData->pTransform[i];
+    }
+
+    newNbrhood( *( rhs.nbrhood()));	//allocate and init
+    //Èô³õÊ¼»¯Îª¿ÕÖµ£¬doubleÀàÐÍµÄnodata¸³Öµ¸øelemtypeÀàÐÍ£¬¿ÉÄÜÔ½½ç
+    //newCellSpace( _pMetaData->_localdims, _pMetaData->noData );	//allocate
+    //newCellSpace(_pMetaData->_localdims,0); //allocate
+    newCellSpace( _pMetaData->_localdims, rhs._pMetaData->noData );	//allocate
+
+    return true;
 }
 
-template <class elemType>
+//²¹³äÒ»¸öcopyLayerInfoÊÇ²»Í¬ÀàÐÍÍ¼²ã¼äµÄ
+
+//Todo:¶ÔÓÚ²»¹æÔòÁÚÓò£¬²âÊÔÊÇ·ñÖ§³Ö
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-readFile(const char* inputfile)
-{
-	GDALAllRegister();
-	//cout<<inputfile<<endl;
-	GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
-	//GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
-	if( poDatasetsrc == NULL /*æ£€æŸ¥æ˜¯å¦æ­£å¸¸æ‰“å¼€æ–‡ä»¶*/)
-	{
-		//do something
-		cout<<"[ERROR] data file is not open correct"<<endl;
-		exit(1);
-	}
-	_pMetaData = new MetaData();
+readFile( const char *inputfile, DomDcmpType dcmpType ) {
+    GDALAllRegister();
 
-	if(_pMetaData == NULL)
-	{
-		//do something
-		cout<<"[ERROR] MetaData is not allocate correct"<<endl;
-		exit(1);
-	}
+    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
+    if ( poDatasetsrc == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/) {
+        cout << "[ERROR] data file is not open correct" << endl;
+        exit( 1 );
+    }
 
-    CPLErr result = CE_None;
-    result = poDatasetsrc->GetGeoTransform(_pMetaData->pTransform);
-	_pMetaData->projection = poDatasetsrc->GetProjectionRef();
-	GDALRasterBand* poBandsrc = poDatasetsrc->GetRasterBand( 1 );
+    _pMetaData = new MetaData();
+    if ( _pMetaData == NULL ) {
+        cout << "[ERROR] MetaData is not allocate correct" << endl;
+        exit( 1 );
+    }
 
-	_pMetaData->noData = poBandsrc->GetNoDataValue();
-	_pMetaData->row = poBandsrc->GetYSize();
-	_pMetaData->column = poBandsrc->GetXSize();
-	SpaceDims sdim(_pMetaData->row, _pMetaData->column);
-	_pMetaData->_glbDims = sdim;
+    poDatasetsrc->GetGeoTransform( _pMetaData->pTransform );
+    _pMetaData->projection = poDatasetsrc->GetProjectionRef();
+    GDALRasterBand *poBandsrc = poDatasetsrc->GetRasterBand( 1 );
+
+    _pMetaData->noData = poBandsrc->GetNoDataValue();
+    _pMetaData->row = poBandsrc->GetYSize();
+    _pMetaData->column = poBandsrc->GetXSize();
+    _pMetaData->cellSize = _pMetaData->pTransform[1];
+    _pMetaData->format = "GTiff";
+    _pMetaData->_domDcmpType = dcmpType;
+
+    SpaceDims sdim( _pMetaData->row, _pMetaData->column );
+    _pMetaData->_glbDims = sdim;
+
+    MPI_Comm_rank( MPI_COMM_WORLD, &_pMetaData->myrank );
+    MPI_Comm_size( MPI_COMM_WORLD, &_pMetaData->processor_number );
+    _pMetaData->dataType = getGDALType();
+
+    //¸ù¾ÝÊý¾Ý·¶Î§½øÐÐ»®·Ö£¬¼ÆËã¹¤×÷¿Õ¼äµÈ£¬NON_DCMPÔò¸÷¸ö½ø³Ì¶¼¶ÁÈ«ÇøËãÈ«Çø£¿orÖ»ÓÐÖ÷½ø³ÌÀ´¶ÁÐ´£¿
+    DeComposition<elemType> deComp( _pMetaData->_glbDims, *_pNbrhood );
+    if ( ROWWISE_DCMP == _pMetaData->_domDcmpType ) {
+        deComp.rowDcmp( *_pMetaData, _pMetaData->processor_number );
+    } else {
+        if ( COLWISE_DCMP == _pMetaData->_domDcmpType ) {
+            deComp.colDcmp( *_pMetaData, _pMetaData->processor_number );
+        } else {
+            if ( BLOCK_DCMP == _pMetaData->_domDcmpType ) {
+                cout << __FILE__ << " " << __FUNCTION__ \
+                    << "Error: not support this dcmpType_" << dcmpType \
+                    << " right now" << endl;//´ýÍêÕû
+                return false;
+            } else {
+                if( NON_DCMP == _pMetaData->_domDcmpType ){
+                    _pMetaData->_localdims = _pMetaData->_glbDims;
+                    CoordBR _glbWorkBR;
+                    _pNbrhood->calcWorkBR( _glbWorkBR, _pMetaData->_glbDims );
+                    _pMetaData->_localworkBR = _glbWorkBR;
+                    CellCoord nwCorner( 0, 0 );
+                    CellCoord seCorner( _pMetaData->_glbDims.nRows() - 1, _pMetaData->_glbDims.nCols() - 1 );
+                    CoordBR subMBR( nwCorner, seCorner );
+                    _pMetaData->_MBR = subMBR;
+                }else{
+                    cout << __FILE__ << " " << __FUNCTION__ \
+                        << "Error: not support this dcmpType_" << dcmpType \
+                        << " right now" << endl;
+                    return false;
+                }
+            }
+        }
+    }
+    newCellSpace( _pMetaData->_localdims );
+
+    //°´ÐÐ¶ÁÐ´±¾ÖÊÖ´ÐÐÁËÏÂÒ»¾ä
+    //poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
+    poBandsrc->RasterIO( GF_Read, _pMetaData->_MBR.minICol(), _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
+                         _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
+                         _pMetaData->dataType, 0, 0 );
+
+    if ( poDatasetsrc != NULL ) {
+        //poDatasetsrc->~GDALDataset();
+        GDALClose((GDALDatasetH) poDatasetsrc );
+        poDatasetsrc = NULL;
+    }
+    MPI_Barrier( MPI_COMM_WORLD );
+
+    return true;
+}
+
+//Todo:¶ÔÓÃ»§À´Ëµ£¬CoordBR²»¿É·ÃÎÊ£¬¸ÄÎªÐÐÁÐID
+//dcmpType²ÎÊýÊÇ·ñ»¹ÓÐÓÃ
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType ) {
+    //ÒÑÖªsubWorkBRÊÇ×Ô¼ºµÄ¹¤×÷¿Õ¼ä·¶Î§£¬½ø¶øÍÆµ¼ËùÐèÊý¾Ý·¶Î§£¬²¢¶ÁÈë
+    //¶ÁÎÄ¼þÖ®Ç°£¬ÏÈÇåÀíÖ®Ç°¿ÉÄÜ²ÐÁôµÄÐÅÏ¢;why cleanMetaData»á³ö´í£¿
+    if ( _pMetaData ) {
+        cleanMetaData();
+    }    //Ò²¿ÉÒÔ²»clean£¬Ö±½Ó¸²¸Ç
+    //cleanCellSpace();	//ÕâÀïÃ»±ØÒªcleanÊÇÒòÎªÏÂÃænewµÄÊ±ºò»áÏÈµ÷ÓÃclean£¬ÕâÀïÔÙÐ´¾Í»áÖØ¸´clean£¬Ã»±ØÒª
+
+    GDALAllRegister();
+
+    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
+    if ( poDatasetsrc == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/) {
+        cout << "[ERROR] data file is not open correct" << endl;
+        exit( 1 );
+    }
+
+    _pMetaData = new MetaData();    //Ò²¿ÉÒÔ²»ÐèÒªÔÙnew£¬Ö±½Ó¸²¸ÇÔ­ÐÅÏ¢
+    if ( _pMetaData == NULL ) {
+        cout << "[ERROR] MetaData is not allocate correct" << endl;
+        exit( 1 );
+    }
+
+    poDatasetsrc->GetGeoTransform( _pMetaData->pTransform );
+    _pMetaData->projection = poDatasetsrc->GetProjectionRef();
+    GDALRasterBand *poBandsrc = poDatasetsrc->GetRasterBand( 1 );
+
+    _pMetaData->noData = poBandsrc->GetNoDataValue();
+    _pMetaData->row = poBandsrc->GetYSize();
+    _pMetaData->column = poBandsrc->GetXSize();
 	_pMetaData->cellSize = _pMetaData->pTransform[1];
 	_pMetaData->format = "GTiff";
+	_pMetaData->_domDcmpType = dcmpType;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &_pMetaData->myrank);
-	MPI_Comm_size(MPI_COMM_WORLD, &_pMetaData->processor_number);
+	SpaceDims sdim( _pMetaData->row, _pMetaData->column );
+    _pMetaData->_glbDims = sdim;
 
+    MPI_Comm_rank( MPI_COMM_WORLD, &_pMetaData->myrank );
+    MPI_Comm_size( MPI_COMM_WORLD, &_pMetaData->processor_number );
 
-	DeComposition<elemType> deComp(_pMetaData->_glbDims, *_pNbrhood);
-	deComp.rowDcmp(*_pMetaData, _pMetaData->processor_number);
-	//SpaceDims dims(_metadata.subRow, _metadata.column);
-	newCellSpace(_pMetaData->_localdims);
-	//_pCellSpace
-	///*if (_matrix == NULL)
-	//{
-	//	cout<<"[ERROR] the allocation of memory is error!"<<endl;
-	//	MPI_Finalize();
-	//	return false;
-	//}*/
-	
-	//cout<<"My rank is "<<myrank<<"! temp is "<<temp<<" column is "<<column<<" subRow is "<<subRow<<endl;
-	_pMetaData->dataType = getType();
+    int glbBegin = subWorkBR.nwCorner().iRow();
+    int glbEnd = subWorkBR.seCorner().iRow();
+    CellCoord nwCorner( glbBegin + _pNbrhood->minIRow(), 0 );
+    CellCoord seCorner( glbEnd + _pNbrhood->maxIRow(), _pMetaData->_glbDims.nCols() - 1 );
+    CoordBR subMBR( nwCorner, seCorner );
+    _pMetaData->_MBR = subMBR;
+    SpaceDims dims( subMBR.nRows(), subMBR.nCols());
+    _pMetaData->_localdims = dims;
+    //subWorkBRÊÇÈ«¾ÖÐÐÁÐºÅ£¬¼ÆËã¾Ö²¿ÐÐÁÐºÅ±í´ïµÄ_localworkBR
+    CoordBR workBR;
+    if ( !_pNbrhood->calcWorkBR( workBR, dims )) {
+        return false;
+    }
+    _pMetaData->_localworkBR = workBR;
 
-	//cout<<"_pMetaData->myrank "<<_pMetaData->myrank<<"  _pMetaData->row "<<_pMetaData->row<<endl;
-	//cout<<"_pMetaData->myrank "<<_pMetaData->myrank<<"  _pMetaData->_MBR.minIRow() "<<_pMetaData->_MBR.minIRow()<<"  _pMetaData->_localdims.nRows()  "<<_pMetaData->_localdims.nRows()<<"  _pNbrhood->minIRow()  "<<_pNbrhood->minIRow()<<endl;
+    newCellSpace( _pMetaData->_localdims );
 
-    result = poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
+    _pMetaData->dataType = getGDALType();
 
-	if (result != CE_None)
-	{
-		//
-		//poDatasetsrc->~GDALDataset();
-		GDALClose((GDALDatasetH)poDatasetsrc);
-		poDatasetsrc = NULL;
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
-	return true;
+	poBandsrc->RasterIO( GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
+						 _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
+                         _pMetaData->dataType, 0, 0 );
+
+    if ( poDatasetsrc != NULL ) {
+        GDALClose((GDALDatasetH) poDatasetsrc );
+        poDatasetsrc = NULL;
+    }
+    MPI_Barrier( MPI_COMM_WORLD );	//ÊÇ·ñÐèÒª
+
+    return true;
+}
+
+//template<class elemType>
+//void GPRO::RasterLayer<elemType>::
+//col2row( int &subRows, int &lastSubRows ){
+//	int myRank, process_nums;
+//	MPI_Comm_rank( MPI_COMM_WORLD, &myRank );
+//	MPI_Comm_size( MPI_COMM_WORLD, &process_nums );	//ÓÃÕâÑù»ñÈ¡½ø³ÌÊý·½Ê½ºÍµ÷ÓÃpMetaDataµÄ·½Ê½£¬Çø±ðÊÇÊ²Ã´£¬ÓÈÆä½ö²¿·Ö½ø³Ì½øÀ´µÄÊ±ºò
+//	MPI_Datatype datatype = getMPIType();
+//	
+//	//µÚÒ»½×¶Î£¬ÖØ·Ö²¼
+//	//×ÜÐÐÊýnRows(),ÕÒ³ö°´ÐÐÖØ»®·ÖµÄ¸÷¸ö½ø³ÌÐèÒª³Ðµ£µÄÐÐÊý
+//	if ( _pMetaData->_glbDims.nRows() % process_nums == 0 ) {
+//		subRows = _pMetaData->_glbDims.nRows() / process_nums;
+//		lastSubRows = subRows;
+//	} else {
+//		subRows = _pMetaData->_glbDims.nRows() / process_nums + 1;
+//		lastSubRows = _pMetaData->_glbDims.nRows() - ( _pMetaData->_glbDims.nRows() / process_nums + 1 ) * ( process_nums - 1 );
+//	}
+//	int glbWorkCols = _pMetaData->_glbDims.nCols() + _pNbrhood->minICol() - _pNbrhood->maxICol();
+//
+//	//¿ª±ÙÐÂ¿Õ¼ä´ý´æÊý¾Ý;ÏÈ½«×Ô¼º´æÈë£¬ÆäËûµÄÃ¿½ÓÊÕÒ»¸öÏòÄÚ´æÒ»¸ö
+//	int cellCount = 0;
+//	if ( myRank < process_nums - 1 ) {
+//		cellCount = subRows * _pMetaData->_glbDims.nCols();
+//	} else {
+//		cellCount = lastSubRows * _pMetaData->_glbDims.nCols();
+//	}
+//	elemType *pRowMatrix = new elemType[cellCount];
+//	//cout<<myRank<<" "<<subRows<<" "<<lastSubRows<<" "<<glbWorkCols<<endl;
+//	for ( int rRow = 0; rRow < subRows; ++rRow ) {
+//		if ( myRank == 0 ) {
+//			for ( int rCol = 0; rCol <= _pMetaData->_localworkBR.maxICol(); ++rCol ) {
+//				pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+//			}
+//		} else {
+//			if ( myRank == process_nums - 1 ) {
+//				for ( int rCol = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+//					rCol <= _pMetaData->_MBR.maxICol() + _pNbrhood->maxICol(); ++rCol ) {
+//						pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] =
+//							_pCellSpace->_matrix[( rRow + myRank * subRows ) * _pMetaData->_localdims.nCols() + rCol - _pMetaData->_MBR.minICol()];
+//				}
+//			} else {
+//				for ( int rCol = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+//					rCol <= _pMetaData->_MBR.maxICol(); ++rCol ) {
+//						pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] =
+//							_pCellSpace->_matrix[( rRow + myRank * subRows ) * _pMetaData->_localdims.nCols() + rCol - _pMetaData->_MBR.minICol()];
+//				}
+//			}
+//		}
+//	}
+//	//cout<<myRank<<" "<<_pCellSpace->_matrix[(0+subRows*myRank)*_pMetaData->_localdims.nCols()+_pMetaData->_localworkBR.minICol()]<<endl;
+//	//cout<<myRank<<" "<<_pCellSpace->_matrix[(1+subRows*myRank)*_pMetaData->_localdims.nCols()+_pMetaData->_localworkBR.minICol()]<<endl;
+//
+//	MPI_Status status;
+//	//È·¶¨rankIDµÄµÚmyRank¿é´óÐ¡ÎªÁÐÊý*myrankµÄÐÐÊý£¬´´½¨ÕâÃ´´óµÄÁÙÊ±¿Õ¼ä£¬·¢ËÍ£¬½ÓÊÕ£¬¸üÐÂ£¬ÊÍ·Å
+//	//QÄÑµÀ´óÐ¡²»ÊÇ¹Ì¶¨µÄ£¿ÎªÊ²Ã´ÐèÒªÏÈÍ¨ÐÅÁÙÊ±¿Õ¼äµÄ´óÐ¡
+//	for ( int objRank = 0; objRank < process_nums; ++objRank ) {
+//		if ( objRank == myRank ) {
+//			continue;
+//		}
+//		//Í¨ÐÅobjRankµÄworkBR.ncols()ºÍMBR.minCol()¸ømyRank
+//		int sendnCols, sendColPos;
+//		if ( myRank == 0 ) {
+//			sendnCols = _pMetaData->_localworkBR.nCols() + 1;
+//			sendColPos = 0;
+//		} else {
+//			if ( myRank == process_nums - 1 ) {
+//				sendnCols = _pMetaData->_localworkBR.nCols() + 1;
+//				sendColPos = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+//			} else {
+//				sendnCols = _pMetaData->_localworkBR.nCols();
+//				sendColPos = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+//			}
+//		}
+//		int recvnCols, recvColPos;
+//		MPI_Send( &sendnCols, 1, MPI_INT, objRank, 1, MPI_COMM_WORLD );
+//		MPI_Recv( &recvnCols, 1, MPI_INT, objRank, 1, MPI_COMM_WORLD, &status );
+//		MPI_Send( &sendColPos, 1, MPI_INT, objRank, 2, MPI_COMM_WORLD );
+//		MPI_Recv( &recvColPos, 1, MPI_INT, objRank, 2, MPI_COMM_WORLD, &status );
+//		int sendMatrixSize, recvMatrixSize;
+//		if ( myRank < process_nums - 1 ) {
+//			recvMatrixSize = recvnCols * subRows;
+//		} else {
+//			recvMatrixSize = recvnCols * lastSubRows;
+//		}
+//		if ( objRank < process_nums - 1 ) {
+//			sendMatrixSize = sendnCols * subRows;
+//		} else {
+//			sendMatrixSize = sendnCols * lastSubRows;
+//		}
+//		elemType *sendMatrix = new elemType[sendMatrixSize];
+//		elemType *recvMatrix = new elemType[recvMatrixSize];
+//		//ÎÒmyRankÒª´ÓrankID½ÓÊÕµÄ´óÐ¡Îª¡°ÎÒµÄlocalRows*rankIDµÄ¹¤×÷ÁÐÊý¡±£¨Õâ¸öÁÐÊýÒª¿¿Í¨ÐÅÀ´»ñÈ¡£©
+//		//Òª·¢ËÍµÄºÍ½ÓÊÕµÄÊý¾Ý¶¼µÃÏÈ´æÈëÁÙÊ±Ò»Î¬Êý×é£¬Í¨ÐÅºóÔÙÓ³Éä
+//		cellCount = 0;
+//		for ( int rRow = objRank * subRows; rRow < ( objRank + 1 ) * subRows; ++rRow ) {
+//			if ( rRow >= _pMetaData->_glbDims.nRows() ) {
+//				break;
+//			}
+//			if ( myRank == 0 ) {
+//				for ( int rCol = 0; rCol <= _pMetaData->_localworkBR.maxICol(); ++rCol ) {
+//					sendMatrix[cellCount++] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+//				}
+//			} else {
+//				if ( myRank == process_nums - 1 ) {
+//					for ( int rCol = _pMetaData->_localworkBR.minICol(); rCol <= _pMetaData->_localworkBR.maxICol() + _pNbrhood->maxICol(); ++rCol ) {
+//						sendMatrix[cellCount++] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+//					}
+//				} else {
+//					for ( int rCol = _pMetaData->_localworkBR.minICol(); rCol <= _pMetaData->_localworkBR.maxICol(); ++rCol ) {
+//						sendMatrix[cellCount++] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+//					}
+//				}
+//			}
+//		}
+//
+//		int styleSize;
+//		MPI_Pack_size( 1, MPI_DOUBLE, MPI_COMM_WORLD, &styleSize );
+//		int bufsize = MPI_BSEND_OVERHEAD + styleSize * ( sendMatrixSize + recvMatrixSize );
+//		void *buf = malloc( bufsize );
+//		MPI_Buffer_attach( buf, bufsize );
+//
+//		MPI_Bsend( sendMatrix, sendMatrixSize, datatype, objRank, 1, MPI_COMM_WORLD );
+//		MPI_Recv( recvMatrix, recvMatrixSize, datatype, objRank, 1, MPI_COMM_WORLD, &status );
+//		cellCount = 0;
+//		//½«½ÓÊÕµÄrecvMatrix´æÈë¾ØÕó
+//		for ( int rRow = 0; rRow < subRows; ++rRow ) {
+//			if ( myRank == process_nums - 1 && rRow >= lastSubRows ) {
+//				break;
+//			}
+//			for ( int rCol = recvColPos; rCol < recvColPos + recvnCols; ++rCol ) {
+//				pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] = recvMatrix[cellCount++];
+//			}
+//		}
+//		//if( myRank == 1 )
+//		//cout<<recvColPos<<" "<<recvCols<<endl;
+//		MPI_Buffer_detach( &buf, &bufsize );
+//		MPI_Buffer_attach( buf, bufsize );
+//	}
+//}
+
+// Ö÷½ø³Ì´´½¨Õ¤¸ñÎÄ¼þ
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+createFile( const char *outputfile ) {
+    GDALAllRegister();
+
+    if ( _pMetaData->myrank == 0 ) {
+        GDALDriver *poDriver = NULL;
+        poDriver = GetGDALDriverManager()->GetDriverByName( _pMetaData->format.c_str());
+        if ( poDriver == NULL ) {
+            cout << "poDriver is NULL." << endl;
+            return false;
+        }
+        char **papszMetadata = NULL;
+        papszMetadata = CSLSetNameValue( papszMetadata, "BLOCKXSIZE", "256" );
+        papszMetadata = CSLSetNameValue( papszMetadata, "BLOCKYSIZE", "1" );
+
+        if ( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATE, FALSE ) );
+        //cout<< "This format driver supports Create() method."<<endl;
+        if ( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATECOPY, FALSE ) );
+        //cout<< "This format driver supports CreateCopy() method."<<endl;
+
+        GDALDataset *poDataset = poDriver->Create( outputfile, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                                                   1, _pMetaData->dataType, papszMetadata );
+        if ( poDataset == NULL ) {
+            cout << "poDatasetdest is NULL" << endl;
+            return false;
+        }
+        poDataset->SetGeoTransform( _pMetaData->pTransform );
+        poDataset->SetProjection( _pMetaData->projection.c_str() );
+
+        if ( poDataset != NULL ) {
+            GDALClose((GDALDatasetH) poDataset );
+            poDataset = NULL;
+        }
+    }
+    MPI_Barrier( MPI_COMM_WORLD );
+
+    return true;
 }
 
 
-template <class elemType>
+//Ö»Ð´³öÁË¹¤×÷¿Õ¼ä
+//´ý²âÊÔ²»¶Ô³ÆÁÚÓò£¬Èç-1/0/1/2ÕâÑù·¶Î§µÄ£»
+template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-createFile(const char* outputfile)
-{
-	GDALAllRegister();
-	if(_pMetaData->myrank == 0)
-	{
-		GDALDriver* poDriver = NULL;
-		poDriver = GetGDALDriverManager()->GetDriverByName(_pMetaData->format.c_str());
-		if (poDriver == NULL)
-		{
-			cout<<"poDriver is NULL."<<endl;
-			return false;
-		}
-		char **papszMetadata = NULL;
-		papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKXSIZE", "256");
-		papszMetadata = CSLSetNameValue( papszMetadata, "BLOCKYSIZE", "1" );
+writeFile( const char *outputfile ){
+    //±¾º¯ÊýÄ¬ÈÏÊµÏÖ°´ÐÐÐ´³ö£¬Èç¹ûÊÇÆäËû»®·ÖÀàÐÍ£¬µ÷ÓÃ¶ÔÓ¦µÄÐ´º¯Êý
+    if( COLWISE_DCMP == _pMetaData->_domDcmpType ){
+        return colWriteFile( outputfile );
+    }else{
+        if( BLOCK_DCMP == _pMetaData->_domDcmpType ){
+            cout << __FILE__ << " " << __FUNCTION__ \
+                << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
+                << " right now" << endl;	//´ýÍê³É
+            return false;
+        }else{
+            if( NON_DCMP == _pMetaData->_domDcmpType ){
+                //´ýÍê³É£¬Ö»ÓÉÖ÷½ø³ÌÀ´Ð´?or²»Ö§³Ö
+            }else{
+                if( _pMetaData->_domDcmpType != ROWWISE_DCMP ){
+                    cout << __FILE__ << " " << __FUNCTION__ \
+                        << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
+                        << " right now" << endl;
+                    return false;
+                }
+            }
+        }
+    }
 
-		if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATE, FALSE ) )
-			;
-			//cout<< "This format driver supports Create() method."<<endl;
-		if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATECOPY, FALSE ) )
-			;
-			//cout<< "This format driver supports CreateCopy() method."<<endl;
-	
-		GDALDataset* poDataset = poDriver->Create(outputfile, _pMetaData->_glbDims.nCols(),  _pMetaData->_glbDims.nRows(), 1, _pMetaData->dataType, papszMetadata);
-		if (poDataset == NULL)
-		{
-			//do something
-			cout<<"poDatasetdest is NULL"<<endl;
-			return false;
-		}
-		poDataset->SetGeoTransform( _pMetaData->pTransform );	
-		poDataset->SetProjection(_pMetaData->projection.c_str());
+    GDALAllRegister();
 
-		if (poDataset != NULL)
-		{
-			GDALClose((GDALDatasetH)poDataset);
-			poDataset = NULL;
-		}
-		
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
-	return true;
-}
+    if ( !createFile( outputfile ) ) {
+        cout << __FILE__ << " " << __FUNCTION__ \
+            << " Error: create file failed!" << endl;
+        MPI_Finalize();
+    }
+    ////Èç¹ûÊÇ²¿·Ö½ø³ÌÀ´µ÷ÓÃÐ´º¯ÊýÄØ£¬»áÎÞÏÞµÈ´ýÂð
 
-
-template <class elemType>
-bool GPRO::RasterLayer<elemType>::
-writeFile(const char* outputfile)
-{
-	GDALAllRegister();
-	
-	if(!createFile(outputfile))
-	{
-		cout<<"create file is not correct!"<<endl;
-		MPI_Finalize();
-	}
-	GDALDataset* poDataset = NULL;
-    CPLErr result = CE_None;
+    GDALDataset *poDataset = NULL;
     poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
-	if( poDataset == NULL /*æ£€æŸ¥æ˜¯å¦æ­£å¸¸æ‰“å¼€æ–‡ä»¶*/)
-	{
-		//do something
-		cout<<"data file is not open correct"<<endl;
-		exit(1);
-	}
-	GDALRasterBand*	poBanddest = poDataset->GetRasterBand(1);
-	if (poBanddest == NULL)
-	{
-		//do something
-		cout<<"poBanddest is NULL"<<endl;
-		exit(1);
-	}
-	if(_pMetaData->myrank == 0)
-	{
-        result = poBanddest->SetNoDataValue(_pMetaData->noData);
-	}
+    if ( poDataset == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/) {
+        cout << "data file is not open correct" << endl;
+        exit( 1 );
+    }
 
-	if(_pMetaData->processor_number == 1)
-	{
-		//cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_glbDims.nCols() "<<_pMetaData->_glbDims.nCols()<<"   _pMetaData->_glbDims.nRows() "<<_pMetaData->_glbDims.nRows()<<endl;
+    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
+    if ( poBanddest == NULL ) {
+        cout << "poBanddest is NULL" << endl;
+        exit( 1 );
+    }
 
-        result = poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(),_pMetaData->_glbDims.nRows(), _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(), _pMetaData->dataType, 0, 0);
-	}
-	else
-	{
-		if(_pMetaData->myrank == 0)
-		{
-			//cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
+    if ( _pMetaData->myrank == 0 ) {
+        poBanddest->SetNoDataValue( _pMetaData->noData );
+    }
+    if ( _pMetaData->processor_number == 1 ) {
+        poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+            _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+            _pMetaData->dataType, 0, 0 );
+    } else {
+        if ( _pMetaData->myrank == 0 ) {
+            //cout<<"myrank "<<_pMetaData->myrank <<" nCols "<<_pMetaData->_glbDims.nCols()<<" nRows "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
+            poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                _pMetaData->dataType, 0, 0 );
+        } else if ( _pMetaData->myrank == ( _pMetaData->processor_number - 1 ) ) {
+            //poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
+            //cout<<"myrank "<<_pMetaData->myrank <<" startRow "<<_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow()<<" nRows "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
+            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                _pMetaData->dataType, 0, 0 );
+        } else {
+            //cout<<"myrank "<<_pMetaData->myrank<<"  "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<" "<<_pMetaData->_glbDims.nCols()<<" "<<_pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1<<endl;
+            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
+                _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
+               _pMetaData->dataType, 0, 0 );
+        }
+    }
 
-            result = poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
-		}
-		else if(_pMetaData->myrank == ( _pMetaData->processor_number - 1) )
-		{
-			//poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
-			//cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow() "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-            result = poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow()*_pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
-			
-		}
-		else
-		{
-            result = poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow()*_pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(),  _pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1, _pMetaData->dataType, 0, 0);
-		}
-	}
+    MPI_Barrier( MPI_COMM_WORLD );
 
-	if (result != CE_None)
-	{
-        cout << "RaterIO trouble: " << CPLGetLastErrorMsg() << endl;
-		GDALClose((GDALDatasetH)poDataset);
-		poDataset = NULL;
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
-	return true;
+    if ( poDataset != NULL ) {
+        GDALClose((GDALDatasetH) poDataset );
+        poDataset = NULL;
+    }
+
+    return true;
 }
 
+//template<class elemType>
+//bool GPRO::RasterLayer<elemType>::
+//rowWriteFile( const char *outputfile ) {
+//    //int myRank, process_nums;
+//    //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+//    //MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
+//    //cout<<"myRank = "<<myRank<<"process_num = "<<process_nums<<endl;
+//    GDALAllRegister();
+//
+//    if ( !createFile( outputfile ) ) {
+//		cout << __FILE__ << " " << __FUNCTION__ \
+//			<< " Error: create file failed!" << endl;
+//        MPI_Finalize();
+//    }
+//
+//    GDALDataset *poDataset = NULL;
+//    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
+//    if ( poDataset == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/) {
+//        cout << "data file is not open correct" << endl;
+//        exit( 1 );
+//    }
+//
+//    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
+//    if ( poBanddest == NULL ) {
+//        cout << "poBanddest is NULL" << endl;
+//        exit( 1 );
+//    }
+//    if ( _pMetaData->myrank == 0 ) {
+//        poBanddest->SetNoDataValue( _pMetaData->noData );	//ÎªÉ¶ÊÇ½»¸øÖ÷½ø³Ì£¬²»ÊÇÃ¿¸ö½ø³Ì¶¼×ö
+//    }
+//
+//    if ( _pMetaData->processor_number == 1 ) {
+//        //cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_glbDims.nCols() "<<_pMetaData->_glbDims.nCols()<<"   _pMetaData->_glbDims.nRows() "<<_pMetaData->_glbDims.nRows()<<endl;
+//        poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+//                              _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+//                              _pMetaData->dataType, 0, 0 );
+//    } else {
+//        if ( _pMetaData->myrank == 0 ) {
+//            //cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
+//            poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+//                                  _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+//                                  _pMetaData->dataType, 0, 0 );
+//        } else if ( _pMetaData->myrank == ( _pMetaData->processor_number - 1 ) ) {
+//            //poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
+//            //cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow() "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
+//            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+//                                  _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+//                                  _pMetaData->dataType, 0, 0 );
+//        } else {
+//            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
+//                                  _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
+//                                  _pMetaData->dataType, 0, 0 );
+//            //cout<<"c "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<" "<<_pMetaData->_glbDims.nCols()<<" "<<_pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1<<endl;
+//        }
+//    }
+//
+//    MPI_Barrier( MPI_COMM_WORLD );	//ÊÇ·ñÐèÒª
+//    if ( poDataset != NULL ) {
+//        GDALClose((GDALDatasetH) poDataset );
+//        poDataset = NULL;
+//    }
+//	return true;
+//}
 
+//Ö»Ð´³öÁË¹¤×÷¿Õ¼ä
+//parallel IO£¬refer to Qin13_TransactionsInGIS
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+colWriteFile( const char *outputfile ) {
+    int myRank, process_nums;
+    MPI_Comm_rank( MPI_COMM_WORLD, &myRank );
+    MPI_Comm_size( MPI_COMM_WORLD, &process_nums );
+    MPI_Datatype datatype = getMPIType();
+
+    GDALAllRegister();
+    if ( !createFile( outputfile )) {
+        cout << "create file is not correct!" << endl;
+        MPI_Finalize();
+    }
+
+    GDALDataset *poDataset = NULL;
+    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
+    if ( poDataset == NULL /*¼ì²éÊÇ·ñÕý³£´ò¿ªÎÄ¼þ*/) {
+        cout << "data file is not open correct" << endl;
+        exit( 1 );
+    }
+    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
+    if ( poBanddest == NULL ) {
+        cout << "poBanddest is NULL" << endl;
+        exit( 1 );
+    }
+    if ( _pMetaData->myrank == 0 ) {
+        poBanddest->SetNoDataValue( _pMetaData->noData );
+    }
+
+    if ( _pMetaData->processor_number == 1 ) {
+        poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                              _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                              _pMetaData->dataType, 0, 0 );
+    } else {
+        //µÚÒ»½×¶Î£¬ÖØ·Ö²¼
+        //×ÜÐÐÊýnRows(),ÕÒ³ö°´ÐÐÖØ»®·ÖµÄ¸÷¸ö½ø³ÌÐèÒª³Ðµ£µÄÐÐÊý
+        int subRows = 0, lastSubRows = 0;
+        if ( _pMetaData->_glbDims.nRows() % process_nums == 0 ) {
+            subRows = _pMetaData->_glbDims.nRows() / process_nums;
+            lastSubRows = subRows;
+        } else {
+            subRows = _pMetaData->_glbDims.nRows() / process_nums + 1;
+            lastSubRows = _pMetaData->_glbDims.nRows() - ( _pMetaData->_glbDims.nRows() / process_nums + 1 ) * ( process_nums - 1 );
+        }
+        int glbWorkCols = _pMetaData->_glbDims.nCols() + _pNbrhood->minICol() - _pNbrhood->maxICol();
+        //¿ª±ÙÐÂ¿Õ¼ä´ý´æÊý¾Ý;ÏÈ½«×Ô¼º´æÈë£¬ÆäËûµÄÃ¿½ÓÊÕÒ»¸öÏòÄÚ´æÒ»¸ö
+        int cellCount = 0;
+        if ( myRank < process_nums - 1 ) {
+            cellCount = subRows * _pMetaData->_glbDims.nCols();
+        } else {
+            cellCount = lastSubRows * _pMetaData->_glbDims.nCols();
+        }
+
+        elemType *pRowMatrix = new elemType[cellCount];
+        //cout<<myRank<<" "<<subRows<<" "<<lastSubRows<<" "<<glbWorkCols<<endl;
+        for ( int rRow = 0; rRow < subRows; ++rRow ) {
+            if ( myRank == 0 ) {
+                for ( int rCol = 0; rCol <= _pMetaData->_localworkBR.maxICol(); ++rCol ) {
+                    pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+                }
+            } else {
+                if ( myRank == process_nums - 1 ) {
+                    for ( int rCol = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+                          rCol <= _pMetaData->_MBR.maxICol() + _pNbrhood->maxICol(); ++rCol ) {
+                              pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] =
+                                  _pCellSpace->_matrix[( rRow + myRank * subRows ) * _pMetaData->_localdims.nCols() + rCol - _pMetaData->_MBR.minICol()];
+                    }
+                } else {
+                    for ( int rCol = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+                          rCol <= _pMetaData->_MBR.maxICol(); ++rCol ) {
+                              pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] =
+                                  _pCellSpace->_matrix[( rRow + myRank * subRows ) * _pMetaData->_localdims.nCols() + rCol - _pMetaData->_MBR.minICol()];
+                    }
+                }
+            }
+        }
+        //cout<<myRank<<" "<<_pCellSpace->_matrix[(0+subRows*myRank)*_pMetaData->_localdims.nCols()+_pMetaData->_localworkBR.minICol()]<<endl;
+        //cout<<myRank<<" "<<_pCellSpace->_matrix[(1+subRows*myRank)*_pMetaData->_localdims.nCols()+_pMetaData->_localworkBR.minICol()]<<endl;
+        if( NULL == pRowMatrix ){
+            cout<<"c "<<myRank<<endl;
+        }
+        MPI_Status status;
+        //È·¶¨rankIDµÄµÚmyRank¿é´óÐ¡ÎªÁÐÊý*myrankµÄÐÐÊý£¬´´½¨ÕâÃ´´óµÄÁÙÊ±¿Õ¼ä£¬·¢ËÍ£¬½ÓÊÕ£¬¸üÐÂ£¬ÊÍ·Å
+        //QÄÑµÀ´óÐ¡²»ÊÇ¹Ì¶¨µÄ£¿ÎªÊ²Ã´ÐèÒªÏÈÍ¨ÐÅÁÙÊ±¿Õ¼äµÄ´óÐ¡
+        for ( int objRank = 0; objRank < process_nums; ++objRank ) {
+            if ( objRank == myRank ) {
+                continue;
+            }
+            //Í¨ÐÅobjRankµÄworkBR.ncols()ºÍMBR.minCol()¸ømyRank
+            int sendnCols, sendColPos;
+            if ( myRank == 0 ) {
+                sendnCols = _pMetaData->_localworkBR.nCols() + 1;
+                sendColPos = 0;
+            } else {
+                if ( myRank == process_nums - 1 ) {
+                    sendnCols = _pMetaData->_localworkBR.nCols() + 1;
+                    sendColPos = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+                } else {
+                    sendnCols = _pMetaData->_localworkBR.nCols();
+                    sendColPos = _pMetaData->_MBR.minICol() - _pNbrhood->minICol();
+                }
+            }
+            int recvnCols, recvColPos;
+            MPI_Send( &sendnCols, 1, MPI_INT, objRank, 1, MPI_COMM_WORLD );
+            MPI_Recv( &recvnCols, 1, MPI_INT, objRank, 1, MPI_COMM_WORLD, &status );
+            MPI_Send( &sendColPos, 1, MPI_INT, objRank, 2, MPI_COMM_WORLD );
+            MPI_Recv( &recvColPos, 1, MPI_INT, objRank, 2, MPI_COMM_WORLD, &status );
+            int sendMatrixSize, recvMatrixSize;
+            if ( myRank < process_nums - 1 ) {
+                recvMatrixSize = recvnCols * subRows;
+            } else {
+                recvMatrixSize = recvnCols * lastSubRows;
+            }
+            if ( objRank < process_nums - 1 ) {
+                sendMatrixSize = sendnCols * subRows;
+            } else {
+                sendMatrixSize = sendnCols * lastSubRows;
+            }
+            elemType *sendMatrix = new elemType[sendMatrixSize];
+            elemType *recvMatrix = new elemType[recvMatrixSize];
+            //ÎÒmyRankÒª´ÓrankID½ÓÊÕµÄ´óÐ¡Îª¡°ÎÒµÄlocalRows*rankIDµÄ¹¤×÷ÁÐÊý¡±£¨Õâ¸öÁÐÊýÒª¿¿Í¨ÐÅÀ´»ñÈ¡£©
+            //Òª·¢ËÍµÄºÍ½ÓÊÕµÄÊý¾Ý¶¼µÃÏÈ´æÈëÁÙÊ±Ò»Î¬Êý×é£¬Í¨ÐÅºóÔÙÓ³Éä
+            cellCount = 0;
+            for ( int rRow = objRank * subRows; rRow < ( objRank + 1 ) * subRows; ++rRow ) {
+                if ( rRow >= _pMetaData->_glbDims.nRows() ) {
+                    break;
+                }
+                if ( myRank == 0 ) {
+                    for ( int rCol = 0; rCol <= _pMetaData->_localworkBR.maxICol(); ++rCol ) {
+                        sendMatrix[cellCount++] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+                    }
+                } else {
+                    if ( myRank == process_nums - 1 ) {
+                        for ( int rCol = _pMetaData->_localworkBR.minICol(); rCol <= _pMetaData->_localworkBR.maxICol() + _pNbrhood->maxICol(); ++rCol ) {
+                            sendMatrix[cellCount++] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+                        }
+                    } else {
+                        for ( int rCol = _pMetaData->_localworkBR.minICol(); rCol <= _pMetaData->_localworkBR.maxICol(); ++rCol ) {
+                            sendMatrix[cellCount++] = _pCellSpace->_matrix[rRow * _pMetaData->_localdims.nCols() + rCol];
+                        }
+                    }
+                }
+            }
+
+            int styleSize;
+            MPI_Pack_size( 1, MPI_DOUBLE, MPI_COMM_WORLD, &styleSize );
+            int bufsize = MPI_BSEND_OVERHEAD + styleSize * ( sendMatrixSize + recvMatrixSize );
+            void *buf = malloc( bufsize );
+            MPI_Buffer_attach( buf, bufsize );
+
+            MPI_Bsend( sendMatrix, sendMatrixSize, datatype, objRank, 1, MPI_COMM_WORLD );
+            MPI_Recv( recvMatrix, recvMatrixSize, datatype, objRank, 1, MPI_COMM_WORLD, &status );
+            cellCount = 0;
+            //½«½ÓÊÕµÄrecvMatrix´æÈë¾ØÕó
+            for ( int rRow = 0; rRow < subRows; ++rRow ) {
+                if ( myRank == process_nums - 1 && rRow >= lastSubRows ) {
+                    break;
+                }
+                for ( int rCol = recvColPos; rCol < recvColPos + recvnCols; ++rCol ) {
+                    pRowMatrix[rRow * _pMetaData->_glbDims.nCols() + rCol] = recvMatrix[cellCount++];
+                }
+            }
+            //if( myRank == 1 )
+            //cout<<recvColPos<<" "<<recvCols<<endl;
+            MPI_Buffer_detach( &buf, &bufsize );
+            MPI_Buffer_attach( buf, bufsize );	//²»ÐèÒª£¿
+        }
+
+        if ( myRank < process_nums - 1 ) {
+            poBanddest->RasterIO( GF_Write, 0, myRank * subRows, _pMetaData->_glbDims.nCols(), subRows,
+                                  pRowMatrix, _pMetaData->_glbDims.nCols(), subRows,
+                                  _pMetaData->dataType, 0, 0 );
+        } else {
+            cout<<"a "<<myRank<<" "<<pRowMatrix<<endl;
+            poBanddest->RasterIO( GF_Write, 0, myRank * subRows, _pMetaData->_glbDims.nCols(), lastSubRows,
+                                  pRowMatrix, _pMetaData->_glbDims.nCols(), lastSubRows,
+                                  _pMetaData->dataType, 0, 0 );
+        }
+    }
+    cout<<"b "<<myRank<<endl;
+
+    MPI_Barrier( MPI_COMM_WORLD );	//Í¬ÉÏ£¬Ö»ÓÐ²¿·Ö½ø³Ìµ÷ÓÃ£¬»á³öÏÖÊ²Ã´Çé¿ö
+    if ( poDataset != NULL ) {
+        GDALClose((GDALDatasetH) poDataset );
+        poDataset = NULL;
+    }
+
+    return true;
+}
+
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+updateMetadata( const CoordBR &subWorkBR, DomDcmpType dcmpType ) {
+    //¸ù¾ÝsubWorkBR¸üÐÂÔªÊý¾Ý£»»®·ÖÖ®ºó£¬»áµ÷ÓÃ´ËÀ´ÖØÐÂ»ñÈ¡ÔªÊý¾Ý£¿
+    if ( _pMetaData == NULL ) {
+        cerr << "origional metadata does not exist." << endl;
+    }
+    int glbBegin = subWorkBR.nwCorner().iRow();
+    int glbEnd = subWorkBR.seCorner().iRow();
+    CellCoord nwCorner( glbBegin + _pNbrhood->minIRow(), 0 );
+    CellCoord seCorner( glbEnd + _pNbrhood->maxIRow(), _pMetaData->_glbDims.nCols() - 1 );
+    CoordBR subMBR( nwCorner, seCorner );
+    _pMetaData->_MBR = subMBR;
+    SpaceDims dims( subMBR.nRows(), subMBR.nCols());
+    _pMetaData->_localdims = dims;
+    CoordBR workBR;
+    if ( !_pNbrhood->calcWorkBR( workBR, dims )) {
+        return false;
+    }
+    _pMetaData->_localworkBR = workBR;
+
+    cleanCellSpace();    //ÊÍ·ÅÔ­À´µÄ¿Õ¼ä
+    newCellSpace( _pMetaData->_localdims );
+
+    return true;
+}
 
 #endif
