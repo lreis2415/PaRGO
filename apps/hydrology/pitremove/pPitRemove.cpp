@@ -24,45 +24,90 @@
 #include "application.h"
 #include "pitRemoveOperator.h"
 #include "mpi.h"
-//#include<omp.h>
-
 
 using namespace std;
 using namespace GPRO;
 
+void Usage(const string& error_msg = "") {
+	if (!error_msg.empty()) {
+		cout << "FAILURE: " << error_msg << endl << endl;
+	}
+
+	cout << " Usage: pitremove -elev <elevation grid file> -nbr <neighbor definition file> -out <pit-removed output file>" << endl;
+	cout << " Or use the Simple Usage: pitremove <elevation grid file> <neighbor definition file> <pit-removed output file>" << endl << endl;
+	cout << "Example.1. pitremove -elev /path/to/elev.tif -nbr /path/to/moore.nbr -out /path/to/pitRemoved.tif" << endl;
+	cout << "Example.2. pitremove /path/to/elev.tif /path/to/moore.nbr /path/to/pitRemoved.tif" << endl;
+
+	exit(1);
+}
+
 int main(int argc, char *argv[]) 
 {
-	/*  enum ProgramType{MPI_Type = 0,
-				   MPI_OpenMP_Type,
-				   CUDA_Type};*/
+	/*!
+	 * Parse input arguments.
+	 * DO NOT start the application unless the required inputs are provided!
+	 */
+	if (argc < 4) {
+        Usage("Too few arguments to run this program.");
+	}
+	// Input arguments
+	char* inputfilename = nullptr;
+	char* neighborfile = nullptr;
+	char* outputfilename = nullptr;
+
+	int i = 1;
+	bool simpleusage = true;
+	while (argc > i) {
+		if (strcmp(argv[i], "-elev") == 0) {
+			simpleusage = false;
+			i++;
+			if (argc > i) {
+				inputfilename = argv[i];
+				i++;
+			} else {
+				Usage("No argument followed '-elev'!");
+			}
+		} else if (strcmp(argv[i], "-nbr") == 0) {
+			simpleusage = false;
+			i++;
+			if (argc > i) {
+				neighborfile = argv[i];
+				i++;
+			} else {
+				Usage("No argument followed '-nbr'!");
+			}
+		} else if (strcmp(argv[i], "-out") == 0) {
+			simpleusage = false;
+			i++;
+			if (argc > i) {
+				outputfilename = argv[i];
+				i++;
+			} else {
+				Usage("No argument followed '-out'!");
+			}
+		} else { // Simple Usage
+			if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
+			inputfilename = argv[1];
+			neighborfile = argv[2];
+			outputfilename = argv[3];
+			break;
+		}
+	}
+
+
+
 	Application::START(MPI_Type, argc, argv); //parallel version
 
-	char* demfilename;
-	char* neighborfile;
-	char* pitfilename;
-//	int threadNUM;
-
-	if( argc!=4 ){
-		cerr<<"wrong input parameter";
-		return 0;
-	}else{
-		demfilename = argv[1];
-		neighborfile = argv[2]; 
-		pitfilename = argv[3];
-		//threadNUM = atoi(argv[4]);
-	}
-	//omp_set_num_threads(threadNUM);
-	
 	RasterLayer<double> demLayer("demLayer");
 	demLayer.readNeighborhood(neighborfile);
-	demLayer.readFile(demfilename);
+	demLayer.readFile(inputfilename);
 
 	RasterLayer<double> wdemLayer("wdemLayer");
 	wdemLayer.readNeighborhood(neighborfile);
 	wdemLayer.copyLayerInfo(demLayer);
 	
-	double starttime1;
-	double endtime1;
+	double starttime1=0;
+	double endtime1=0;
 	MPI_Barrier(MPI_COMM_WORLD);	//等待每个线程都输出自己的行列数
 	starttime1 = MPI_Wtime();
 
@@ -75,7 +120,7 @@ int main(int argc, char *argv[])
 	endtime1 = MPI_Wtime();
 
 	cout<<"run time is "<<endtime1-starttime1<<endl;
-	wdemLayer.writeFile(pitfilename);
+	wdemLayer.writeFile(outputfilename);
 	
 	Application::END();
 	return 0;

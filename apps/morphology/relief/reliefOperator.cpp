@@ -34,7 +34,7 @@ bool reliefOperator::isTermination()
 	}
 }
 
-//计算起伏度的算法实现
+//计算起伏度的算法实现 
 bool reliefOperator::Operator(const CellCoord &coord)
 {
 	CellSpace<double> &dem = *(_pDEMLayer->cellSpace());//输入图层的栅格数据
@@ -46,18 +46,17 @@ bool reliefOperator::Operator(const CellCoord &coord)
 	int iRow = coord.iRow();
 	int iCol = coord.iCol();
 	
-	double d[9];//存放3*3邻域窗口
+	double d[9];//存放3*3邻域窗口 
 	int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
-	int dCellSize = _pDEMLayer->_pMetaData->cellSize;//DEM格网长度
+	int dCellSize = _pDEMLayer->_pMetaData->cellSize;//DEM格网长度 
 	int nodata = _pDEMLayer->_pMetaData->noData;
-	int iRow1, iCol1;
 	
-	//存储分析窗口范围内的DEM值
+	//存储分析窗口范围内的DEM值 
 	int k = 0;
 	int tag=0;
-	for(iRow1 = iRow - iNeighborCells; iRow1 <= iRow + iNeighborCells; iRow1++)
+	for(int iRow1 = iRow - iNeighborCells; iRow1 <= iRow + iNeighborCells; iRow1++)
 	{
-		for(iCol1 = iCol - iNeighborCells; iCol1 <= iCol + iNeighborCells; iCol1++)
+		for(int iCol1 = iCol - iNeighborCells; iCol1 <= iCol + iNeighborCells; iCol1++)
 		{
 			d[k] = dem[iRow1][iCol1];
 			if(d[k]==nodata)
@@ -74,9 +73,10 @@ bool reliefOperator::Operator(const CellCoord &coord)
 		}
 		else
 		{
-			//起伏度（高差）算法
+			//起伏度（高差）算法 
 			double max,min;
-			max=d[0];	min=d[0];
+			max=d[0];
+			min=d[0];
 			for(int m=1;m<9;m++)
 			{
 				if(d[m]>max)

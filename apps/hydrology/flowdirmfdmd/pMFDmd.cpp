@@ -31,33 +31,86 @@
 using namespace std;
 using namespace GPRO;
 
+void Usage(const string& error_msg = "") {
+
+    if (!error_msg.empty()) {
+        cout << "FAILURE: " << error_msg << endl << endl;
+    }
+    cout << " Usage: flowdirmfdmd -elev <elevation grid file> -nbr <neighbor definition file> -out <output flow direction file> -exp <slope exponent>" << endl;
+    cout << " the default slope exponent is 1.1. For more details please see Qin 2007 or SimDTA manual" << endl<<endl;
+    cout << " Or use the Simple Usage: flow <elevation grid file> <neighbor definition file> <output flow direction file> <slope exponent>" << endl << endl;
+    cout << "Example.1. flowdirmfdmd -elev /path/to/elev.tif -nbr /path/to/moore.nbr -out /path/to/mfdmd.tif" << endl;
+    cout << "Example.4. flowdirmfdmd /path/to/elev.tif /path/to/moore.nbr /path/to/mfdmd.tif" << endl;
+
+    exit(1);
+}
+
 int main(int argc, char *argv[]) 
 {
-	/*  enum ProgramType{MPI_Type = 0,
-				   MPI_OpenMP_Type,
-				   CUDA_Type,
-				   Serial_Type};*/
-	Application::START(MPI_Type, argc, argv); //init
 
-	char* inputfilename;
-	char* neighborfile;
-	char* outputfilepath;
-	double slpExp;
-	//int threadNUM;
-	/*
-	* output the distribution weight matrix.
-	*/
-	if( argc!=5 ){
-		cerr<<"please input right parameter.";
-		return 0;
-	}else{
-		inputfilename = argv[1];
-		neighborfile = argv[2]; 
-		outputfilepath = argv[3];
-		slpExp = atof(argv[3]);
-		//threadNUM = atoi(argv[5]);
+	/*!
+	 * Parse input arguments.
+	 * DO NOT start the application unless the required inputs are provided!
+	 */
+	if (argc < 5) {
+        Usage("Too few arguments to run this program.");
 	}
-	//omp_set_num_threads(threadNUM);
+	// Input arguments
+	char* inputfilename = nullptr;
+	char* neighborfile = nullptr;
+	char* outputfilename = nullptr;
+	double slpExp;
+
+    int i = 1;
+    bool simpleusage = true;
+	while (argc > i) {
+		if (strcmp(argv[i], "-elev") == 0) {
+            simpleusage = false;
+            i++;
+			if (argc > i) {
+                inputfilename = argv[i];
+                i++;
+            } else {
+	            Usage("No argument followed '-elev'!");
+            }
+		} else if (strcmp(argv[i], "-nbr") == 0) {
+            simpleusage = false;
+            i++;
+			if (argc > i) {
+                neighborfile = argv[i];
+                i++;
+			} else {
+				Usage("No argument followed '-nbr'!");
+			}
+        } else if (strcmp(argv[i], "-out") == 0) {
+            simpleusage = false;
+            i++;
+			if (argc > i) {
+                outputfilename = argv[i];
+                i++;
+			} else {
+                Usage("No argument followed '-out'!");
+			}
+        } else if (strcmp(argv[i], "-exp") == 0) {
+            simpleusage = false;
+            i++;
+			if (argc > i) {
+                slpExp = atof(argv[i]);
+                i++;
+			} else {
+                Usage("No argument followed '-exp'!");
+			}
+        } else { // Simple Usage
+            if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
+            inputfilename = argv[1];
+            neighborfile = argv[2];
+            outputfilename = argv[3];
+			if(argc>4){
+				slpExp = atof(argv[4]);
+			}
+			break;
+        }
+	}
 	if( !( slpExp>=0 || slpExp<=1 ) ){
 		cerr<<"please input slope exponent between 0-1.";
 		return 0;
@@ -80,9 +133,9 @@ int main(int argc, char *argv[])
 		char* tmp = new char [200];
 		//sprintf(tmp, "%sweightLayer%d.tif", cFilepath,i);
 		if( i<4 )
-			sprintf(tmp, "%sweightLayer%d.tif", outputfilepath,i);
+			sprintf(tmp, "%sweightLayer%d.tif", outputfilename,i);
 		else
-			sprintf(tmp, "%sweightLayer%d.tif", outputfilepath,i+1);
+			sprintf(tmp, "%sweightLayer%d.tif", outputfilename,i+1);
 		pOutputfilenames[i] = tmp;
 		//RasterLayer<double> outLayer(pOutputfilenames[i]);
 		RasterLayer<double> *outLayer = new RasterLayer<double> (pOutputfilenames[i]);

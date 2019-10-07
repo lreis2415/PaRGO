@@ -116,10 +116,10 @@ int main(int argc, char *argv[])
 	}
 
     if (!FileExists(inputfilename)) {
-        Usage("The input DEM file is not existed");
+        Usage("The input DEM file not exists");
     }
     if (!FileExists(neighborfile)) {
-        Usage("The input DEM file is not existed");
+        Usage("neighbor file not exists");
     }
 
 	/*  enum ProgramType{MPI_Type = 0,
