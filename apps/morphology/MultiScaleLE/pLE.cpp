@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
 		inputfilename = argv[1];
 		neighborfile = argv[2]; 
 		outputfilename = argv[3];
+		steplength = argv[4];
 	}
 	RasterLayer<double> demLayer("demLayer"); //创建图层
 	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
