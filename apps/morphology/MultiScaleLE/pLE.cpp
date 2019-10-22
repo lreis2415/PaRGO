@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
 	char* inputfilename;
 	char* neighborfile;
 	char* outputfilename;
+	char* steplength;
 	//char* outputfile2name;
 	int threadNUM;
 	if (argc < 6)
@@ -53,15 +54,16 @@ int main(int argc, char *argv[])
 		inputfilename = argv[1];
 		neighborfile = argv[2]; 
 		outputfilename = argv[3];
+		steplength = argv[4];
 	}
-	RasterLayer<double> demLayer("demLayer"); //创建图层
-	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
-	demLayer.readFile(inputfilename);  //读取栅格数据
+	RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
+	demLayer.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+	demLayer.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
 
 
-    RasterLayer<double> demLayer2("demLayer2"); //创建图层
-    demLayer2.readNeighborhood(neighborfile);  //读取分析窗口文件
-    demLayer2.readFile(inputfilename);  //读取栅格数据
+    RasterLayer<double> demLayer2("demLayer2"); //鍒涘缓鍥惧眰
+    demLayer2.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+    demLayer2.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
 
 	RasterLayer<double> LELayer("LELayer");
 
@@ -77,8 +79,9 @@ int main(int argc, char *argv[])
 
 	LEOper.demLayer(demLayer);
 	LEOper.LELayer(LELayer);
-
-    for (int i = 0; i < LEOper.GetRowNum() - 2; i++)
+	
+    int steplengthint = atoi(steplength);
+    for (int i = 0; i < LEOper.GetRowNum() - 2; i = i + steplengthint)
     {
         LELayer.copyLayerInfo(demLayer2);
         LEOper.SetCurrentScale(i);
