@@ -21,11 +21,9 @@ PaRGO依赖GDAL，根据不同并行版本依赖MPI（MSMPI，OpenMPI，MPICH，
 
   ```shell
   cmake -G "Visual Studio 12 2013 Win64" C:/z_code/DTA/PaRGO ..
-  
-  # By default, the install directory is /path/to/source/bin,
-  #   and can also be specified by add `-DINSTALL_PREFIX` argument, 
-  #   e.g., `-DINSTALL_PREFIX=D:/compile/bin/pargo`
   ```
-
+  By default, the install directory is /path/to/source/bin,
+  and can also be specified by add `-DINSTALL_PREFIX` argument, 
+  e.g., `-DINSTALL_PREFIX=D:/compile/bin/pargo`
   ​
 

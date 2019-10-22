@@ -1,20 +1,20 @@
+/**
+ * \file basicTypes
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::Transition, and GPRO::CellSpace
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
+
 #ifndef CELLSPACE_H
 #define CELLSPACE_H
-
-/***************************************************************************
-* cellSpace.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::Transition, and GPRO::CellSpace
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 
 #include "basicTypes.h"
 #include "basicCell.h"
@@ -34,6 +34,11 @@ namespace GPRO {
     template<class elemType>
     class Neighborhood;
 
+    /**
+     * \ingroup gpro
+     * \class Transition
+     * \brief a
+     */
     template<class elemType>
     class Transition {
     public:
@@ -109,6 +114,11 @@ namespace GPRO {
     template<class elemType>
     istream &operator>>( istream &is, CellSpace<elemType> &cellSpace );
 
+    /**
+     * \ingroup gpro
+     * \class CellSpace
+     * \brief Data of cells and the space that contains them
+     */
     template<class elemType>
     class CellSpace {
     public:
@@ -121,16 +131,16 @@ namespace GPRO {
 
         ~CellSpace();
 
-        bool initMem( const SpaceDims &dims );
-        bool initVals( const elemType &initVal );
-        void clear();
+        bool initMem( const SpaceDims &dims ); /// Initialize the memory of cell data matrix. Only in private use yet.
+        bool initVals( const elemType &initVal ); /// Initialize the value of cell data matrix within size.
+        void clear(); /// delete the cell data matrix
 
         template<class elemType2>
-        bool equalDim( const CellSpace<elemType2> &rhs ) const;
-        bool empty() const;
-        int nRows() const;
-        int nCols() const;
-        int size() const;
+        bool equalDim( const CellSpace<elemType2> &rhs ) const; /// return if the dimension is the same as param[in] rhs
+        bool empty() const; /// check if the matrix and dimension is empty
+        int nRows() const; /// return the row num of dimension
+        int nCols() const; /// return the column num of dimension
+        int size() const; /// return the size (area) of cell dimension.
         const SpaceDims &dims() const;
         bool validCoord( const CellCoord &coord, bool warning = true ) const;
         bool validCoord( int iRow, int iCol, bool warning = true ) const;
@@ -146,13 +156,47 @@ namespace GPRO {
 
         bool values( vector<elemType> &vVals ) const;
 
+        /**
+         * \brief search globally by value of rasters
+         * \param[in] val the value to search.
+         * \param[out] vFoundIdxs the 1D-indices of rasters whose values equal val
+         */
         bool find( IntVect &vFoundIdxs, const elemType &val ) const;
+        /**
+         * \brief search globally by value of rasters
+         * \param[in] val the value to search
+         * \param[out] vFoundIdxs the 1D-indices of rasters whose values equal val
+         */
         bool find( IntVect &vFoundIdxs, const vector<elemType> &vVals ) const;
+        /**
+         * \brief search globally by values of rasters
+         * \param[in] vVals the vector of values to search
+         * \param[out] vFoundIdxs the 1D-indices of rasters whose values equal val
+         */
         bool find( IntVect &vFoundIdxs, const vector<elemType> &vVals, const CoordBR &rectangle ) const;
-
+        /**
+         * \brief count number of elements with condition
+         * \param[in] val the value to search.
+         */
         int count( const elemType &val ) const;
+        /**
+         * \brief count number of elements with condition
+         * \param[in] val the value to search
+         * \param[in] rectangle area to search within
+         */
         int count( const elemType &val, const CoordBR &rectangle ) const;
+        /**
+         * \brief count number of elements with condition
+         * \param[in] val the value to search
+         * \param[in] vExcldIdxs indices to search within
+         */
         int count( const elemType &val, const IntVect &vExcldIdxs ) const;
+        /**
+         * \brief count number of elements with condition
+         * \param[in] val the value to search
+         * \param[in] rectangle area to search within
+         * \param[in] vExcldIdxs indices to search within
+         */
         int count( const elemType &val, const CoordBR &rectangle, const IntVect &vExcldIdxs ) const;
 
         int count( const vector<elemType> &vVals ) const;
@@ -165,12 +209,26 @@ namespace GPRO {
 
         template<class Predicate>
         int count( Predicate pred, const CoordBR &rectangle ) const;
-
+        /**
+         * \brief update the values of a row or col of data matrix
+         * \param[in] val the value to search
+         * \param[in] rectangle area to search within
+         * \param[in] vExcldIdxs indices to search within
+         */
         bool updateRowCol( const vector<elemType> &vNewVals,
                            int iDim,
                            int iRowCol );
+        /**
+         * \brief update the value of first n cells, where n is the size of vCells
+         * \param[in] vCells input values in the form of BasicCell
+         */
         bool updateCells( const vector<BasicCell<elemType> > &vCells );
+        /**
+         * \brief update the value of first n cells, where n is the size of vCells
+         * \param[in] vCells input value in the form of std::pair
+         */
         bool updateCells( const vector<pair<int, elemType> > &vCells );
+        /* 以下几个函数不知想干嘛，而且觉得没用处 */
         bool update( Transition<elemType> *pTransition,
                      Neighborhood<elemType> *pNbrhood,
                      const CoordBR *const pWorkBR = 0 );
@@ -187,7 +245,7 @@ namespace GPRO {
 
     public:
         MetaData _metadata;
-        elemType *_matrix;
+        elemType *_matrix; /// data of cells
     protected:
         SpaceDims _dims;
         map<elemType, IntVect> _mUpdtCells;
@@ -530,7 +588,7 @@ values( vector<elemType> &vVals ) const {
 
 template<class elemType>
 bool GPRO::CellSpace<elemType>::
-find( IntVect &vFoundIdxs, const elemType &val ) const {	/*在全局范围内搜索值为val的栅格，返回1D位置索引*/
+find( IntVect &vFoundIdxs, const elemType &val ) const {	
     bool found = false;
     if ( empty()) {
         cerr << __FILE__ << " " << __FUNCTION__ \
@@ -627,7 +685,7 @@ count( const elemType &val, const CoordBR &rectangle ) const {
 template<class elemType>
 int GPRO::CellSpace<elemType>::
 count( const elemType &val, const IntVect &vExcldIdxs ) const {
-	/*在全局范围内统计，索引在vExcldIdxs中，且值等于val的栅格数目*/
+
     int found = 0;
     for ( int iElem = 0; iElem < size(); iElem++ ) {
         if ( std::find( vExcldIdxs.begin(), vExcldIdxs.end(), iElem ) == vExcldIdxs.end()) {
@@ -855,7 +913,7 @@ updateCells( const vector<pair<int, elemType> > &vCells ) {
 }
 
 
-/*以下几个函数不知想干嘛，而且觉得没用处*/
+
 template<class elemType>
 bool GPRO::CellSpace<elemType>::
 update( Transition<elemType> *pTransition, Neighborhood<elemType> *pNbrhood, const CoordBR *const pWorkBR ) {

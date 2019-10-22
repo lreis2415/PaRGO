@@ -1,20 +1,20 @@
+/**
+ * \file basicCell
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::Communication
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
+
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
-
-/***************************************************************************
-* communication.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::Communication
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 
 #include "basicTypes.h"
 #include "basicCell.h"
@@ -29,20 +29,32 @@
 #include <gdal_priv.h>
 
 namespace GPRO {
+    /**
+     * \ingroup gpro
+     * \class Communication
+     * \brief 
+     */
     template<class elemType>
     class Communication {
     public:
+        /// Constructor
         Communication();
+        /// Construct by Communication Vector
         Communication( vector<RasterLayer < elemType> * > *pComVec);
+        /// Deconstructor
         ~Communication();
 
+        /// set Communication Vector
         bool setCommunication( vector<RasterLayer < elemType> * > *pComVec);
+        /// set MPI buffer
         bool setBuffer();
+        /// row-wise communication
         bool rowComm();
+        /// col-wise communication
         bool colComm();
     private:
-        vector<RasterLayer < elemType>* > *_pComVec;
-        Neighborhood <elemType> *_pNbrhood;
+        vector<RasterLayer < elemType>* > *_pComVec; /// communication vector
+        Neighborhood <elemType> *_pNbrhood; /// neighborhood init by nbr file
         MetaData *_pMetadata;
         void *buf;
         int bufsize;

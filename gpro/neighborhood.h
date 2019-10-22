@@ -1,33 +1,38 @@
+/**
+ * \file basicCell
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::Neighborhood
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
 #ifndef NEIGHBORHOOD_H
 #define NEIGHBORHOOD_H
 
-/***************************************************************************
-* neighborhood.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::Neighborhood
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 #include "basicTypes.h"
 #include "basicCell.h"
 #include "weightedCell.h"
 #include "cellSpace.h"
 
 namespace GPRO {
+    /**
+     * \ingroup gpro
+     * \class Neighborhood
+     * \brief to record the variable of elemType at the specific coordinate
+     */
     template<class elemType>
     class Neighborhood {
     public:
         Neighborhood();
-        Neighborhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 );
-        Neighborhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights );
-        Neighborhood( const Neighborhood<elemType> &rhs );
+        Neighborhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 ); /// Construct with the same weight
+        Neighborhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights ); /// Construct coordinates with different weights
+        Neighborhood( const Neighborhood<elemType> &rhs ); /// Deep copy
 
         template<class elemType2>
         Neighborhood( const Neighborhood<elemType2> &rhs );
@@ -38,21 +43,21 @@ namespace GPRO {
         const WeightedCell<elemType> &operator[]( int iNbr ) const;
         Neighborhood<elemType> &operator=( const Neighborhood<elemType> &rhs );
 
-        bool empty() const;
-        int size() const;
-        bool isEquallyWeighted( double &weight ) const;
-        void clear();
+        bool empty() const; /// check if there is no WeightedCell inside
+        int size() const; /// return the num of WeightedCells
+        bool isEquallyWeighted( double &weight ) const; /// return if every Coord has the same weight
+        void clear(); /// empty member variables of the Neighborhood
 
-        int minIRow() const;
-        int minICol() const;
-        int maxIRow() const;
-        int maxICol() const;
-        int nRows() const;
-        int nCols() const;
+        int minIRow() const; /// Return the min row of Minimum Bounding Rectangle
+        int minICol() const; /// Return the min col of Minimum Bounding Rectangle
+        int maxIRow() const; /// Return the max row of Minimum Bounding Rectangle
+        int maxICol() const; /// Return the max col of Minimum Bounding Rectangle
+        int nRows() const; /// Return the row num
+        int nCols() const; /// Return the col num
 
         const CoordBR &getMBR() const;
-        bool hasNbrs( MeshDir dir ) const;
-        const IntVect *nbrIDs( MeshDir dir ) const;
+        bool hasNbrs( MeshDir dir ) const; /// if neighbor exists in the direction
+        const IntVect *nbrIDs( MeshDir dir ) const; /// return the vector of IDs in the direction
         bool calcWorkBR( CoordBR &workBR, const SpaceDims &dims ) const;
 
         void toVect( vector<CellCoord> &vNbrCoords ) const;
@@ -387,7 +392,11 @@ nbrIDs( MeshDir dir ) const {
     return &( _mNbrIDMap.at( dir ));
 }
 
-
+/**
+ * \brief calculate the work BoundingRectangle
+ * \param[out] workBR output
+ * \param[in] dims with which workBR is calculated
+ */
 template<class elemType>
 bool GPRO::Neighborhood<elemType>::
 calcWorkBR( CoordBR &workBR, const SpaceDims &dims ) const {

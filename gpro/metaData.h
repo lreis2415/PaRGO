@@ -1,3 +1,18 @@
+/**
+ * \file basicCell
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::BasicCell
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
+
 #ifndef METADATA_H
 #define METADATA_H
 
@@ -23,19 +38,19 @@ namespace GPRO {
 		//int noData;
 		double noData;
         float cellSize;
-        int row;
-        int column;
+        int row; /// row num of data
+        int column; /// column num of data
 
-        int myrank;
-        int processor_number;
+        int myrank; /// rank of this process
+        int processor_number; /// number of processors
 
-		GDALDataType dataType;
-        DomDcmpType _domDcmpType;
-        SpaceDims _glbDims;
+		GDALDataType dataType; /// data type of GDAL
+        DomDcmpType _domDcmpType; /// domain decomposition type
+        SpaceDims _glbDims; /// space dimension globally
         CoordBR _MBR; /* this processor's MBR is in global coordinates */
-        SpaceDims _localdims;
+        SpaceDims _localdims; /// space dimension locally
         //CoordBR _subMBR;
-        CoordBR _localworkBR; /* this processor's workBR is in local coordinates */
+        CoordBR _localworkBR; /// this processor's workBR is in local coordinates
 
 	public:
         MetaData() { pTransform = new double[6]; }

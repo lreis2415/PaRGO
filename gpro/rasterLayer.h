@@ -1,20 +1,21 @@
+/**
+ * \file basicTypes
+ * \author Qin ChengZhi (Qincz@lreis.ac.cn)
+ * \brief Header file for class GPRO::RasterLayer
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2018
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
+
+
 #ifndef RasterLayer_H
 #define RasterLayer_H
-
-/***************************************************************************
-* RasterLayer.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::RasterLayer
-* Author:  Qin ChengZhi
-* E-mail:  Qincz@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2018. Qin ChengZhi
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted.
-* 
-****************************************************************************/
 
 #include "basicTypes.h"
 #include "cellSpace.h"
@@ -30,9 +31,15 @@
 using namespace std;
 
 namespace GPRO {
+    /**
+     * \ingroup gpro
+     * \class RasterLayer
+     * \brief Basic class to store PaRGO information of layers
+     */
     template<class elemType>
     class RasterLayer {
     public:
+
         RasterLayer();
         RasterLayer( const string layerName );
         RasterLayer( const RasterLayer<elemType> &rhs );
@@ -101,10 +108,10 @@ namespace GPRO {
         MetaData *_pMetaData;
 
     protected:
-        string _strLayerName;
-        CellSpace<elemType> *_pCellSpace;
-        Neighborhood<elemType> *_pNbrhood;
-        int _nLayerID;
+        string _strLayerName; /// layer name
+        CellSpace<elemType> *_pCellSpace; /// data of raster
+        Neighborhood<elemType> *_pNbrhood; /// data of neighborhood
+        int _nLayerID; /// layer ID
     };
 };
 

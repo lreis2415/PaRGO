@@ -1,25 +1,30 @@
+/**
+ * \file basicCell
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::WeightedCell
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
+
 #ifndef WEIGHTEDCELL_H
 #define WEIGHTEDCELL_H
-
-/***************************************************************************
-* weightedCell.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::WeightedCell
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 
 #include "basicTypes.h"
 #include "basicCell.h"
 
 namespace GPRO {
+    /**
+     * \ingroup gpro
+     * \class WeightedCell
+     * \brief BasicCell with weight
+     */
     template<class elemType>
     class WeightedCell : public BasicCell<elemType> {
     public:
@@ -69,7 +74,7 @@ namespace GPRO {
         }
 
     protected:
-        double _weight;
+        double _weight; /// weight of the basic cell
     };
 
 };

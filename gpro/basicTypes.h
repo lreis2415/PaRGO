@@ -1,22 +1,22 @@
+/**
+ * \file basicTypes
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::DomDcmpType, GPRO::DomDcmpMethod,
+ *        GPRO::SglColDir, GPRO::SglRowDir, GPRO::MeshDir, GPRO::PrimeDir,
+ *        GPRO::SpaceDims, GPRO::CellCoord, and GPRO::CoordBR
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
+
 #ifndef BASICTYPES_H
 #define BASICTYPES_H
-
-/***************************************************************************
-* basicTypes.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::DomDcmpType, GPRO::DomDcmpMethod,
-*          GPRO::SglColDir, GPRO::SglRowDir, GPRO::MeshDir, GPRO::PrimeDir,
-*          GPRO::SpaceDims, GPRO::CellCoord, and GPRO::CoordBR
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 
 #include <utility>
 #include <vector>
@@ -30,68 +30,112 @@
 using namespace std;
 
 namespace GPRO {
+    /**
+     * \enum DomDcmpType
+     * \ingroup gpro
+     * \brief Domain decompose type
+     */
     enum DomDcmpType {
-        NON_DCMP = 0,
-        ROWWISE_DCMP,
-        COLWISE_DCMP,
-        BLOCK_DCMP
+        NON_DCMP = 0, /**< no decompose */
+        ROWWISE_DCMP, /**< row-wise decompose */
+        COLWISE_DCMP, /**< col-wise decompose */
+        BLOCK_DCMP /**< block-wise decompose */
     };
 
+    /**
+     * \enum DomDcmpMethod
+     * \ingroup gpro
+     * \brief Domain decompose method
+     * 
+     */
+    //TODO: add comment
     enum DomDcmpMethod {
-        SINGLE_PRC = 0,
-        SMPL_ROW,
-        SMPL_COL,
-        SMPL_BLK,
-        CMPX_QUAD
+        SINGLE_PRC = 0, /**<  */
+        SMPL_ROW, /**<  */ 
+        SMPL_COL, /**<  */ 
+        SMPL_BLK, /**<  */ 
+        CMPX_QUAD /**<  */
     };
+
 
     enum DomDcmpObj {
-        SPACE_DIM = 0,
-        DATA_LOAD,
-        COMPT_LOAD
+        SPACE_DIM = 0, /**<  */
+        DATA_LOAD, /**<  */
+        COMPT_LOAD /**<  */
     };
 
+    /**
+     * \enum ProgramType
+     * \ingroup gpro
+     * \brief parallel framework type
+     * 
+     */
     enum ProgramType {
-        MPI_Type = 0,
-        MPI_OpenMP_Type,
-        CUDA_Type,
-        Serial_Type
+        MPI_Type = 0,/**< MPI program */
+        MPI_OpenMP_Type,/**< MPI and OpenMP type */
+        CUDA_Type,/**< CUDA program */
+        Serial_Type/**< serial program (no parallel framworks) */
     };
 
     ostream &operator<<( ostream &os, const DomDcmpMethod &dcmpMethod );
     ostream &operator<<( ostream &os, const DomDcmpObj &domDcmpObj );
 
+    /**
+     * \enum SglColDir
+     * \ingroup gpro
+     * \brief Single column direction
+     * 
+     */
     enum SglColDir {
-        UPPER_DIR = 0,
-        LOWER_DIR
+        UPPER_DIR = 0, /**< up */
+        LOWER_DIR /**< down */
     };
 
+    /**
+     * \enum SglRowDir
+     * \ingroup gpro
+     * \brief Single row direction
+     * 
+     */
     enum SglRowDir {
-        LEFT_DIR = 0,
-        RIGHT_DIR
+        LEFT_DIR = 0, /**< left */
+        RIGHT_DIR /**< right */
     };
 
+    /**
+     * \enum MeshDir
+     * \ingroup gpro
+     * \brief mesh direction
+     * 
+     */
     enum MeshDir {
-        ERROR_DIR = -1,
-        NORTH_DIR = 0,
-        NORTHEAST_DIR,
-        EAST_DIR,
-        SOUTHEAST_DIR,
-        SOUTH_DIR,
-        SOUTHWEST_DIR,
-        WEST_DIR,
-        NORTHWEST_DIR,
-        SPECIAL1_DIR,
-        SPECIAL2_DIR
+        ERROR_DIR = -1, /**< error */
+        NORTH_DIR = 0, /**< north */
+        NORTHEAST_DIR, /**< northeast */
+        EAST_DIR, /**< east */
+        SOUTHEAST_DIR, /**< southeast */
+        SOUTH_DIR, /**< south */
+        SOUTHWEST_DIR, /**< southwest */
+        WEST_DIR, /**< west */
+        NORTHWEST_DIR, /**< northwest */
+        SPECIAL1_DIR, /**<  */
+        SPECIAL2_DIR /**<  */
     };
 
+    /**
+     * \enum PrimeDir
+     * \ingroup gpro
+     * \brief basic direction
+     * 
+     */
     enum PrimeDir {
-        NORTH_PDIR = 0,
-        EAST_PDIR,
-        SOUTH_PDIR,
-        WEST_PDIR
+        NORTH_PDIR = 0, /**< north */
+        EAST_PDIR, /**< east */
+        SOUTH_PDIR, /**< south */
+        WEST_PDIR /**< west */
     };
 
+    /// Get the opposite direction
     MeshDir oppositeDir( MeshDir dir );
 
     typedef vector<int> IntVect;
@@ -117,7 +161,11 @@ namespace GPRO {
     static const int ERROR_SPCID = -1;    //?
     static const int ERROR_COORD = -9999;
 
-/* class SpaceDims */
+    /**
+     * \ingroup gpro
+     * \class SpaceDims
+     * \brief space dimension
+     */
     class SpaceDims {
     public:
         SpaceDims()
@@ -185,12 +233,16 @@ namespace GPRO {
         }
 
     private:
-        int _nRows;
-        int _nCols;
-        int _size;
+        int _nRows; /// row num of the SpaceDim
+        int _nCols; /// col num of the SpaceDim
+        int _size; /// size of the SpaceDim
     };
 
-/* class CellCoord */
+    /**
+     * \ingroup gpro
+     * \class CellCoord
+     * \brief coordinate of one cell
+     */
     class CellCoord {
     public:
         CellCoord()
@@ -264,14 +316,14 @@ namespace GPRO {
         int iCol() const {
             return _iCol;
         }
-
+        /// check if the coordinate is valid
         bool valid( const SpaceDims &dims ) const {
             return ( _iRow >= 0 &&
                 _iRow < dims.nRows() &&
                 _iCol >= 0 &&
                 _iCol < dims.nCols());
         }
-
+        /// parse a SpaceDims object to an index
         int toIdx( const SpaceDims &dims ) const {
             int idx;
             if ( !valid( dims )) {
@@ -281,7 +333,7 @@ namespace GPRO {
             }
             return idx;
         }
-
+        /// parse index into a SpaceDims object
         void fromIdx( int idx, const SpaceDims &dims ) {
             if ( !dims.validIdx( idx )) {
                 _iRow = ERROR_COORD;
@@ -300,8 +352,12 @@ namespace GPRO {
         int _iRow;
         int _iCol;
     };
-
-/* class CoordBR */
+    
+    /**
+     * \ingroup gpro
+     * \class CoordBR 
+     * \brief Data of coordinate bounding rectangle 
+     */
     class CoordBR {
     public:
         CoordBR() {}
@@ -439,8 +495,8 @@ namespace GPRO {
         }
 
     private:
-        CellCoord _nwCorner;
-        CellCoord _seCorner;
+        CellCoord _nwCorner; /// north west corner
+        CellCoord _seCorner; /// south east corner
     };
 
     ostream &operator<<( ostream &os, const SpaceDims &dims );

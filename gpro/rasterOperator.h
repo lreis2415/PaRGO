@@ -1,20 +1,19 @@
+/**
+ * \file basicTypes
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \brief Header file for class GPRO::RasterOperator
+ * \version 1.0
+ * 
+ * \copyright Copyright (c) 2013
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2019-10 - Yujing Wang - Code reformat
+ */
 #ifndef RASTEROPERATOR_H
 #define RASTEROPERATOR_H
-
-/***************************************************************************
-* rasterOperator.h
-*
-* Project: GPRO, v 1.0
-* Purpose: Header file for class GPRO::RasterOperator
-* Author:  Zhan Lijun
-* E-mail:  zhanlj@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2013. Zhan Lijun
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 
 #include "basicTypes.h"
 #include "basicCell.h"
@@ -33,7 +32,11 @@
 using namespace std;
 
 namespace GPRO {
-
+    /**
+     * \ingroup gpro
+     * \class RasterOperator
+     * \brief A basic super class that each Operator of a specific algorithm should extends
+     */
     template<class elemType>
     class RasterOperator {
     public:
@@ -49,6 +52,12 @@ namespace GPRO {
 
         //virtual void processing(){}
         //virtual bool updatematrix(const CellCoord &coord){}
+
+        /**
+         * \brief Basic function in which serial-style algorithm should be writen
+         * \param[in] coord coordinate of the central cell(point)
+         * \param[in] operFlag an unused controlling variable.
+         */
         virtual bool Operator( const CellCoord &coord, bool operFlag ) { return operFlag; }
 
         virtual bool isTermination() { return false; }
@@ -62,7 +71,7 @@ namespace GPRO {
 
     public:
 
-        vector<RasterLayer<elemType> *> CommVec;
+        vector<RasterLayer<elemType> *> CommVec; 
         CellSpace<elemType> *_pCellSpace;
         Neighborhood<elemType> *_pNbrhood;    //目前这两个成员变量并没有使用
         CoordBR *_pWorkBR;

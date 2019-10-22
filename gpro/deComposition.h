@@ -61,6 +61,15 @@ namespace GPRO {
 *             Private Methods           *
 *****************************************/
 
+/**
+ * \brief simple linear decomposition
+ * \param[out] subBegin the begin index of this decomposition
+ * \param[out] subEnd the end index of this decomposition
+ * \param[in] glbBegin begin index of the global work bounding rectangle
+ * \param[in] glbEnd end index of the global work bounding rectangle
+ * \param[in] nSubSpcs num of processors (or threads etc.)
+ * \param[in] iSubSpc rank
+ */
 template<class elemType>
 void GPRO::DeComposition<elemType>::
 _smpl1DDcmp( int &subBegin, int &subEnd,
@@ -96,6 +105,15 @@ _smpl1DDcmp( int &subBegin, int &subEnd,
 *             Public Methods            *
 *****************************************/
 
+/**
+ * \brief simple linear decomposition
+ * \param[out] subBegin the begin index of this decomposition
+ * \param[out] subEnd the end index of this decomposition
+ * \param[in] glbBegin begin index of the global work bounding rectangle
+ * \param[in] glbEnd end index of the global work bounding rectangle
+ * \param[in] nSubSpcs num of  ( processors, threads etc.)
+ * \param[in] iSubSpc rank
+ */
 template<class elemType>
 GPRO::DeComposition<elemType>::
 DeComposition( const SpaceDims &cellSpaceDims, const Neighborhood <elemType> &nbrhood ) {
@@ -109,7 +127,11 @@ DeComposition( const SpaceDims &cellSpaceDims, const Neighborhood <elemType> &nb
     _pNbrhood = &nbrhood;
 }
 
-
+/**
+ * \brief row-wise decomposition
+ * \param[out] metaData 
+ * \param[in] nSubSpcs
+ */
 template<class elemType>
 bool GPRO::DeComposition<elemType>::
 rowDcmp( MetaData &metaData, int nSubSpcs ) const {
@@ -148,6 +170,11 @@ rowDcmp( MetaData &metaData, int nSubSpcs ) const {
     return true;
 }
 
+/**
+ * \brief col-wise decomposition
+ * \param[out] metaData 
+ * \param[in] nSubSpcs
+ */
 template<class elemType>
 bool GPRO::DeComposition<elemType>::
 colDcmp( MetaData &metaData, int nSubSpcs ) const {
@@ -259,6 +286,11 @@ colDcmp( MetaData &metaData, int nSubSpcs ) const {
 //  return true;
 //}
 
+/**
+ * \brief 
+ * \param[out]
+ * \param[in] 
+ */
 template<class elemType>
 bool GPRO::DeComposition<elemType>::
 valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs ) const {
@@ -272,8 +304,7 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
         return false;
     }
 
-    //根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR
-    CellSpace<elemType> &comptL = *( layer.cellSpace());
+//根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR    CellSpace<elemType> &comptL = *( layer.cellSpace());
     double *rowComptLoad = new double[layer._pMetaData->_glbDims.nRows()];
     double totalComptLoad = 0.0;
     //这里目前只针对串行
@@ -294,7 +325,7 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
     //int subBegin = pWorkBR->minIRow();
     int subBegin = 0;
     int subEnd = subBegin;    //至少分配一行；是计算域的一行
-    for ( int i = 0; i < nSubSpcs - 1; ++i ) {    //共寻找nSubSpcs-1个划分位置,每个划分位置都在剩下的局部最优
+    for ( int i = 0; i < nSubSpcs - 1; ++i ) {    ////共寻找nSubSpcs-1个划分位置,每个划分位置都在剩下的局部最优
         double subComptLoad = 0.0;
         double minComptDiff = 0.0;
         for ( int cRow = subBegin; cRow <= layer._pMetaData->_MBR.maxIRow(); cRow++ ) {
