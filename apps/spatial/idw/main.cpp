@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	char *samplefilename, *outputfilename;
 	char *dataNeighbor, *compuNeighbor;
 	float cellSize;
-	int fldIdx, idw_nbrPoints, idw_power, idw_buffer;	//æš‚æ—¶éƒ½å®šä¹‰ä¸ºintå¯æ”¹ä¸ºæµ®ç‚¹å‹
+	int fldIdx, idw_nbrPoints, idw_power, idw_buffer;	//ÔİÊ±¶¼¶¨ÒåÎªint¿É¸ÄÎª¸¡µãĞÍ
 	//int threadNUM;
 	if( argc != 10 )
 	{
@@ -60,13 +60,13 @@ int main(int argc, char *argv[])
 	}
 	samplefilename = argv[1];
 	outputfilename = argv[2];
-	dataNeighbor = argv[3];	//1*1é‚»åŸŸ
+	dataNeighbor = argv[3];	//1*1ÁÚÓò
 	compuNeighbor = argv[4]; 
-	cellSize = atof(argv[5]);	//å¾…æ’å€¼æ …æ ¼åˆ†è¾¨ç‡
-	fldIdx = atoi(argv[6]);	//çŸ¢é‡æ•°æ®å±æ€§å€¼æ‰€åœ¨åˆ—
-	idw_power = atoi(argv[7]);	//åè·ç¦»åŠ æƒå¹‚ï¼Œé€šå¸¸å–2
-	idw_nbrPoints = atoi(argv[8]);	//æœç´¢é‚»è¿‘ç‚¹æ•°
-	idw_buffer = atof(argv[9]);	//æœ€å¤§æœç´¢åŠå¾„
+	cellSize = atof(argv[5]);	//´ı²åÖµÕ¤¸ñ·Ö±æÂÊ
+	fldIdx = atoi(argv[6]);	//Ê¸Á¿Êı¾İÊôĞÔÖµËùÔÚÁĞ
+	idw_power = atoi(argv[7]);	//·´¾àÀë¼ÓÈ¨Ãİ£¬Í¨³£È¡2
+	idw_nbrPoints = atoi(argv[8]);	//ËÑË÷ÁÚ½üµãÊı
+	idw_buffer = atof(argv[9]);	//×î´óËÑË÷°ë¾¶
 	//threadNUM = atoi(argv[9]);
 
 	//omp_set_num_threads(threadNUM);
@@ -77,12 +77,12 @@ int main(int argc, char *argv[])
 	double starttime;
 	double endtime;
 
-	int blockGrain = 100;	//granularity,æ ·ç‚¹ä»¥å—å­˜æ”¾çš„ç²—ç½‘æ ¼ç²’åº¦ï¼Œä»¥æ …æ ¼åˆ†è¾¨ç‡ä¸ºåŸºæœ¬å•ä½ï¼›ç”¨æˆ·æ ¹æ®æ•°æ®æŒ‡å®š
+	int blockGrain = 100;	//granularity,ÑùµãÒÔ¿é´æ·ÅµÄ´ÖÍø¸ñÁ£¶È£¬ÒÔÕ¤¸ñ·Ö±æÂÊÎª»ù±¾µ¥Î»£»ÓÃ»§¸ù¾İÊı¾İÖ¸¶¨
 	IDWOperator idwOper(cellSize, idw_nbrPoints, idw_power, idw_buffer, blockGrain);
-	char* spatialrefWkt;	//æŠ•å½±ä¿¡æ¯
+	char* spatialrefWkt;	//Í¶Ó°ĞÅÏ¢
 	int sample_nums;
-	sample_nums = idwOper.readSampleNums( samplefilename, &spatialrefWkt );	//è·å–æ ·ç‚¹æ•°ç›®ï¼ŒidwOper.sample_nums
-	double **pAllSamples=(double **)malloc(sample_nums*sizeof(double *));//ä¸ºé‡‡æ ·ç‚¹æ•°ç»„ç”³è¯·å­˜å‚¨ç©ºé—´ï¼Œå­˜å…¥å­å—åå°±é‡Šæ”¾
+	sample_nums = idwOper.readSampleNums( samplefilename, &spatialrefWkt );	//»ñÈ¡ÑùµãÊıÄ¿£¬idwOper.sample_nums
+	double **pAllSamples=(double **)malloc(sample_nums*sizeof(double *));//Îª²ÉÑùµãÊı×éÉêÇë´æ´¢¿Õ¼ä£¬´æÈë×Ó¿éºó¾ÍÊÍ·Å
 	for (int k=0; k<sample_nums; k++)
 		pAllSamples[k]=(double *)malloc(3*sizeof(double));
 	if (pAllSamples==NULL)
@@ -90,22 +90,22 @@ int main(int argc, char *argv[])
 		cout<<"Faliure memory request!"<<endl;
 		return 0;
 	}
-	idwOper.readSamples( samplefilename, fldIdx, &spatialrefWkt, pAllSamples );	//è¯»å–æ ·ç‚¹ï¼Œå¹¶æ›´æ–°äº†idwOper.glb_extent
-	//å¯è·å–idwLayerçš„åæ ‡èŒƒå›´,æ”¾å…¥idwOper.sample_extent
-	idwOper.creatSampleBlocks(pAllSamples);	//éå†pAllSamplesï¼Œåˆ†å—å­˜å…¥idwOper._pSampleBlocksæˆå‘˜
+	idwOper.readSamples( samplefilename, fldIdx, &spatialrefWkt, pAllSamples );	//¶ÁÈ¡Ñùµã£¬²¢¸üĞÂÁËidwOper.glb_extent
+	//¿É»ñÈ¡idwLayerµÄ×ø±ê·¶Î§,·ÅÈëidwOper.sample_extent
+	idwOper.creatSampleBlocks(pAllSamples);	//±éÀúpAllSamples£¬·Ö¿é´æÈëidwOper._pSampleBlocks³ÉÔ±
 	//cout<<"creatSampleBlocks() done."<<endl;
 
-	//ä»¥ç²—ç½‘æ ¼å½¢å¼ç»„ç»‡æ ·ç‚¹ï¼Œæ•°æ®æˆå‘˜è¡Œåˆ—æ•°ï¼Œæ¯ä¸ªæ …æ ¼ä¸Šæ˜¯ä¸€ç³»åˆ—æ ·ç‚¹
+	//ÒÔ´ÖÍø¸ñĞÎÊ½×éÖ¯Ñùµã£¬Êı¾İ³ÉÔ±ĞĞÁĞÊı£¬Ã¿¸öÕ¤¸ñÉÏÊÇÒ»ÏµÁĞÑùµã
 	RasterLayer<double> idwLayer("idwLayer");
 	idwLayer.readNeighborhood(dataNeighbor);
 	//equal row dcmp based on region
-	idwOper.idwLayer(idwLayer, &spatialrefWkt);	//å…ˆå°†idwOperatorçš„æ•°æ®æˆå‘˜æŒ‡å‘idwLayerå›¾å±‚ï¼Œå†å€Ÿæ­¤åˆ›å»ºidwLayerçš„åŸºæœ¬å…ƒæ•°æ®
+	idwOper.idwLayer(idwLayer, &spatialrefWkt);	//ÏÈ½«idwOperatorµÄÊı¾İ³ÉÔ±Ö¸ÏòidwLayerÍ¼²ã£¬ÔÙ½è´Ë´´½¨idwLayerµÄ»ù±¾ÔªÊı¾İ
 	//cout<<"idwLayer metadata initialized."<<endl;
-	//åˆ›å»ºé‚»åŸŸç±»çš„ä¸´æ—¶å¯¹è±¡ï¼Œæ ¹æ®æœ¬å›¾å±‚çš„å…ƒæ•°æ®ç›´æ¥åˆ’åˆ†,æ˜¯å¦å¯è¡Œå¾…å®šï¼Ÿ
+	//´´½¨ÁÚÓòÀàµÄÁÙÊ±¶ÔÏó£¬¸ù¾İ±¾Í¼²ãµÄÔªÊı¾İÖ±½Ó»®·Ö,ÊÇ·ñ¿ÉĞĞ´ı¶¨£¿
 	starttime = MPI_Wtime();
-	idwOper.Run();	//è¿è¡Œï¼Œç»“æœå†™åœ¨idwLayerçš„cellspaceä¸­
+	idwOper.Run();	//ÔËĞĞ£¬½á¹ûĞ´ÔÚidwLayerµÄcellspaceÖĞ
 	cout<<"idw compute done."<<endl;
-	idwLayer.rowWriteFile(outputfilename, true);
+	idwLayer.writeFile(outputfilename);
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	endtime = MPI_Wtime();
@@ -116,24 +116,24 @@ int main(int argc, char *argv[])
 
 	////balanced row dcmp based on compute burden
 	//vInputLayers[0]->readNeighborhood(dataNeighbor);
-	//int* pDcmpIdx = new int[process_nums*4];	//MPIä¸å…è®¸å¹¿æ’­è‡ªå®šä¹‰ç±»å‹ï¼Œåªèƒ½å…ˆå†™æˆè§’è¡Œåˆ—å·
-	//if( myRank==0 )	//è¿™ä¸€æ­¥ä¸åº”è¯¥äº¤ç»™ç”¨æˆ·ï¼Œè€ƒè™‘å†…ç½®åˆ°computLayerç±»å»
+	//int* pDcmpIdx = new int[process_nums*4];	//MPI²»ÔÊĞí¹ã²¥×Ô¶¨ÒåÀàĞÍ£¬Ö»ÄÜÏÈĞ´³É½ÇĞĞÁĞºÅ
+	//if( myRank==0 )	//ÕâÒ»²½²»Ó¦¸Ã½»¸øÓÃ»§£¬¿¼ÂÇÄÚÖÃµ½computLayerÀàÈ¥
 	//{
 	//	starttime = MPI_Wtime();
-	//	vInputLayers[0]->readGlobalFile(vInputnames[0]);	//å‚ä¸ç»Ÿè®¡è®¡ç®—åŸŸçš„æ•°æ®å›¾å±‚å…·æœ‰äº†å®Œæ•´çš„å…ƒæ•°æ®,é‡å¤è°ƒç”¨readFileæ—¶è¦ä¿è¯clearå¹¶é‡æ–°new
+	//	vInputLayers[0]->readGlobalFile(vInputnames[0]);	//²ÎÓëÍ³¼Æ¼ÆËãÓòµÄÊı¾İÍ¼²ã¾ßÓĞÁËÍêÕûµÄÔªÊı¾İ,ÖØ¸´µ÷ÓÃreadFileÊ±Òª±£Ö¤clear²¢ÖØĞÂnew
 	//	vector<RasterLayer<double>* > inputLayers;
-	//	inputLayers.push_back( vInputLayers[0] );		//è‹¥æœ‰å¤šä¸ªå›¾å±‚å‚ä¸è®¡ç®—åŸŸæ„å»ºï¼Œè¿™é‡Œpush_backå¤šæ¬¡
+	//	inputLayers.push_back( vInputLayers[0] );		//ÈôÓĞ¶à¸öÍ¼²ã²ÎÓë¼ÆËãÓò¹¹½¨£¬ÕâÀïpush_back¶à´Î
 	//	ComputLayer<double> comptLayer( inputLayers, "computLayer" );
 	//	comptLayer.readNeighborhood(compuNeighbor);
-	//	const int compuSize = 10;	//è®¡ç®—åŸŸå›¾å±‚åˆ†è¾¨ç‡æ˜¯æ•°æ®å›¾å±‚çš„10å€,ç²’åº¦ç”¨æˆ·æŒ‡å®šï¼Œè¿™é‡Œæš‚å®šä¸º10
-	//	//è·å–è´Ÿè½½å‡è¡¡çš„åˆ’åˆ†ï¼Œç»“æœè¿”å›ç»™vDcmpIdx,åˆ’åˆ†æ–¹å¼ç”±ç¬¬äºŒä¸ªå‚æ•°æŒ‡å®š
+	//	const int compuSize = 10;	//¼ÆËãÓòÍ¼²ã·Ö±æÂÊÊÇÊı¾İÍ¼²ãµÄ10±¶,Á£¶ÈÓÃ»§Ö¸¶¨£¬ÕâÀïÔİ¶¨Îª10
+	//	//»ñÈ¡¸ºÔØ¾ùºâµÄ»®·Ö£¬½á¹û·µ»Ø¸øvDcmpIdx,»®·Ö·½Ê½ÓÉµÚ¶ş¸ö²ÎÊıÖ¸¶¨
 	//	comptLayer.getCompuLoad( pDcmpIdx, ROWWISE_DCMP,compuSize, process_nums );	
 	//	comptLayer.writeComptFile(outputfilename);
 	//	endtime = MPI_Wtime();
 	//	cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
 	//}
 	////MPI_Barrier(MPI_COMM_WORLD);
-	////ä¾vDcmpIdxï¼Œä¸»è¿›ç¨‹ç»™å„ä¸ªè¿›ç¨‹å¹¿æ’­å…¶å·¥ä½œç©ºé—´èŒƒå›´
+	////ÒÀvDcmpIdx£¬Ö÷½ø³Ì¸ø¸÷¸ö½ø³Ì¹ã²¥Æä¹¤×÷¿Õ¼ä·¶Î§
 	//MPI_Bcast(pDcmpIdx,process_nums*4,MPI_INT,0,MPI_COMM_WORLD);
 	//CellCoord nwCorner(pDcmpIdx[4*myRank], pDcmpIdx[4*myRank+1]);
 	//CellCoord seCorner(pDcmpIdx[4*myRank+2], pDcmpIdx[4*myRank+3]);
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 	//	vInputLayers[i]->readNeighborhood(dataNeighbor);
 	//	vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
 	//}
-	//fcmLayer.copyLayerInfo(*vInputLayers[0]); //åˆ›å»ºè¾“å‡ºå›¾å±‚
+	//fcmLayer.copyLayerInfo(*vInputLayers[0]); //´´½¨Êä³öÍ¼²ã
 	//for(int i=0; i<clusterNum; i++){
 	//	vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
 	//}

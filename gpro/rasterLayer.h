@@ -890,148 +890,75 @@ writeFile( const char *outputfile ){
     //本函数默认实现按行写出，如果是其他划分类型，调用对应的写函数
     if( COLWISE_DCMP == _pMetaData->_domDcmpType ){
         return colWriteFile( outputfile );
-    }else{
-        if( BLOCK_DCMP == _pMetaData->_domDcmpType ){
-            cout << __FILE__ << " " << __FUNCTION__ \
-                << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
-                << " right now" << endl;	//待完成
-            return false;
-        }else{
-            if( NON_DCMP == _pMetaData->_domDcmpType ){
-                //待完成，只由主进程来写?or不支持
-            }else{
-                if( _pMetaData->_domDcmpType != ROWWISE_DCMP ){
-                    cout << __FILE__ << " " << __FUNCTION__ \
-                        << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
-                        << " right now" << endl;
-                    return false;
-                }
-            }
-        }
-    }
-
-    GDALAllRegister();
-
-    if ( !createFile( outputfile ) ) {
+    }else if( BLOCK_DCMP == _pMetaData->_domDcmpType ){
         cout << __FILE__ << " " << __FUNCTION__ \
-            << " Error: create file failed!" << endl;
-        MPI_Finalize();
+            << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
+            << " right now" << endl;	//待完成
+        return false;
+    }else if( NON_DCMP == _pMetaData->_domDcmpType ){
+        //待完成，只由主进程来写?or不支持
+    }else{
+        cout << __FILE__ << " " << __FUNCTION__ \
+            << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
+            << " right now, using row-wise decomposition as default." << endl;
     }
-    ////如果是部分进程来调用写函数呢，会无限等待吗
-
-    GDALDataset *poDataset = NULL;
-    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
-    if ( poDataset == NULL /*检查是否正常打开文件*/) {
-        cout << "data file is not open correct" << endl;
-        exit( 1 );
-    }
-
-    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
-    if ( poBanddest == NULL ) {
-        cout << "poBanddest is NULL" << endl;
-        exit( 1 );
-    }
-
-    if ( _pMetaData->myrank == 0 ) {
-        poBanddest->SetNoDataValue( _pMetaData->noData );
-    }
-    if ( _pMetaData->processor_number == 1 ) {
-        poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
-            _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
-            _pMetaData->dataType, 0, 0 );
-    } else {
-        if ( _pMetaData->myrank == 0 ) {
-            //cout<<"myrank "<<_pMetaData->myrank <<" nCols "<<_pMetaData->_glbDims.nCols()<<" nRows "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-            poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                _pMetaData->dataType, 0, 0 );
-        } else if ( _pMetaData->myrank == ( _pMetaData->processor_number - 1 ) ) {
-            //poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
-            //cout<<"myrank "<<_pMetaData->myrank <<" startRow "<<_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow()<<" nRows "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                _pMetaData->dataType, 0, 0 );
-        } else {
-            //cout<<"myrank "<<_pMetaData->myrank<<"  "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<" "<<_pMetaData->_glbDims.nCols()<<" "<<_pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1<<endl;
-            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
-                _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
-               _pMetaData->dataType, 0, 0 );
-        }
-    }
-
-    MPI_Barrier( MPI_COMM_WORLD );
-
-    if ( poDataset != NULL ) {
-        GDALClose((GDALDatasetH) poDataset );
-        poDataset = NULL;
-    }
-
-    return true;
+    return rowWriteFile(outputfile);
 }
 
-//template<class elemType>
-//bool GPRO::RasterLayer<elemType>::
-//rowWriteFile( const char *outputfile ) {
-//    //int myRank, process_nums;
-//    //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-//    //MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-//    //cout<<"myRank = "<<myRank<<"process_num = "<<process_nums<<endl;
-//    GDALAllRegister();
-//
-//    if ( !createFile( outputfile ) ) {
-//		cout << __FILE__ << " " << __FUNCTION__ \
-//			<< " Error: create file failed!" << endl;
-//        MPI_Finalize();
-//    }
-//
-//    GDALDataset *poDataset = NULL;
-//    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
-//    if ( poDataset == NULL /*检查是否正常打开文件*/) {
-//        cout << "data file is not open correct" << endl;
-//        exit( 1 );
-//    }
-//
-//    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
-//    if ( poBanddest == NULL ) {
-//        cout << "poBanddest is NULL" << endl;
-//        exit( 1 );
-//    }
-//    if ( _pMetaData->myrank == 0 ) {
-//        poBanddest->SetNoDataValue( _pMetaData->noData );	//为啥是交给主进程，不是每个进程都做
-//    }
-//
-//    if ( _pMetaData->processor_number == 1 ) {
-//        //cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_glbDims.nCols() "<<_pMetaData->_glbDims.nCols()<<"   _pMetaData->_glbDims.nRows() "<<_pMetaData->_glbDims.nRows()<<endl;
-//        poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
-//                              _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
-//                              _pMetaData->dataType, 0, 0 );
-//    } else {
-//        if ( _pMetaData->myrank == 0 ) {
-//            //cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-//            poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-//                                  _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-//                                  _pMetaData->dataType, 0, 0 );
-//        } else if ( _pMetaData->myrank == ( _pMetaData->processor_number - 1 ) ) {
-//            //poBanddest->RasterIO(GF_Write, 0,  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pCellSpace->_matrix-_pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow()+1, _pMetaData->dataType, 0, 0);
-//            //cout<<"_pMetaData->myrank "<<_pMetaData->myrank <<"  _pMetaData->_MBR.minIRow()-_pNbrhood->minIRow() "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<"  _pMetaData->_localworkBR.maxIRow()+1 "<<_pMetaData->_localworkBR.maxIRow()+1<<endl;
-//            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-//                                  _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-//                                  _pMetaData->dataType, 0, 0 );
-//        } else {
-//            poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
-//                                  _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
-//                                  _pMetaData->dataType, 0, 0 );
-//            //cout<<"c "<<_pMetaData->_MBR.minIRow()-_pNbrhood->minIRow()<<" "<<_pMetaData->_glbDims.nCols()<<" "<<_pMetaData->_localworkBR.maxIRow()+_pNbrhood->minIRow()+1<<endl;
-//        }
-//    }
-//
-//    MPI_Barrier( MPI_COMM_WORLD );	//是否需要
-//    if ( poDataset != NULL ) {
-//        GDALClose((GDALDatasetH) poDataset );
-//        poDataset = NULL;
-//    }
-//	return true;
-//}
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+rowWriteFile( const char *outputfile ) {
+   GDALAllRegister();
+
+   if ( !createFile( outputfile ) ) {
+		cout << __FILE__ << " " << __FUNCTION__ \
+			<< " Error: create file failed!" << endl;
+       MPI_Finalize();
+   }
+   ////如果是部分进程来调用写函数呢，会无限等待吗
+   GDALDataset *poDataset = NULL;
+   poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
+   if ( poDataset == NULL /*检查是否正常打开文件*/) {
+       cout << "data file is not open correct" << endl;
+       exit( 1 );
+   }
+
+   GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
+   if ( poBanddest == NULL ) {
+       cout << "poBanddest is NULL" << endl;
+       exit( 1 );
+   }
+   if ( _pMetaData->myrank == 0 ) {
+       poBanddest->SetNoDataValue( _pMetaData->noData );	//为啥是交给主进程，不是每个进程都做
+   }
+
+   if ( _pMetaData->processor_number == 1 ) {
+       poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                             _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                             _pMetaData->dataType, 0, 0 );
+   } else {
+       if ( _pMetaData->myrank == 0 ) {
+           poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                                 _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                                 _pMetaData->dataType, 0, 0 );
+       } else if ( _pMetaData->myrank == ( _pMetaData->processor_number - 1 ) ) {
+           poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                                 _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
+                                 _pMetaData->dataType, 0, 0 );
+       } else {
+           poBanddest->RasterIO( GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
+                                 _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
+                                 _pMetaData->dataType, 0, 0 );
+       }
+   }
+
+   MPI_Barrier( MPI_COMM_WORLD );	//是否需要
+   if ( poDataset != NULL ) {
+       GDALClose((GDALDatasetH) poDataset );
+       poDataset = NULL;
+   }
+	return true;
+}
 
 //只写出了工作空间
 //parallel IO，refer to Qin13_TransactionsInGIS

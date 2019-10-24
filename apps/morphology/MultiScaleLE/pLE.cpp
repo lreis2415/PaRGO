@@ -31,7 +31,6 @@
 #include "LEOperator.h"
 #include "communication.h"
 
-
 using namespace std;
 using namespace GPRO;
 
@@ -88,7 +87,7 @@ int main(int argc, char *argv[])
         LEOper.Run();
         MPI_Barrier(MPI_COMM_WORLD);
         string fileNameStr = string(outputfilename);
-        string fileNameAtCurrentScale = fileNameStr.insert(fileNameStr.find_last_of('.'), "_" + std::to_string(i + 1)); // out.tif => out_1.tif
+        string fileNameAtCurrentScale = fileNameStr.insert(fileNameStr.find_last_of('.'), "_" + std::to_string((long long)i + 1)); // out.tif => out_1.tif
         MPI_Barrier(MPI_COMM_WORLD);
         LELayer.writeFile(fileNameAtCurrentScale.data());
 

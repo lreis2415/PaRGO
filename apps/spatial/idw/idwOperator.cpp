@@ -1,4 +1,5 @@
 #include <ogrsf_frmts.h>
+#include "utility.h"
 //#include <gdal_priv.h>
 #include "idwOperator.h"
 
@@ -9,11 +10,11 @@ IDWOperator::~IDWOperator(){
 
 int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
 {
-	//è¯»å–çŸ¢é‡æ ·ç‚¹çš„å…ƒæ•°æ®ï¼Œè·å–èŒƒå›´
-	OGRRegisterAll();
-	OGRDataSource *poDS=OGRSFDriverRegistrar::Open(filename,FALSE);
+	GDALAllRegister();
+	//¶ÁÈ¡Ê¸Á¿ÑùµãµÄÔªÊı¾İ£¬»ñÈ¡·¶Î§
+	GDALDataset *poDatasetsrc = (GDALDataset *)GDALOpen( filename, GA_ReadOnly );
 	//OGRDataSource *poDS=OGRSFDriverRegistrar::Open("point.shp",FALSE);
-	if( poDS == NULL )
+	if( poDatasetsrc == NULL )
 	{
 		printf( "[ERROR] zmw Open failed.\n" );
 		exit( 1 );
@@ -21,13 +22,13 @@ int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
 
 	string file = filename;
 	string  f2 = file.substr(0, file.length()-4);
-	int pos = f2.find_last_of('/');	//æ³¨æ„ï¼Œlinuxç”¨'/',windowsç”¨'\\'
+	int pos = f2.find_last_of(SEP);	//×¢Òâ£¬linuxÓÃ'/',windowsÓÃ'\\'
 	string f3 = f2.substr(pos+1);
 
-	OGRLayer *poLayer = poDS->GetLayerByName(f3.c_str());	//f3æ˜¯æ–‡ä»¶åï¼Œä¸å¸¦åç¼€
-
+	OGRLayer *poLayer = poDatasetsrc->GetLayerByName(f3.c_str());	//f3ÊÇÎÄ¼şÃû£¬²»´øºó×º
 	OGRSpatialReference * sref= poLayer->GetSpatialRef();
 	sref->exportToWkt(pSpatialRefWkt);
+
 	OGRFeature *poFeature;
 
 	poLayer->ResetReading();
@@ -35,17 +36,15 @@ int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
 	{
 		_sample_nums++;
 	}
-	//_sample_nums = poLayer->GetFeatureCount();	//ä¸ºä»€ä¹ˆä¸ç›´æ¥ç”¨è¿™ä¸ªå‡½æ•°
-	OGRDataSource::DestroyDataSource( poDS );
+	//_sample_nums = poLayer->GetFeatureCount();	//ÎªÊ²Ã´²»Ö±½ÓÓÃÕâ¸öº¯Êı
 	return _sample_nums;
 }
 
 bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array )
 {
-	//å°†ä½ç½®ä¿¡æ¯å’Œå±æ€§ä¿¡æ¯å­˜æ”¾åœ¨æ•°ç»„Sample_Arrayä¸­
-	OGRRegisterAll();
-	OGRDataSource *poDS=OGRSFDriverRegistrar::Open(filename,FALSE);
-	if( poDS == NULL ){
+	//½«Î»ÖÃĞÅÏ¢ºÍÊôĞÔĞÅÏ¢´æ·ÅÔÚÊı×éSample_ArrayÖĞ
+	GDALDataset *poDatasetsrc = (GDALDataset *)GDALOpen( filename, GA_ReadOnly );
+	if( poDatasetsrc == NULL ){
 		printf( "[ERROR] Open failed.\n" );
 		exit( 1 );
 	}
@@ -53,7 +52,7 @@ bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpati
 	string  f2 = file.substr(0, file.length()-4);
 	int pos = f2.find_last_of('/');
 	string f3 = f2.substr(pos+1);	
-	OGRLayer *poLayer = poDS->GetLayerByName(f3.c_str());
+	OGRLayer *poLayer = poDatasetsrc->GetLayerByName(f3.c_str());
 	poLayer->ResetReading();
 
 	int idx = 0;
@@ -61,17 +60,17 @@ bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpati
 	double y=0.0;
 	OGRFeature *poFeature;
 	while((poFeature=poLayer->GetNextFeature())!=NULL){
-		Sample_Array[idx][2]=poFeature->GetFieldAsDouble(fieldIdx);//è¯»å–å±æ€§å€¼
-		//cout<<"value:"<<showpoint<<Sample_Array[idx][2]<<endl;	//è¿™é‡Œæ²¡é—®é¢˜ï¼Œæ˜¯å°æ•°
+		Sample_Array[idx][2]=poFeature->GetFieldAsDouble(fieldIdx);//¶ÁÈ¡ÊôĞÔÖµ
+		//cout<<"value:"<<showpoint<<Sample_Array[idx][2]<<endl;	//ÕâÀïÃ»ÎÊÌâ£¬ÊÇĞ¡Êı
 
 		OGRGeometry *poGeometry;
 		poGeometry = poFeature->GetGeometryRef();
 		if( poGeometry != NULL && wkbFlatten(poGeometry->getGeometryType()) == wkbPoint ){
-			//è¯»èŒƒå›´è¿™ä¸€æ­¥ä¸ºä»€ä¹ˆä¸ç”¨poLayer->GetExtentï¼Ÿ
+			//¶Á·¶Î§ÕâÒ»²½ÎªÊ²Ã´²»ÓÃpoLayer->GetExtent£¿
 			OGRPoint *poPoint=(OGRPoint *)poGeometry;
 			x=poPoint->getX();
 			y=poPoint->getY();
-			//å­˜å‚¨ä½ç½®ä¿¡æ¯
+			//´æ´¢Î»ÖÃĞÅÏ¢
 			Sample_Array[idx][0]=x;
 			Sample_Array[idx][1]=y;
 			if(idx==0){
@@ -116,15 +115,14 @@ bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpati
 	_nRows = totalrow;
 	_nCols = totalcol;
 
-	OGRDataSource::DestroyDataSource( poDS );
 	return true;
 }
 
 void IDWOperator::creatSampleBlocks( double **pSamples )
 {
-	//æ€è·¯ï¼šå¯¹idwLayeræŒ‰è¡Œé€ä¸ªåˆ†å—ï¼Œ1Då­˜å‚¨,è·å–è¯¥å—çš„èŒƒå›´,æš‚æ—¶ä¸éœ€è¦èŒƒå›´
-	//æ³¨æ„æ ·ç‚¹åæ ‡èŒƒå›´å’Œæ …æ ¼æœ‰åç§»ï¼›å…ˆæ±‚æ€»è¡Œåˆ—å·ï¼›
-	//æ¯ä¸ªå·²çŸ¥æ ·ç‚¹çš„xyéƒ½å¯æ¨å‡ºæ‰€åœ¨å—;(x-minX)/cellSize/blockGrainå°±å¯ä»¥æ±‚å‡ºè¡Œå·,åŒç†æ±‚åˆ—å·ï¼›
+	//Ë¼Â·£º¶ÔidwLayer°´ĞĞÖğ¸ö·Ö¿é£¬1D´æ´¢,»ñÈ¡¸Ã¿éµÄ·¶Î§,ÔİÊ±²»ĞèÒª·¶Î§
+	//×¢ÒâÑùµã×ø±ê·¶Î§ºÍÕ¤¸ñÓĞÆ«ÒÆ£»ÏÈÇó×ÜĞĞÁĞºÅ£»
+	//Ã¿¸öÒÑÖªÑùµãµÄxy¶¼¿ÉÍÆ³öËùÔÚ¿é;(x-minX)/cellSize/blockGrain¾Í¿ÉÒÔÇó³öĞĞºÅ,Í¬ÀíÇóÁĞºÅ£»
 	int blockRows = _nRows/_blockGrain;
 	int blockCols = _nCols/_blockGrain;
 	blockRows += (_nRows%_blockGrain) ? 1 : 0;
@@ -137,13 +135,13 @@ void IDWOperator::creatSampleBlocks( double **pSamples )
 		int iCol = (x-_glb_extent.minX) / _cellSize / _blockGrain;
 		int iRow = (_glb_extent.maxY - y) / _cellSize / _blockGrain;
 		Sample_Point tmpPoint = {x,y,z};
-		_pSampleBlocks[iRow*blockCols+iCol].sample_Points.push_back(tmpPoint);	//pushbackæ˜¯æ‹·è´å€¼å—
+		_pSampleBlocks[iRow*blockCols+iCol].sample_Points.push_back(tmpPoint);	//pushbackÊÇ¿½±´ÖµÂğ
 	}
 }
 
 void IDWOperator::idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt){
-	//æ›´æ–°_pIDWLayer/layerDçš„åŸºæœ¬å…ƒæ•°æ®;å³æ ¹æ®extentå’Œ_cellSizeä¿¡æ¯ï¼Œåˆ›å»ºæ …æ ¼å›¾å±‚
-	//MetaData **pMetaData = &(layerD._pMetaData);	//å¯ä»¥è€ƒè™‘ç”¨æŒ‡é’ˆçš„æŒ‡é’ˆç®€å†™
+	//¸üĞÂ_pIDWLayer/layerDµÄ»ù±¾ÔªÊı¾İ;¼´¸ù¾İextentºÍ_cellSizeĞÅÏ¢£¬´´½¨Õ¤¸ñÍ¼²ã
+	//MetaData **pMetaData = &(layerD._pMetaData);	//¿ÉÒÔ¿¼ÂÇÓÃÖ¸ÕëµÄÖ¸Õë¼òĞ´
 	layerD._pMetaData = new MetaData();
 	if(layerD._pMetaData == NULL)
 	{
@@ -161,19 +159,19 @@ void IDWOperator::idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt){
 	// _pMetaData->pTransform
 	layerD._pMetaData->cellSize = _cellSize;
 	layerD._pMetaData->format = "GTiff";
-	layerD._pMetaData->_domDcmpType = ROWWISE_DCMP;	//æ˜¯å¦éœ€è¦åœ¨è¿™é‡ŒæŒ‡å®š
+	layerD._pMetaData->_domDcmpType = ROWWISE_DCMP;	//ÊÇ·ñĞèÒªÔÚÕâÀïÖ¸¶¨
 	MPI_Comm_rank(MPI_COMM_WORLD, &layerD._pMetaData->myrank);
 	MPI_Comm_size(MPI_COMM_WORLD, &layerD._pMetaData->processor_number);
 	_myRank = layerD._pMetaData->myrank;
 
 	DeComposition<double> deComp(layerD._pMetaData->_glbDims, *(layerD.nbrhood()));
-	deComp.rowDcmp(*(layerD._pMetaData), layerD._pMetaData->processor_number);	//æ ¹æ®æ•°æ®èŒƒå›´æŒ‰è¡Œåˆ’åˆ†,å¼•ç”¨æ–¹å¼è¿”å›ç»™*(layerD._pMetaData)
-	layerD.newCellSpace(layerD._pMetaData->_localdims);	//æ¯ä¸ªè¿›ç¨‹è¯»å…¥å…¨åŒºæ ·ç‚¹æ•°æ®ï¼Œä½†åªç®—è‡ªå·±çš„workBR
+	deComp.rowDcmp(*(layerD._pMetaData), layerD._pMetaData->processor_number);	//¸ù¾İÊı¾İ·¶Î§°´ĞĞ»®·Ö,ÒıÓÃ·½Ê½·µ»Ø¸ø*(layerD._pMetaData)
+	layerD.newCellSpace(layerD._pMetaData->_localdims);	//Ã¿¸ö½ø³Ì¶ÁÈëÈ«ÇøÑùµãÊı¾İ£¬µ«Ö»Ëã×Ô¼ºµÄworkBR
 	//cout<<"myrank "<<layerD._pMetaData->myrank<<" "<<layerD._pMetaData->_MBR<<endl;
 
-	layerD._pMetaData->dataType = layerD.getType();
-	//pSpatialRefWkt ç›®å‰æŒ‡å‘mainå‡½æ•°ä¸­çš„char* pSpatialRefWktçš„åœ°å€
-	layerD._pMetaData->projection = *pSpatialRefWkt;	//char* to string,ç›´æ¥èµ‹å€¼å³å¯ï¼›string to char*,è°ƒç”¨c_str()
+	layerD._pMetaData->dataType = layerD.getGDALType();
+	//pSpatialRefWkt Ä¿Ç°Ö¸Ïòmainº¯ÊıÖĞµÄchar* pSpatialRefWktµÄµØÖ·
+	layerD._pMetaData->projection = *pSpatialRefWkt;	//char* to string,Ö±½Ó¸³Öµ¼´¿É£»string to char*,µ÷ÓÃc_str()
 	//cout<<"layerD._pMetaData->projection "<<layerD._pMetaData->projection<<endl;
 	layerD._pMetaData->pTransform[0] = _glb_extent.minX;
 	layerD._pMetaData->pTransform[1] = _cellSize;
@@ -182,7 +180,7 @@ void IDWOperator::idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt){
 	layerD._pMetaData->pTransform[4] = 0;
 	layerD._pMetaData->pTransform[5] = -_cellSize;
 
-	//æ›´æ–°å­ç©ºé—´æ•°æ®èŒƒå›´
+	//¸üĞÂ×Ó¿Õ¼äÊı¾İ·¶Î§
 	_sub_extent.minX = _glb_extent.minX;
 	_sub_extent.maxX = _glb_extent.maxX;
 	_sub_extent.maxY = _glb_extent.maxY - layerD._pMetaData->_MBR.minIRow()*_cellSize;
@@ -203,24 +201,24 @@ bool IDWOperator::isTermination()
 
 int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol, double *nbrSamples)
 {
-	//double *nbrSamples = new double [_nbrPoints*2];	//ä¾æ¬¡å­˜æ”¾è·ç¦»å’Œå±æ€§å€¼å¯¹
-	int blockRow = (cellRow+subMinRow)/_blockGrain;	//ç¡®å®šå½“å‰æ …æ ¼æ‰€åœ¨å—
+	//double *nbrSamples = new double [_nbrPoints*2];	//ÒÀ´Î´æ·Å¾àÀëºÍÊôĞÔÖµ¶Ô
+	int blockRow = (cellRow+subMinRow)/_blockGrain;	//È·¶¨µ±Ç°Õ¤¸ñËùÔÚ¿é
 	int blockCol = cellCol/_blockGrain;
 	int blockRows = _nRows/_blockGrain;
 	blockRows += (_nRows%_blockGrain) ? 1 : 0;
 	int blockCols = _nCols/_blockGrain;
 	blockCols += (_nCols%_blockGrain) ? 1 : 0;
 
-	double cellX = (cellCol+0.5)*_cellSize + _sub_extent.minX;	//å½“å‰å¾…æ’å€¼æ …æ ¼åæ ‡
+	double cellX = (cellCol+0.5)*_cellSize + _sub_extent.minX;	//µ±Ç°´ı²åÖµÕ¤¸ñ×ø±ê
 	double cellY = _sub_extent.maxY - (cellRow+0.5)*_cellSize;
-	double maxDist = 0.0;	//ç›®å‰æœç´¢åˆ°çš„æœ€å¤§è·ç¦»å€¼;ä¹Ÿè®¸ä¼šå—ç¼“å†²åŒºé™åˆ¶
-	int maxDistIdx = -1;	//ç›®å‰æœç´¢åˆ°çš„æœ€å¤§è·ç¦»æ ·ç‚¹æ‰€åœ¨ä½ç½®
-	int tailIdx = -1;	//ç›®å‰æœç´¢åˆ°çš„æ ·ç‚¹å°¾éƒ¨åºåˆ—ï¼Œå³å·²æœç´¢åˆ°çš„æ ·ç‚¹ä¸ªæ•°-1
-	int searchRad = 0;	//ç¯å½¢å‘å¤–æœç´¢åŠå¾„;1ä»£è¡¨3*3é‚»åŸŸ
-	//int searchRadLeast = 0;	//åœ¨æ­¤å±‚ä¸Šï¼Œæœç´¢å¤Ÿäº†_nbrPointsä¸ªæ ·ç‚¹
+	double maxDist = 0.0;	//Ä¿Ç°ËÑË÷µ½µÄ×î´ó¾àÀëÖµ;Ò²Ğí»áÊÜ»º³åÇøÏŞÖÆ
+	int maxDistIdx = -1;	//Ä¿Ç°ËÑË÷µ½µÄ×î´ó¾àÀëÑùµãËùÔÚÎ»ÖÃ
+	int tailIdx = -1;	//Ä¿Ç°ËÑË÷µ½µÄÑùµãÎ²²¿ĞòÁĞ£¬¼´ÒÑËÑË÷µ½µÄÑùµã¸öÊı-1
+	int searchRad = 0;	//»·ĞÎÏòÍâËÑË÷°ë¾¶;1´ú±í3*3ÁÚÓò
+	//int searchRadLeast = 0;	//ÔÚ´Ë²ãÉÏ£¬ËÑË÷¹»ÁË_nbrPoints¸öÑùµã
 	bool isSearch = true;
 	do{
-		//æ”¶é›†æœ¬å±‚æœç´¢çš„å€™é€‰block idx
+		//ÊÕ¼¯±¾²ãËÑË÷µÄºòÑ¡block idx
 		int *block2search;
 		if( searchRad==0 ){
 			block2search = new int[1];
@@ -232,7 +230,7 @@ int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol
 			if( tRow<0 || tRow>=blockRows ){
 				continue;
 			}
-			if( tRow==blockRow-searchRad || tRow==blockRow+searchRad ){	//é¦–æœ«ä¸¤è¡Œå­˜å…¨éƒ¨
+			if( tRow==blockRow-searchRad || tRow==blockRow+searchRad ){	//Ê×Ä©Á½ĞĞ´æÈ«²¿
 				for( int tCol = blockCol-searchRad; tCol<=blockCol+searchRad; ++tCol ){
 					if( tCol<0 || tCol>=blockCols ){
 						continue;
@@ -240,7 +238,7 @@ int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol
 					block2search[blockCount++] = tRow*blockCols+tCol;
 				}
 			}else{
-				//å…¶ä»–è¡Œæœ€å¤šå­˜å·¦å³è¾¹ç•Œä¸¤åˆ—,è‹¥è¾¹ç•Œä¸¤åˆ—æœ‰æ•ˆåˆ™å­˜ï¼Œæ— æ•ˆåˆ™è·³è¿‡
+				//ÆäËûĞĞ×î¶à´æ×óÓÒ±ß½çÁ½ÁĞ,Èô±ß½çÁ½ÁĞÓĞĞ§Ôò´æ£¬ÎŞĞ§ÔòÌø¹ı
 				if( blockCol-searchRad >= 0 && blockCol-searchRad<blockCols ){
 					block2search[blockCount++] = tRow*blockCols+blockCol-searchRad;
 				}
@@ -250,15 +248,15 @@ int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol
 			}
 		}
 		//cout<<"myrank "<<_myRank<<" "<<tRow<<" "<<tCol<<" "<<_pSampleBlocks[tRow*blockCols+tCol].sample_Points.size()<<" "<<endl;
-		//éå†int block2search[2*searchRad*4]ä¸­å­˜å‚¨çš„block idx;
-		//å¯¹_pSampleBlocks[i].samplePointsè¿›è¡Œæœç´¢
+		//±éÀúint block2search[2*searchRad*4]ÖĞ´æ´¢µÄblock idx;
+		//¶Ô_pSampleBlocks[i].samplePoints½øĞĞËÑË÷
 		for( int i=0; i<blockCount; ++i ){
 			int blockIdx = block2search[i];
 			//cout<<blockIdx<<" "<<_pSampleBlocks[blockIdx].sample_Points.size()<<endl;
 			for( vector<Sample_Point>::iterator iter = _pSampleBlocks[blockIdx].sample_Points.begin(); iter != _pSampleBlocks[blockIdx].sample_Points.end(); ++iter){
 				double tmpDist = sqrt((iter->x - cellX)*(iter->x - cellX) + (iter->y - cellY)*(iter->y - cellY));
 				if( tailIdx<_nbrPoints-1 ){
-					//æœç´¢åˆ°çš„ç‚¹è¿˜ä¸è¶³æŒ‡å®šçš„ä¸ªæ•°ï¼Œåˆ™ç›´æ¥æ”¾å…¥å°¾éƒ¨
+					//ËÑË÷µ½µÄµã»¹²»×ãÖ¸¶¨µÄ¸öÊı£¬ÔòÖ±½Ó·ÅÈëÎ²²¿
 					tailIdx++;
 					nbrSamples[tailIdx*2] = tmpDist;
 					nbrSamples[tailIdx*2+1] = iter->value;
@@ -268,13 +266,13 @@ int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol
 					}
 				}else{
 					tailIdx++;
-					//å·²ç»æœ‰è¶³å¤Ÿé‚»è¿‘æ ·ç‚¹ï¼Œè‹¥æ‰€æœåˆ°çš„æ–°ç‚¹è·ç¦»æ›´è¿‘ï¼Œåˆ™æ›¿æ¢ç›®å‰æœ€è¿œé‚£ä¸ªç‚¹,å¹¶æ›´æ–°æœ€è¿œè·ç¦»åŠID
+					//ÒÑ¾­ÓĞ×ã¹»ÁÚ½üÑùµã£¬ÈôËùËÑµ½µÄĞÂµã¾àÀë¸ü½ü£¬ÔòÌæ»»Ä¿Ç°×îÔ¶ÄÇ¸öµã,²¢¸üĞÂ×îÔ¶¾àÀë¼°ID
 					if( tmpDist<maxDist ){
 						nbrSamples[maxDistIdx*2] = tmpDist;
 						nbrSamples[maxDistIdx*2+1] = iter->value;
 						maxDist = nbrSamples[0];
 						maxDistIdx = 0;
-						//æ›´æ–°maxDist,è€ƒè™‘æ”¹ç”¨æœ‰åºæ•°æ®ç»“æ„ï¼Œå³å¯çœå»è¿™é‡Œ
+						//¸üĞÂmaxDist,¿¼ÂÇ¸ÄÓÃÓĞĞòÊı¾İ½á¹¹£¬¼´¿ÉÊ¡È¥ÕâÀï
 						for( int i=1; i<_nbrPoints; ++i ){
 							if( nbrSamples[i*2]>maxDist ){
 								maxDist = nbrSamples[i*2];
@@ -289,7 +287,7 @@ int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol
 			//if( _myRank==0 ){
 			//	cout<<cellRow<<" "<<cellCol<<" "<<(searchRad+0.5)*_cellSize*_blockGrain<<" "<<maxDist<<endl;
 			//}
-			if( (searchRad+0.5)*_cellSize*_blockGrain >= maxDist ){	//maxDistä¼šè¶Šæ¥è¶Šå°ï¼ŒsearchRadä¼šè¶Šæ¥è¶Šå¤§
+			if( (searchRad+0.5)*_cellSize*_blockGrain >= maxDist ){	//maxDist»áÔ½À´Ô½Ğ¡£¬searchRad»áÔ½À´Ô½´ó
 				isSearch = false;
 			}else{
 				++searchRad;
@@ -322,10 +320,10 @@ bool IDWOperator::Operator(const CellCoord &coord, bool operFlag)
 		cout<<_myRank<<" "<<endtime-starttime<<endl;
 	}
 	//idwL[iRow][iCol] = 0;
-	//æ¯ä¸ªç‚¹éƒ½æ˜¯å¾…æ’å€¼ç‚¹ï¼Œåªæ˜¯æœç´¢èŒƒå›´ä¸åŒè€Œå·²
-	double *pNbrSamples = new double [_nbrPoints*2];	//ä¾æ¬¡å­˜æ”¾è·ç¦»å’Œå±æ€§å€¼å¯¹
-	searchNbrSamples( minRow, iRow, iCol, pNbrSamples );	//æœç´¢å½“å‰æ …æ ¼çš„æ ·ç‚¹å€¼ï¼Œåœ¨nbrSamplesä¸­è¿”å›
-	//è®¡ç®—æ’å€¼ç»“æœ
+	//Ã¿¸öµã¶¼ÊÇ´ı²åÖµµã£¬Ö»ÊÇËÑË÷·¶Î§²»Í¬¶øÒÑ
+	double *pNbrSamples = new double [_nbrPoints*2];	//ÒÀ´Î´æ·Å¾àÀëºÍÊôĞÔÖµ¶Ô
+	searchNbrSamples( minRow, iRow, iCol, pNbrSamples );	//ËÑË÷µ±Ç°Õ¤¸ñµÄÑùµãÖµ£¬ÔÚnbrSamplesÖĞ·µ»Ø
+	//¼ÆËã²åÖµ½á¹û
 	double weightSum = 0.0;
 	double *pWeight = new double[_nbrPoints];
 	for( int i=0; i<_nbrPoints; ++i ){
@@ -336,7 +334,7 @@ bool IDWOperator::Operator(const CellCoord &coord, bool operFlag)
 	for( int i=0; i<_nbrPoints; ++i ){
 		idwL[iRow][iCol] += pNbrSamples[i*2+1]*pWeight[i] / weightSum;
 	}
-	//if( iRow==20 && iCol==20 && _myRank==0 ){	//æµ‹è¯•ä¸åŒç²’åº¦ï¼Œè¾¹è§’æ …æ ¼æ‰€æœç´¢åˆ°çš„é‚»è¿‘æ ·ç‚¹æ˜¯å¦ä¸€è‡´
+	//if( iRow==20 && iCol==20 && _myRank==0 ){	//²âÊÔ²»Í¬Á£¶È£¬±ß½ÇÕ¤¸ñËùËÑË÷µ½µÄÁÚ½üÑùµãÊÇ·ñÒ»ÖÂ
 	//	for( int i=0; i<_nbrPoints; ++i ){
 	//		cout<<showpoint<<pNbrSamples[i*2]<<" ";
 	//	}

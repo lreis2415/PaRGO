@@ -5,7 +5,7 @@ geo_include_directories(${GPRO_DIR} ${GDAL_INCLUDE_DIR} ${MPI_INCLUDE_PATH})
 
 ADD_SUBDIRECTORY(./hydrology)
 ADD_SUBDIRECTORY(./morphology)
-#ADD_SUBDIRECTORY(./spatial) # TODO: 'class GPRO::RasterLayer<double>' has no member named 'rowWriteFile'
+ADD_SUBDIRECTORY(./spatial) # TODO: 'class GPRO::RasterLayer<double>' has no member named 'rowWriteFile'
 
 ### For CLion to implement the "make install" command
 ADD_CUSTOM_TARGET(install_${PROJECT_NAME}
