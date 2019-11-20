@@ -1,22 +1,25 @@
 #include <ogrsf_frmts.h>
 #include "utility.h"
 //#include <gdal_priv.h>
-#include "idwOperator.h"
 
+#include "idwOperator.h"
 
 IDWOperator::~IDWOperator(){
 	//delete _pSampleBlocks
 }
 
-int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
+int IDWOperator::readSampleNums(const char* filename,char** pSpatialRefWkt)
 {
-	GDALAllRegister();
 	//读取矢量样点的元数据，获取范围
-	GDALDataset *poDatasetsrc = (GDALDataset *)GDALOpen( filename, GA_ReadOnly );
-	//OGRDataSource *poDS=OGRSFDriverRegistrar::Open("point.shp",FALSE);
-	if( poDatasetsrc == NULL )
-	{
-		printf( "[ERROR] zmw Open failed.\n" );
+#if GDAL_VERSION_MAJOR >= 2
+	GDALAllRegister();
+	GDALDataset* poDatasetsrc = (GDALDataset *)GDALOpen(filename, GA_ReadOnly);
+#else
+	OGRRegisterAll();
+	OGRDataSource* poDatasetsrc = OGRSFDriverRegistrar::Open(filename, FALSE);
+#endif
+	if(poDatasetsrc == NULL) {
+		printf( "[ERROR] Open failed.\n" );
 		exit( 1 );
 	}
 
@@ -32,18 +35,29 @@ int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
 	OGRFeature *poFeature;
 
 	poLayer->ResetReading();
-	while((poFeature=poLayer->GetNextFeature())!=NULL)
-	{
+	while((poFeature=poLayer->GetNextFeature())!=NULL) {
 		_sample_nums++;
+		OGRFeature::DestroyFeature(poFeature);
 	}
 	//_sample_nums = poLayer->GetFeatureCount();	//为什么不直接用这个函数
+#if GDAL_VERSION_MAJOR >= 2
+	GDALClose(poDatasetsrc);
+#else
+	OGRDataSource::DestroyDataSource(poDatasetsrc);
+#endif
 	return _sample_nums;
 }
 
 bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array )
 {
 	//将位置信息和属性信息存放在数组Sample_Array中
-	GDALDataset *poDatasetsrc = (GDALDataset *)GDALOpen( filename, GA_ReadOnly );
+#if GDAL_VERSION_MAJOR >= 2
+	GDALAllRegister();
+	GDALDataset* poDatasetsrc = (GDALDataset *)GDALOpen(filename, GA_ReadOnly);
+#else
+	OGRRegisterAll();
+	OGRDataSource* poDatasetsrc = OGRSFDriverRegistrar::Open(filename, FALSE);
+#endif
 	if( poDatasetsrc == NULL ){
 		printf( "[ERROR] Open failed.\n" );
 		exit( 1 );
@@ -115,6 +129,11 @@ bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpati
 	_nRows = totalrow;
 	_nCols = totalcol;
 
+#if GDAL_VERSION_MAJOR >= 2
+	GDALClose(poDatasetsrc);
+#else
+	OGRDataSource::DestroyDataSource(poDatasetsrc);
+#endif
 	return true;
 }
 
