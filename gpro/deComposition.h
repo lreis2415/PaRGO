@@ -165,8 +165,7 @@ rowDcmp( MetaData &metaData, int nSubSpcs ) const {
     if ( !_pNbrhood->calcWorkBR( workBR, dims )) {
         return false;
     }
-    metaData._localworkBR = workBR;
-
+	metaData._localworkBR = workBR;
     return true;
 }
 
@@ -304,7 +303,8 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
         return false;
     }
 
-//根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR    CellSpace<elemType> &comptL = *( layer.cellSpace());
+//根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR
+    CellSpace<elemType> &comptL = *( layer.cellSpace());
     double *rowComptLoad = new double[layer._pMetaData->_glbDims.nRows()];
     double totalComptLoad = 0.0;
     //这里目前只针对串行

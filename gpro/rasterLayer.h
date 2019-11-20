@@ -84,10 +84,11 @@ namespace GPRO {
 
         //IO function
         bool readNeighborhood( const char *neighborfile );
+		//wyj: 为什么默认NON_DCMP了，暂时修改成row dcmp?
         bool readFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
         bool readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
 		//每个进程都读整个文件;全区计算和主进程构建计算域这两步常用；或者，主进程读了，然后发送？
-        bool serialReadFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
+        bool readGlobalFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
 		//上面这个不是串行读，串行读的意思应该是主进程读然后发布给各进程，没必要；上面这个其实是读全区，合并到subWorkBR那种类型
 		//Todo:改指定行列范围来读
 
@@ -105,7 +106,7 @@ namespace GPRO {
         bool colWriteFile( const char *outputfile );
 
     public:
-        MetaData *_pMetaData;
+        MetaData *_pMetaData; //wyj 2019-11-12: 这个和 _pCellSpace里的 Metadata有什么区别？
 
     protected:
         string _strLayerName; /// layer name
@@ -500,6 +501,97 @@ readNeighborhood( const char *neighborfile ) {
     return true;
 }
 
+/// 原serialReadFile
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
+readGlobalFile(const char* inputfile, DomDcmpType dcmpType)
+{
+	GDALAllRegister();
+	//cout<<inputfile<<endl;
+	GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
+	//GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
+	if( poDatasetsrc == NULL /*检查是否正常打开文件*/)
+	{
+		cout<<"[ERROR] data file is not open correct"<<endl;
+		exit(1);
+	}
+	_pMetaData = new MetaData();
+
+	if(_pMetaData == NULL)
+	{
+		cout<<"[ERROR] MetaData is not allocate correct"<<endl;
+		exit(1);
+	}
+
+	
+	poDatasetsrc->GetGeoTransform(_pMetaData->pTransform);
+	_pMetaData->projection = poDatasetsrc->GetProjectionRef();
+	GDALRasterBand* poBandsrc = poDatasetsrc->GetRasterBand( 1 );
+
+	_pMetaData->noData = poBandsrc->GetNoDataValue();
+	_pMetaData->row = poBandsrc->GetYSize();
+	_pMetaData->column = poBandsrc->GetXSize();
+	SpaceDims sdim(_pMetaData->row, _pMetaData->column);
+	_pMetaData->_glbDims = sdim;
+	_pMetaData->cellSize = _pMetaData->pTransform[1];
+	_pMetaData->format = "GTiff";
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &_pMetaData->myrank);
+	MPI_Comm_size(MPI_COMM_WORLD, &_pMetaData->processor_number);	//实际进程数，哪怕只有主进程执行此函数
+
+	//数据空间是全区,工作空间dcmpType决定
+	_pMetaData->_domDcmpType = dcmpType;	//这个变量考虑改为const类型
+	//cout<<"rasterLayer L782 "<<_pMetaData->processor_number<<" dcmpType "<<_pMetaData->_domDcmpType<<endl;
+
+	DeComposition<elemType> deComp(_pMetaData->_glbDims, *_pNbrhood);
+	if( dcmpType == ROWWISE_DCMP ){
+		//根据数据范围按行划分,初始化了metaData._MBR，metaData._localdims，metaData._localworkBR
+		deComp.rowDcmp(*_pMetaData, _pMetaData->processor_number);
+	}else{
+		if( dcmpType == COLWISE_DCMP ){
+			deComp.colDcmp(*_pMetaData, _pMetaData->processor_number);
+		}else{
+			if( dcmpType == BLOCK_DCMP ){			
+				cout<<"not support right now."<<endl;//待完整
+			}else{
+				if( dcmpType == NON_DCMP ){
+					//求解本进程的数据范围
+					_pMetaData->_localdims = _pMetaData->_glbDims;
+					CoordBR _glbWorkBR;
+					_pNbrhood->calcWorkBR( _glbWorkBR, _pMetaData->_glbDims );
+					_pMetaData->_localworkBR = _glbWorkBR;
+					//int glbBegin = _glbWorkBR.nwCorner().iRow();
+					//int glbEnd = _glbWorkBR.seCorner().iRow();
+					//CellCoord nwCorner(glbBegin + _pNbrhood->minIRow(),
+					//	0);
+					//CellCoord seCorner(glbEnd + _pNbrhood->maxIRow(),
+					//	_pMetaData->_glbDims.nCols() - 1);
+					CellCoord nwCorner(0, 0);
+					CellCoord seCorner(_pMetaData->_glbDims.nRows()-1, _pMetaData->_glbDims.nCols()-1);
+					CoordBR subMBR(nwCorner, seCorner);
+					_pMetaData->_MBR = subMBR;
+				}else{
+					cerr<<"please choose right decomposition type."<<endl;
+					return false;
+				}
+			}
+		}
+	}
+	newCellSpace(_pMetaData->_localdims);
+
+	_pMetaData->dataType = getGDALType();
+
+	poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
+
+	if (poDatasetsrc != NULL)
+	{
+		GDALClose((GDALDatasetH)poDatasetsrc);
+		poDatasetsrc = NULL;
+	}
+	//MPI_Barrier(MPI_COMM_WORLD);
+	return true;
+}
+
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 copyLayerInfo( const RasterLayer<elemType> &rhs ) {
@@ -876,11 +968,11 @@ createFile( const char *outputfile ) {
             poDataset = NULL;
         }
     }
-    MPI_Barrier( MPI_COMM_WORLD );
+    MPI_Barrier( MPI_COMM_WORLD );//wyj 2019-11-12:在写出计算域负载文件的时候，函数是主进程调用，Barrier会出问题
 
     return true;
 }
-
+ 
 
 //只写出了工作空间
 //待测试不对称邻域，如-1/0/1/2这样范围的；
@@ -898,8 +990,8 @@ writeFile( const char *outputfile ){
     }else if( NON_DCMP == _pMetaData->_domDcmpType ){
         //待完成，只由主进程来写?or不支持
     }else{
-        cout << __FILE__ << " " << __FUNCTION__ \
-            << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
+        //cout << __FILE__ << " " << __FUNCTION__ \
+            << "Warning: not support this dcmpType_" << _pMetaData->_domDcmpType \
             << " right now, using row-wise decomposition as default." << endl;
     }
     return rowWriteFile(outputfile);
@@ -915,7 +1007,7 @@ rowWriteFile( const char *outputfile ) {
 			<< " Error: create file failed!" << endl;
        MPI_Finalize();
    }
-   ////如果是部分进程来调用写函数呢，会无限等待吗
+   ////如果是部分进程来调用写函数呢，会无限等待吗 // wyj:会
    GDALDataset *poDataset = NULL;
    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
    if ( poDataset == NULL /*检查是否正常打开文件*/) {
@@ -923,6 +1015,17 @@ rowWriteFile( const char *outputfile ) {
        exit( 1 );
    }
 
+   CellSpace<elemType> &computL = *cellSpace();
+   //for (int i=0;i<RasterLayer<elemType>::_pCellSpace->nRows();i++)
+   //{
+	  // for (int j=0;j<RasterLayer<elemType>::_pCellSpace->nCols();j++)
+	  // {
+		 //  if(computL[i][j]>10){
+			//   cout<<i<<" "<<j<<" "<<computL[i][j]<<" - rank"<<_pMetaData->myrank;
+			//   cout<<endl;
+		 //  }
+	  // }
+   //}
    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
    if ( poBanddest == NULL ) {
        cout << "poBanddest is NULL" << endl;

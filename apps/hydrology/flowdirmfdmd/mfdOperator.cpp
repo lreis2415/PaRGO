@@ -35,7 +35,7 @@ bool MFDOperator::isTermination()
 
 
 bool MFDOperator::Operator(const CellCoord &coord,bool operFlag)
-{
+{	
 	CellSpace<double> &demL = *(_pDEMLayer->cellSpace());
 	vector<CellSpace<double>* > weightLs;
 	for( int i=0; i<8; ++i ){

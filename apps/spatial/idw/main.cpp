@@ -28,6 +28,7 @@
 #include "idwOperator.h"
 #include "communication.h"
 #include "deComposition.h"
+#include "transformation.h"
 
 using namespace std;
 using namespace GPRO;
@@ -52,10 +53,10 @@ int main(int argc, char *argv[])
 	char *dataNeighbor, *compuNeighbor;
 	float cellSize;
 	int fldIdx, idw_nbrPoints, idw_power, idw_buffer;	//暂时都定义为int可改为浮点型
-	//int threadNUM;
-	if( argc != 10 )
+	int dcmpObjType;
+	if( argc != 11 )
 	{
-		cout<<"Please Check the input paarameters!"<<endl;
+		cout<<"Please Check the input parameters!"<<endl;
 		return 0;
 	}
 	samplefilename = argv[1];
@@ -67,9 +68,7 @@ int main(int argc, char *argv[])
 	idw_power = atoi(argv[7]);	//反距离加权幂，通常取2
 	idw_nbrPoints = atoi(argv[8]);	//搜索邻近点数
 	idw_buffer = atof(argv[9]);	//最大搜索半径
-	//threadNUM = atoi(argv[9]);
-
-	//omp_set_num_threads(threadNUM);
+	dcmpObjType = atoi(argv[10]);
 
 	int myRank, process_nums;
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -98,59 +97,51 @@ int main(int argc, char *argv[])
 	//以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
 	RasterLayer<double> idwLayer("idwLayer");
 	idwLayer.readNeighborhood(dataNeighbor);
-	//equal row dcmp based on region
-	idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
-	//cout<<"idwLayer metadata initialized."<<endl;
-	//创建邻域类的临时对象，根据本图层的元数据直接划分,是否可行待定？
-	starttime = MPI_Wtime();
-	idwOper.Run();	//运行，结果写在idwLayer的cellspace中
-	cout<<"idw compute done."<<endl;
+
+	if(dcmpObjType==0){
+		//equal row dcmp based on region
+		idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
+		//创建邻域类的临时对象，根据本图层的元数据直接划分,是否可行待定？
+		starttime = MPI_Wtime();
+		idwOper.Run();	//运行，结果写在idwLayer的cellspace中
+	}
+	else if(dcmpObjType==2){
+		//balanced row dcmp based on compute burden
+		idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
+		
+		idwLayer._pMetaData->_domDcmpType = NON_DCMP;	//wyj 2019-11-12:暂时写在外面
+		CoordBR subWorkBR;
+		if( myRank==0 )	//这一步不应该交给用户，考虑内置到computLayer类去
+		{
+			starttime = MPI_Wtime();
+			ComputLayer<double> comptLayer(&idwLayer,200,"computLayer");
+			comptLayer.readNeighborhood(compuNeighbor);
+			const int compuSize = 10;	//计算域图层分辨率是数据图层的10倍,粒度用户指定，这里暂定为10
+			comptLayer.newMetaData( compuSize );
+			Transformation<double> transOper( 1, 15, &comptLayer );	//指定有值无值栅格的计算强度
+			transOper.run();	//调用已有计算函数,更新comptLayer._pCellSpace
+			comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);	
+			comptLayer.writeComptFile("D:\\arcgis-data\\pargo\\idw\\output\\comp.tif");
+			endtime = MPI_Wtime();
+			cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
+		}else{
+			ComputLayer<double> comptLayer("untitled");
+			comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
+			MPI_Barrier(MPI_COMM_WORLD);
+		}
+
+		//cout<<"idwLayer metadata initialized."<<endl;
+		//创建邻域类的临时对象，根据本图层的元数据直接划分,是否可行待定？
+		starttime = MPI_Wtime();
+		idwOper.Run();	//运行，结果写在idwLayer的cellspace中
+	}
+	//cout<<"idw compute done."<<endl;
 	idwLayer.writeFile(outputfilename);
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	endtime = MPI_Wtime();
 	if (myRank==0)
 		cout<<"compute time is "<<endtime-starttime<<endl;
-
-	//MPI_Barrier(MPI_COMM_WORLD);
-
-	////balanced row dcmp based on compute burden
-	//vInputLayers[0]->readNeighborhood(dataNeighbor);
-	//int* pDcmpIdx = new int[process_nums*4];	//MPI不允许广播自定义类型，只能先写成角行列号
-	//if( myRank==0 )	//这一步不应该交给用户，考虑内置到computLayer类去
-	//{
-	//	starttime = MPI_Wtime();
-	//	vInputLayers[0]->readGlobalFile(vInputnames[0]);	//参与统计计算域的数据图层具有了完整的元数据,重复调用readFile时要保证clear并重新new
-	//	vector<RasterLayer<double>* > inputLayers;
-	//	inputLayers.push_back( vInputLayers[0] );		//若有多个图层参与计算域构建，这里push_back多次
-	//	ComputLayer<double> comptLayer( inputLayers, "computLayer" );
-	//	comptLayer.readNeighborhood(compuNeighbor);
-	//	const int compuSize = 10;	//计算域图层分辨率是数据图层的10倍,粒度用户指定，这里暂定为10
-	//	//获取负载均衡的划分，结果返回给vDcmpIdx,划分方式由第二个参数指定
-	//	comptLayer.getCompuLoad( pDcmpIdx, ROWWISE_DCMP,compuSize, process_nums );	
-	//	comptLayer.writeComptFile(outputfilename);
-	//	endtime = MPI_Wtime();
-	//	cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
-	//}
-	////MPI_Barrier(MPI_COMM_WORLD);
-	////依vDcmpIdx，主进程给各个进程广播其工作空间范围
-	//MPI_Bcast(pDcmpIdx,process_nums*4,MPI_INT,0,MPI_COMM_WORLD);
-	//CellCoord nwCorner(pDcmpIdx[4*myRank], pDcmpIdx[4*myRank+1]);
-	//CellCoord seCorner(pDcmpIdx[4*myRank+2], pDcmpIdx[4*myRank+3]);
-	//CoordBR subWorkBR(nwCorner, seCorner);
-	//delete []pDcmpIdx;
-	////MPI_Barrier(MPI_COMM_WORLD);
-	//cout<<myRank<<" "<<subWorkBR<<" "<<subWorkBR.maxIRow() - subWorkBR.minIRow()<<endl;	//rowComptDcmp based on compt-burden has been ok.
-
-	//vInputLayers[0]->readFile(vInputnames[0], subWorkBR, ROWWISE_DCMP);
-	//for(int i=1; i<vInputnames.size(); i++){
-	//	vInputLayers[i]->readNeighborhood(dataNeighbor);
-	//	vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
-	//}
-	//fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
-	//for(int i=0; i<clusterNum; i++){
-	//	vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
-	//}
 
 	cout<<"write done."<<endl;
 

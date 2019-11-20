@@ -250,6 +250,9 @@ int extern multidetermin_form_num(int cur_Row, int cur_Col, vector<Pattern> patt
 }
 bool LEOperator::Operator(const CellCoord &coord, bool operFlag)
 {
+	//int rank;
+	//MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+	//cout<<"rank"<<rank<<" ("<<coord.iRow()<<","<<coord.iCol()<<")"<<endl;
     CellSpace<double> &dem = *(_pDEMLayer->cellSpace());//输入图层的栅格数据
 
     CellSpace<double> &LE = *(_pLELayer->cellSpace());//输出图层的栅格数据

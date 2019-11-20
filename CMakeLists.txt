@@ -153,14 +153,31 @@ IF(OPENMP_FOUND)
   MESSAGE(STATUS "Compiling with OpenMP...")
 ENDIF()
 
+
 ### Find GDAL which is required.
+
+# FIND_PACKAGE(GDAL 1 EXACT REQUIRED)
+# IF(GDAL_FOUND)
+#   SET(GDAL_1 1)
+#   MESSAGE(STATUS "GDAL version 1.x found ${GDAL_VERSION_MAJOR}")
+# ENDIF()
+# FIND_PACKAGE(GDAL 2 EXACT REQUIRED)
+# IF(GDAL_FOUND)
+#   SET(GDAL_1 0)
+#   MESSAGE(STATUS "GDAL version greater than 1 found")
+# ENDIF()
+
 FIND_PACKAGE(GDAL REQUIRED)
 IF (GDAL_FOUND)
+
+  ADD_DEFINITIONS(-DGDAL_1)
+  MESSAGE(STATUS "It is using GDAL 1.x now. You can switch it by commenting ADD_DEFINITIONS(-DGDAL_1) in the CMakeLists.txt temporarily. version: ${GDAL_VERSION}, found:${GDAL_FOUND}")
+
   SET(WITH_GDAL 1)
   ADD_DEFINITIONS(-DUSE_GDAL)
   INCLUDE(SetFlagGDAL)
   geo_include_directories(${GDAL_INCLUDE_DIR})
-  MESSAGE(STATUS "Compiling with GDAL...")
+  MESSAGE(STATUS "Compiling with GDAL ${GDAL_VERSION}...")
 ELSE()
   MESSAGE(FATAL_ERROR "FATAL: Could not find GDAL, which is required!")
 ENDIF ()

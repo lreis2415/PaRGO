@@ -116,6 +116,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	Application::START(MPI_Type, argc, argv); //init
+
 	RasterLayer<double> demLayer("demLayer"); //创建图层
 	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
 	demLayer.readFile(inputfilename);  //读取栅格数据

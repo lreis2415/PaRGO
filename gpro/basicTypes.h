@@ -46,22 +46,24 @@ namespace GPRO {
      * \enum DomDcmpMethod
      * \ingroup gpro
      * \brief Domain decompose method
-     * 
      */
-    //TODO: add comment
     enum DomDcmpMethod {
-        SINGLE_PRC = 0, /**<  */
-        SMPL_ROW, /**<  */ 
-        SMPL_COL, /**<  */ 
-        SMPL_BLK, /**<  */ 
-        CMPX_QUAD /**<  */
+        SINGLE_PRC = 0, /**< Single process, no decomposition */
+        SMPL_ROW, /**< Simple row-wise decomposition */ 
+        SMPL_COL, /**< Simple col-wise decomposition */ 
+        SMPL_BLK, /**< Simple block-wise decomposition */ 
+        CMPX_QUAD /**< Complex quadtree decomposition */
     };
 
-
+    /**
+     * \enum DomDcmpObj
+     * \ingroup gpro
+     * \brief Domain decompose object
+     */
     enum DomDcmpObj {
-        SPACE_DIM = 0, /**<  */
-        DATA_LOAD, /**<  */
-        COMPT_LOAD /**<  */
+        SPACE_DIM = 0, /**< Space dimension */
+        DATA_LOAD, /**< data load */
+        COMPT_LOAD /**< compute load */
     };
 
     /**

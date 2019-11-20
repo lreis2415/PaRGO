@@ -122,7 +122,7 @@ Work( const CoordBR *const pWBR ) {
         //double starttime;
         do {
             //starttime = MPI_Wtime();
-            //cout<<myRank<<" "<<pWBR->minIRow()<<" "<<pWBR->minICol()<<" "<<pWBR->maxIRow()<<" "<<pWBR->maxICol()<<endl;
+            cout<<"work BR info: "<<myRank<<" "<<pWBR->minIRow()<<" "<<pWBR->minICol()<<" "<<pWBR->maxIRow()<<" "<<pWBR->maxICol()<<endl;
             Termination = 1;
             for ( int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++ ) {
                 for ( int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++ ) {

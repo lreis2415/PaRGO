@@ -10,10 +10,14 @@ IDWOperator::~IDWOperator(){
 
 int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
 {
-	GDALAllRegister();
 	//读取矢量样点的元数据，获取范围
+#ifdef GDAL_1
+	OGRRegisterAll();
+	OGRDataSource *poDatasetsrc=OGRSFDriverRegistrar::Open(filename,FALSE);
+#else
+	GDALAllRegister();
 	GDALDataset *poDatasetsrc = (GDALDataset *)GDALOpen( filename, GA_ReadOnly );
-	//OGRDataSource *poDS=OGRSFDriverRegistrar::Open("point.shp",FALSE);
+#endif
 	if( poDatasetsrc == NULL )
 	{
 		printf( "[ERROR] zmw Open failed.\n" );
@@ -41,16 +45,23 @@ int IDWOperator::readSampleNums( const char* filename,char** pSpatialRefWkt )
 }
 
 bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array )
-{
+{	
+
 	//将位置信息和属性信息存放在数组Sample_Array中
+#ifdef GDAL_1
+	OGRRegisterAll();
+	OGRDataSource *poDatasetsrc=OGRSFDriverRegistrar::Open(filename,FALSE);
+#else
 	GDALDataset *poDatasetsrc = (GDALDataset *)GDALOpen( filename, GA_ReadOnly );
+#endif
 	if( poDatasetsrc == NULL ){
 		printf( "[ERROR] Open failed.\n" );
 		exit( 1 );
 	}
+
 	string file = filename;
 	string  f2 = file.substr(0, file.length()-4);
-	int pos = f2.find_last_of('/');
+	int pos = f2.find_last_of(SEP);
 	string f3 = f2.substr(pos+1);	
 	OGRLayer *poLayer = poDatasetsrc->GetLayerByName(f3.c_str());
 	poLayer->ResetReading();
@@ -62,7 +73,6 @@ bool IDWOperator::readSamples( const char* filename, int fieldIdx, char** pSpati
 	while((poFeature=poLayer->GetNextFeature())!=NULL){
 		Sample_Array[idx][2]=poFeature->GetFieldAsDouble(fieldIdx);//读取属性值
 		//cout<<"value:"<<showpoint<<Sample_Array[idx][2]<<endl;	//这里没问题，是小数
-
 		OGRGeometry *poGeometry;
 		poGeometry = poFeature->GetGeometryRef();
 		if( poGeometry != NULL && wkbFlatten(poGeometry->getGeometryType()) == wkbPoint ){
@@ -167,7 +177,8 @@ void IDWOperator::idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt){
 	DeComposition<double> deComp(layerD._pMetaData->_glbDims, *(layerD.nbrhood()));
 	deComp.rowDcmp(*(layerD._pMetaData), layerD._pMetaData->processor_number);	//根据数据范围按行划分,引用方式返回给*(layerD._pMetaData)
 	layerD.newCellSpace(layerD._pMetaData->_localdims);	//每个进程读入全区样点数据，但只算自己的workBR
-	//cout<<"myrank "<<layerD._pMetaData->myrank<<" "<<layerD._pMetaData->_MBR<<endl;
+	layerD._pMetaData->_glbDims.nRows(_nRows);
+	layerD._pMetaData->_glbDims.nCols(_nCols);
 
 	layerD._pMetaData->dataType = layerD.getGDALType();
 	//pSpatialRefWkt 目前指向main函数中的char* pSpatialRefWkt的地址
@@ -303,6 +314,9 @@ int IDWOperator::searchNbrSamples( const int subMinRow, int cellRow, int cellCol
 
 bool IDWOperator::Operator(const CellCoord &coord, bool operFlag)
 {
+    //int rank;
+    //MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    //cout<<"rank"<<rank<<" ("<<coord.iRow()<<","<<coord.iCol()<<")"<<endl;
 	CellSpace<double> &idwL = *(_pIDWLayer->cellSpace());
 	const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
 	//Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);

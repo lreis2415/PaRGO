@@ -27,7 +27,10 @@ namespace GPRO {
     class ComputLayer : public RasterLayer<elemType> {
     public:
         ComputLayer();
-        ComputLayer( const string RasterLayerName = "Untitled" );
+		ComputLayer( const string RasterLayerName = "Untitled" );
+		ComputLayer( RasterLayer<elemType> * dataLayers,
+			         const int tmpGrain,
+			         const string RasterLayerName = "Untitled" );
         ComputLayer( vector<RasterLayer<elemType> *> dataLayers,
                      const int tmpGrain,
                      const string RasterLayerName = "Untitled" );
@@ -44,9 +47,8 @@ namespace GPRO {
         bool newMetaData( int comptGrain );    //参数冗余，已在数据成员中添加
         //bool transformation();
         bool getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR );
-        bool getCompuLoad2( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR );
 
-        bool readComptFile( const char *outputfile );    //待实际完成
+        bool readComptFile( const char *outputfile );//待实际完成
         bool writeComptFile( const char *outputfile );
 
     public:
@@ -68,6 +70,14 @@ ComputLayer( const string RasterLayerName )
     :RasterLayer<elemType>( RasterLayerName ) {
     //_comptGrain = 10;
     //_pDataLayers.push_back(this);
+}
+
+template<class elemType>
+inline GPRO::ComputLayer<elemType>::
+	ComputLayer( RasterLayer<elemType> * dataLayer, const int tmpGrain, const string RasterLayerName )
+	: RasterLayer<elemType>( RasterLayerName ), _comptGrain( tmpGrain ) {
+		_pDataLayers.push_back(dataLayer);
+		//newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR
 }
 
 template<class elemType>
@@ -434,75 +444,6 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
 
 template<class elemType>
 bool GPRO::ComputLayer<elemType>::
-getCompuLoad2( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
-    int myRank, process_nums;
-    MPI_Comm_rank( MPI_COMM_WORLD, &myRank );
-    MPI_Comm_size( MPI_COMM_WORLD, &process_nums );
-
-    int *pDcmpIdx = new int[nSubSpcs * 4];    //存储块划分结果，并广播
-    if ( myRank == 0 ) {    //目前负载的划分是由主进程独立完成
-        vector<CoordBR> vDcmpBR;    //所有划分快,共nSubSpcs个;因为MPI不支持通信自定义类型，故实际无用
-        //根据邻域，主进程先读计算域所需图层数据，求解出工作空间范围（数据图层是有邻域成员的，计算域图层暂时没有或与其一致），再根据粒度，创建计算域图层；（总范围与总工作空间范围左上对齐，基本一致）
-        //调用求解函数，即for循环compuLayer的每个栅格，配合粒度值，求解出compuLayer的各栅格值
-        //创建decomp对象，调用划分函数valRowDcmp()，根据compuLayer值对其进行范围划分，结果由vector<CoordBR>& 返回
-        //根据compuLayer图层的划分结果，映射到数据的工作空间范围，返回给主函数的vDcmpIdx
-        //先串行求解，主进程更新了metedata后，通信给各子进程
-
-        vector<CoordBR> vComptDcmpBR;
-        DeComposition<elemType>
-            deComp( RasterLayer<elemType>::_pMetaData->_glbDims, *( RasterLayer<elemType>::_pNbrhood ));
-        if ( dcmpType == ROWWISE_DCMP ) {
-            deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs );    //按值划分，故需要图层为参数;划分结果会以引用传回给vComptDcmpBR
-            //_pDataLayers[0]->_pMetaData->_domDcmpType = ROWWISE_DCMP;	//暂时;估计没用//0316删除，不知道是否影响
-        } else {
-            cerr << "computLayer L388: not support until now." << endl;
-        }
-        //将划分结果映射给数据空间的子范围
-        CoordBR _glbWorkBR;
-        Neighborhood<elemType> *pDataNbrhood = _pDataLayers[0]->nbrhood();
-        pDataNbrhood->calcWorkBR( _glbWorkBR, _pDataLayers[0]->_pMetaData->_glbDims );    //数据图层的全局工作空间
-        int subBegin = _glbWorkBR.minIRow(), subEnd = _glbWorkBR.minIRow() - 1;
-        int i = 0;
-        for ( ; i < nSubSpcs - 1; ++i ) {
-            subBegin = vComptDcmpBR[i].minIRow() * _comptGrain + _glbWorkBR.minIRow();
-            subEnd = ( vComptDcmpBR[i + 1].minIRow()) * _comptGrain + _glbWorkBR.minIRow() - 1;
-            //cout<<i<<" "<<subBegin<<" , "<<subEnd<<endl;
-            CellCoord nwCorner( subBegin, _glbWorkBR.minICol());
-            CellCoord seCorner( subEnd, _glbWorkBR.maxICol());
-            CoordBR subMBR( nwCorner, seCorner );
-            vDcmpBR.push_back( subMBR );
-            pDcmpIdx[4 * i] = subBegin;
-            pDcmpIdx[4 * i + 1] = _glbWorkBR.minICol();
-            pDcmpIdx[4 * i + 2] = subEnd;
-            pDcmpIdx[4 * i + 3] = _glbWorkBR.maxICol();
-        }
-        //存储转换，返回
-        CellCoord nwCorner( subEnd + 1, _glbWorkBR.minICol());
-        CellCoord seCorner( _glbWorkBR.maxIRow(), _glbWorkBR.maxICol());
-        CoordBR subMBR( nwCorner, seCorner );
-        vDcmpBR.push_back( subMBR );
-        pDcmpIdx[4 * i] = subEnd + 1;
-        pDcmpIdx[4 * i + 1] = _glbWorkBR.minICol();
-        pDcmpIdx[4 * i + 2] = _glbWorkBR.maxIRow();
-        pDcmpIdx[4 * i + 3] = _glbWorkBR.maxICol();
-    }
-
-    MPI_Barrier( MPI_COMM_WORLD );    //目前设计中，主进程会去完成计算域图层的计算，各进程在这里等候，计算完成后获取各自的subWorkBR即可
-    //目前是串行，故需要广播，若各进程都来划分一次or并行划分，则需修改
-    MPI_Bcast( pDcmpIdx, process_nums * 4, MPI_INT, 0, MPI_COMM_WORLD );
-    CellCoord nwCorner2( pDcmpIdx[4 * myRank], pDcmpIdx[4 * myRank + 1] );
-    CellCoord seCorner2( pDcmpIdx[4 * myRank + 2], pDcmpIdx[4 * myRank + 3] );
-    CoordBR tmpWorkBR( nwCorner2, seCorner2 );
-    subWorkBR = tmpWorkBR;    //已测试，这样赋值没问题
-    //cout<<"tmpWorkBR "<<tmpWorkBR<<" subWorkBR "<<subWorkBR<<" shoule be the same"<<endl;
-    MPI_Barrier( MPI_COMM_WORLD );
-    delete[]pDcmpIdx;
-
-    return true;
-}
-
-template<class elemType>
-bool GPRO::ComputLayer<elemType>::
 writeComptFile( const char *outputfile ) {
     //目前仅支持串行写出
     GDALAllRegister();
@@ -511,6 +452,7 @@ writeComptFile( const char *outputfile ) {
         cout << "create file is not correct!" << endl;
         MPI_Finalize();
     }
+
     GDALDataset *poDataset = NULL;
     poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
     if ( poDataset == NULL /*检查是否正常打开文件*/) {
@@ -518,6 +460,7 @@ writeComptFile( const char *outputfile ) {
         cout << "data file is not open correct" << endl;
         exit( 1 );
     }
+
     GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
     if ( poBanddest == NULL ) {
         //do something

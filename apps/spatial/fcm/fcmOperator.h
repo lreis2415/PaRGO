@@ -5,6 +5,7 @@
 #include "neighborhood.h"
 #include "rasterOperator.h"
 #include "rasterLayer.h"
+#include "transformation.h"
 #include <cmath>
 #include <functional>
 
@@ -27,6 +28,7 @@ public:
 	void inputLayer(vector<RasterLayer<double> *> layerD);
 	void fcmLayer(RasterLayer<double> &layerD);
 	void degLayer(vector<RasterLayer<double> *> layerD);
+	void comptLayer(RasterLayer<double> &layerD);
 	
 	virtual bool isTermination();
 
@@ -45,6 +47,7 @@ private:
 	int _iterNum;//迭代次数
 	bool flag;
 	double starttime, endtime;
+	double tmpSumTime1, tmpSumTime2;
 protected:
 	int clusterNum; //分类数目
 	int maxIteration; //最大迭代次数
@@ -74,6 +77,7 @@ protected:
 	vector<RasterLayer<double> *> _vInputLayer;
 	RasterLayer<double> *_pFCMLayer;
 	vector<RasterLayer<double> *> _vDegLayer;
+	RasterLayer<double> *_pComptLayer;	//暂时捕捉真实计算时间用
 
 	Neighborhood<double> *_pDEMNbrhood;
 
