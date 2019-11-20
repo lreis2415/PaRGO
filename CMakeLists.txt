@@ -6,6 +6,7 @@
 #
 #       Optional cmake options:
 #         -DINSTALL_PREFIX=<path/to/install>
+#         -DUSE_MPI_DEBUGGER When set to 1, apps will not included in folders and MPI debugger in VS2010 works!
 #         -DLLVM_ROOT_DIR Specific the root directory of brew installed LLVM, e.g., /usr/local/opt/llvm
 #
 #  Routine testing platforms and compilers include:
@@ -106,6 +107,10 @@ IF (CUDA)  # TODO
   SET(WITH_CUDA 1)
 ENDIF()
 
+IF (NOT USE_MPI_DEBUGGER)
+  SET(USE_MPI_DEBUGGER 0)
+ENDIF()
+
 ### Detect compiler and target platform architecture.
 INCLUDE(Utils)
 SET(ENABLE_CXX11 1)
@@ -182,6 +187,7 @@ FILE(GLOB GPRO_SRCS ${GPRO_DIR}/*.cpp ${GPRO_DIR}/*.h)
 geo_include_directories(${GPRO_DIR} ${GDAL_INCLUDE_DIR} ${MPI_INCLUDE_PATH})
 ADD_SUBDIRECTORY(${APPS_DIR})
 
+unset(USE_MPI_DEBUGGER CACHE)
 ### Build platform.
 STATUS("")
 STATUS("  Platform:")
