@@ -210,23 +210,23 @@ namespace GPRO {
             _size = _nRows * _nCols;
         }
 
-        int nRows() const {
+        inline int nRows() const {
             return _nRows;
         }
 
-        int nCols() const {
+        inline int nCols() const {
             return _nCols;
         }
 
-        int size() const {
+        inline int size() const {
             return _size;
         }
 
-        bool valid() const {
+        inline bool valid() const {
             return ( _nRows >= 0 && _nCols >= 0 );
         }
 
-        bool isNone() const {
+        inline bool isNone() const {
             return ( _size == 0 );
         }
 

@@ -32,222 +32,346 @@
 using namespace std;
 using namespace GPRO;
 
+void Usage(const string& error_msg = "") {
+    if (!error_msg.empty()) {
+        cout << "FAILURE: " << error_msg << endl << endl;
+    }
 
-int main(int argc, char *argv[]) 
-{
-	/*  enum ProgramType{MPI_Type = 0,
-				   MPI_OpenMP_Type,
-				   CUDA_Type,
-				   Serial_Type};*/
-	/*  enum DomDcmpType{NON_DCMP = 0,
-		ROWWISE_DCMP,
-		COLWISE_DCMP,
-		BLOCK_DCMP};*/
-	/*  enum DomDcmpObj{SPACE_DIM = 0,
-				   DATA_LOAD,
-				   COMPT_LOAD};*/
-	Application::START(MPI_Type, argc, argv); //init
+    cout << " Usage: fcm -elev <elevation grid file> " << endl
+        << "-dataNbr <data layer neighbor file> " << endl
+        << "-computeNbr <compute layer neighbor file>" << endl
+        << "-out <output raster file>" << endl
+        << "-clusterNum <number of clusters>" << endl
+        << "-maxIter <max iteration number>" << endl
+        << "-tolerance <tolerance in iteration>" << endl
+        << "-weight <fuzzyness exponent>" << endl
+        << "-dcmp <domain decomposition method>" << endl
+        << "-writeLoad <path to write load file>" << endl
+        << "-readLoad <path to read load file>" << endl << endl;
 
-	//...
-	char* inputfilenames;
-	char* dataNeighbor;
-	char* compuNeighbor;
-	char* outputfilename;
-	int clusterNum; //分类数目
-	double maxIteration; //最大迭代次数
-	double tolerance;//迭代阈值
-	int wm;//加权指数
-	int domDcmpObj;// 0:SPACE_DIM 2:COMPT_LOAD
-	if (argc>0 && argc < 11)
-	{
-		inputfilenames = argv[1];
-		dataNeighbor = argv[2];
-		compuNeighbor = argv[3]; 
-		outputfilename = argv[4];
-		clusterNum =atoi(argv[5]);
-		maxIteration =atoi(argv[6]);
-		tolerance = atof(argv[7]);
-		wm = atof(argv[8]);
-		domDcmpObj = atoi(argv[9]);
-	}
+    cout << "'dcmp' available options:" << endl;
+    cout << "\t space: (default) compute layer is decomposed equally by space, so it needs no evaluation." << endl;
+    cout << "\t compute: compute layer is decomposed by computing load. To decide the load by running estimation before actual FCM algorithm"<< endl;
 
-	int myRank, process_nums;
-	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-	MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-	double starttime;
-	double endtime;
+    cout << "(optional)'writeLoad' to create/rewrite time-cost load file to represent computing load. It"<< endl;
+    cout << "\t either captures time cost if decompose set to 'space'" << endl;
+    cout << "\t or estimates time cost if decompose set to 'compute'" << endl;
 
-	//字符串解析输入文件名
-	vector<char *> vInputnames;	//输入文件名，待解析
-	vector<RasterLayer<double> *> vInputLayers;
-	//int imageNum;	//输入的影像数目
-	char* token = strtok(inputfilenames,",");
-	char *filename;
-	while(NULL != token)
-	{
-		filename=token;
-		vInputnames.push_back(filename);	//名字留着后面读取用
-		RasterLayer<double> *pLayer = new RasterLayer<double>("none");
-		vInputLayers.push_back(pLayer);
-		token=strtok(NULL,",");
-	}
-	if( vInputnames.empty() || clusterNum==0 || maxIteration==0 ){
-		return 1;
-	}
-	RasterLayer<double> fcmLayer("fcmLayer");//创建分类输出图层fcmLayer
-	//预定义分类图层
-	char** pDegLayerName = new char*[clusterNum];
-	//string degLayerName;
-	vector<RasterLayer<double> *> vDegreeLayer;
-	for(int i=0;i<clusterNum;i++)
-	{
-		pDegLayerName[i] = new char[50];
-		sprintf(pDegLayerName[i],"degreeLayer%d.tif",i);	//输出用名字
-		RasterLayer<double> *pLayer = new RasterLayer<double>(pDegLayerName[i]);
-		vDegreeLayer.push_back(pLayer);
-	}
+    cout << "(optional)'readLoad' is the path to load file to guide decomposition. Only needed when decompose set to 'compute'"<< endl;
 
-	if(domDcmpObj==0){
-		//equal row dcmp based on region
-		for(int i=0; i<vInputnames.size(); i++){
-			vInputLayers[i]->readNeighborhood(dataNeighbor);
-			vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
-		}
-		fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
-		for(int i=0; i<clusterNum; i++){
-			vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
-		}
+    cout << " Or use the Simple Usage (full-text usage is recommended): slope <elevation grid file> "
+        "<data layer neighbor file> "
+        "<compute layer neighbor file> "
+        "<output raster file> "
+        "<number of clusters> "
+        "<max iteration number> "
+        "<tolerance in iteration> "
+        "<fuzzyness exponent> "
+        "[<domain decomposition method>] "
+        "[<path to write load file>] "
+        "[<path to read load file>] " << endl << endl;
 
-		RasterLayer<double> comptLayer("fcmLayer");//暂时测试用，捕捉真实计算强度；以后改封装透明
-		comptLayer.copyLayerInfo(*vInputLayers[0]);
+    //cout << "Example.1. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif" << endl;
+    //cout << "Example.2. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif -mtd SD" << endl;
+    //cout << "Example.3. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif" << endl;
+    //cout << "Example.4. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif TFD" << endl;
 
-		starttime = MPI_Wtime();
-		FCMOperator fcmOper;
-		fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, wm);
-		fcmOper.inputLayer(vInputLayers);
-		fcmOper.fcmLayer(fcmLayer);
-		fcmOper.degLayer(vDegreeLayer);
-		fcmOper.comptLayer(comptLayer);//测试用
-		fcmOper.Run();
+    exit(1);
+}
 
-		char* comptfilename = "D:\\arcgis-data\\pargo\\fcm\\nenjiang_out\\realComputeTime.tif";
-		comptLayer.writeFile(comptfilename);	//测试用，写出捕捉到的计算时间
-	}else if(domDcmpObj==2){
-		////balanced row dcmp based on compute burden
+int main(int argc, char* argv[]) {
+    /*  enum ProgramType{MPI_Type = 0,
+                   MPI_OpenMP_Type,
+                   CUDA_Type,
+                   Serial_Type};*/
+    /*  enum DomDcmpType{NON_DCMP = 0,
+        ROWWISE_DCMP,
+        COLWISE_DCMP,
+        BLOCK_DCMP};*/
+    /*  enum DomDcmpObj{SPACE_DIM = 0,
+                   DATA_LOAD,
+                   COMPT_LOAD};*/
 
-		/// 原fcm算法版本
+    //...
+    char* inputFileName;
+    char* dataNeighbor;
+    char* compuNeighbor;
+    char* outputFileName;
+    int clusterNum; //分类数目
+    int maxIteration; //最大迭代次数
+    double tolerance; //迭代阈值
+    int weight; //加权指数
+    bool decomposeBySapce; /// decomp by load if false.
+    char* writeLoadPath=nullptr; /// 
+    char* readLoadPath=nullptr; /// 
+    int i = 1;
+    bool simpleusage = true;
+    while (argc > i) {
+        if (strcmp(argv[i], "-elev") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                inputFileName = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-elev'!");
+            }
+        }
+        else if (strcmp(argv[i], "-dataNbr") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                dataNeighbor = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-dataNbr'!");
+            }
+        }
+        else if (strcmp(argv[i], "-computeNbr") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                compuNeighbor = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-computeNbr'!");
+            }
+        }
+        else if (strcmp(argv[i], "-out") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                outputFileName = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-out'!");
+            }
+        }
+        else if (strcmp(argv[i], "-clusterNum") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                clusterNum = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-clusterNum'!");
+            }
+        }
+        else if (strcmp(argv[i], "-maxIter") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                maxIteration = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-maxIter'!");
+            }
+        }
+        else if (strcmp(argv[i], "-tolerance") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                tolerance = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-tolerance'!");
+            }
+        }
+        else if (strcmp(argv[i], "-weight") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                weight = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-weight'!");
+            }
+        }
+        else if (strcmp(argv[i], "-dcmp") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                decomposeBySapce = ifDecomposeBySpace(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-dcmp'!");
+            }
+        }
+        else if (strcmp(argv[i], "-writeLoad") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                writeLoadPath = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-writeLoad'!");
+            }
+        }
+        else if (strcmp(argv[i], "-readLoad") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                readLoadPath = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-readLoad'!");
+            }
+        }
+        else {
+            // Simple Usage
+            if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
+            inputFileName = argv[1];
+            dataNeighbor = argv[2];
+            compuNeighbor = argv[3];
+            outputFileName = argv[4];
+            clusterNum = atoi(argv[5]);
+            maxIteration = atoi(argv[6]);
+            tolerance = atof(argv[7]);
+            weight = atof(argv[8]);
+            if (argc >= 10) {
+                decomposeBySapce = ifDecomposeBySpace(argv[9]);
+            }
+            if(argc>=11){
+                writeLoadPath = argv[10];
+                readLoadPath = argv[10];
+            }
+            break;
+        }
+    }
+    Application::START(MPI_Type, argc, argv); //init
+    int myRank, process_nums;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
+    double starttime;
+    double endtime;
 
-		// RasterLayer<double> demLayer("demLayer");
-		// RasterLayer<double> pitLayer("pitLayer"); //创建输出图层
-		// demLayer.readNeighborhood(dataNeighbor);
-		
-		// //vector<CoordBR> vDcmpIdx;	//存放划分位置索引，主进程求得后广播给各进程;MPI不允许广播自定义类型，暂舍;
-		// //vDcmpIdx用什么数据类型合适，可在computLayer内转换格式，对用户透明，应尽量保证用户易用
-		// int* pDcmpIdx = new int[process_nums*4];	//MPI不允许广播自定义类型，只能先写成角行列号
-		// if( myRank==0 )	//这一步不应该交给用户，考虑内置到computLayer类去
-		// {
-		// 	starttime = MPI_Wtime();
-		// 	demLayer.readGlobalFile(inputfilename0);	//参与统计计算域的数据图层具有了完整的元数据,重复调用readFile时要保证clear并重新new
-		// 	vector<RasterLayer<double>* > inputLayers;
-		// 	inputLayers.push_back( &demLayer );		//若有多个图层参与计算域构建，这里push_back多次
-			
-		// 	ComputLayer<double> comptLayer( inputLayers, "computLayer" );
-		// 	comptLayer.readNeighborhood(compuNeighbor);
-		// 	const int compuSize = 10;	//计算域图层分辨率是数据图层的10倍,粒度用户指定，这里暂定为10
-		// 	//获取负载均衡的划分，结果返回给vDcmpIdx,划分方式由第二个参数指定
-		// 	comptLayer.getCompuLoad( pDcmpIdx, ROWWISE_DCMP,compuSize, process_nums );	
-		// 	//for( int i=0; i<process_nums*4; i+=4 ){
-		// 	//	//it's ok here
-		// 	//	cout<<pDcmpIdx[i]<<" "<<pDcmpIdx[i+1]<<" "<<pDcmpIdx[i+2]<<" "<<pDcmpIdx[i+3]<<endl;
-		// 	//}
-		// 	//comptLayer.writeComptFile(outputfilename);	//可选,目前仅支持串行写
+    //字符串解析输入文件名
+    vector<const char *> vInputnames; //输入文件名，待解析
+    vector<RasterLayer<double> *> vInputLayers;
+    vector<string> tokens = SplitString(inputFileName,',');
+    for(int i=0;i<tokens.size();i++) {
+        vInputnames.push_back(tokens[i].c_str());
+        RasterLayer<double>* pLayer = new RasterLayer<double>("none");
+        vInputLayers.push_back(pLayer);
+    }
+    if (vInputnames.empty() || clusterNum == 0 || maxIteration == 0) {
+        return 1;
+    }
+    RasterLayer<double> fcmLayer("fcmLayer"); //创建分类输出图层fcmLayer
+    //预定义分类图层
+    char** pDegLayerName = new char*[clusterNum];
+    vector<RasterLayer<double> *> vDegreeLayer;
+    for (int i = 0; i < clusterNum; i++) {
+        pDegLayerName[i] = new char[50];
+        sprintf(pDegLayerName[i], "degreeLayer%d.tif", i); //输出用名字
+        RasterLayer<double>* pLayer = new RasterLayer<double>(pDegLayerName[i]);
+        vDegreeLayer.push_back(pLayer);
+    }
 
-		// 	endtime = MPI_Wtime();
-		// 	cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
-		// }
-		// MPI_Barrier(MPI_COMM_WORLD);
-		// //依vDcmpIdx，主进程给各个进程广播其工作空间范围
-		// MPI_Bcast(pDcmpIdx,process_nums*4,MPI_INT,0,MPI_COMM_WORLD);
-		// CellCoord nwCorner(pDcmpIdx[4*myRank], pDcmpIdx[4*myRank+1]);
-		// CellCoord seCorner(pDcmpIdx[4*myRank+2], pDcmpIdx[4*myRank+3]);
-		// CoordBR subWorkBR(nwCorner, seCorner);
-		// delete []pDcmpIdx;
-		// MPI_Barrier(MPI_COMM_WORLD);
-		// cout<<myRank<<" "<<subWorkBR<<endl;	//rowComptDcmp based on compt-burden has been ok.
+    if (decomposeBySapce) {
+        //equal row dcmp based on region
+        for (int i = 0; i < vInputnames.size(); i++) {
+            vInputLayers[i]->readNeighborhood(dataNeighbor);
+            vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
+        }
+        fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
+        for (int i = 0; i < clusterNum; i++) {
+            vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
+        }
 
-		// demLayer.readFile(inputfilename0, subWorkBR, ROWWISE_DCMP);
-		// pitLayer.copyLayerInfo(demLayer);
+        starttime = MPI_Wtime();
+        FCMOperator fcmOper;
+        fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, weight);
+        fcmOper.inputLayer(vInputLayers);
+        fcmOper.fcmLayer(fcmLayer);
+        fcmOper.degLayer(vDegreeLayer);
+        ComputLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
+        if(writeLoadPath) {
+            comptLayer.copyLayerInfo(*vInputLayers[0]);
+            comptLayer.newMetaData(10);
+            fcmOper.comptLayer(comptLayer); //测试用
+        }
+        fcmOper.Run();
+        if(writeLoadPath)
+            comptLayer.writeFile(writeLoadPath); //测试用，写出捕捉到的计算时间
+    }
+    else{
+        ////balanced row dcmp based on compute burden
+        const int comptGrain = 10; //计算域图层分辨率是数据图层的10倍,粒度用户指定
+        starttime = MPI_Wtime();
+        vInputLayers[0]->readNeighborhood(dataNeighbor);
+        CoordBR subWorkBR;
+        ComputLayer<double> comptLayer("computLayer");
+        comptLayer.readNeighborhood(compuNeighbor);
+        vInputLayers[0]->readGlobalFile(vInputnames[0]);
+        comptLayer._pDataLayers.push_back(vInputLayers[0]);
+        if(readLoadPath) {
+            //读入真实计算指导划分
+            comptLayer.readFile(readLoadPath);
+            comptLayer.setComputGrain(comptGrain);
+            comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
+        }
+        else {
+            if (myRank == 0) {
+                comptLayer.newMetaData(comptGrain);
+                Transformation<double> transOper(1, 15, &comptLayer); //指定有值无值栅格的计算强度
+                transOper.run(); //调用已有计算函数,更新comptLayer._pCellSpace
+                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); //内含了同步
+                if (writeLoadPath) {
+                    comptLayer.writeComptFile(writeLoadPath);               
+                }
+            } else {
+                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+                if(writeLoadPath) {
+                    MPI_Barrier(MPI_COMM_WORLD);                    
+                }
+            }
+        }
+        cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()
+            << endl;
+        endtime = MPI_Wtime();
+        if (myRank == 0)
+            cout << "dcmp time is " << endtime - starttime << endl;
 
-		/// 艾贝贝论文版
-		starttime = MPI_Wtime();
-		vInputLayers[0]->readNeighborhood(dataNeighbor);
-		CoordBR subWorkBR;
-		if( myRank==0 ){
-			vInputLayers[0]->readGlobalFile(vInputnames[0]);
-			vector<RasterLayer<double>* > inputLayers;
-			inputLayers.push_back( vInputLayers[0] );//若有多个图层参与计算域构建，这里push_back多次
-			const int comptGrain = 10;	//计算域图层分辨率是数据图层的10倍,粒度用户指定
-			ComputLayer<double> comptLayer( inputLayers, comptGrain, "computLayer" );
-			comptLayer.readNeighborhood(compuNeighbor);
-			comptLayer.newMetaData( comptGrain );
-			Transformation<double> transOper( 1, 15, &comptLayer );	//指定有值无值栅格的计算强度
-			transOper.run();	//调用已有计算函数,更新comptLayer._pCellSpace
-			comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );	//内含了同步
-			comptLayer.writeComptFile("D:\\arcgis-data\\pargo\\fcm\\nenjiang_out\\comp.tif");	// 可选
-		}else{
-			ComputLayer<double> comptLayer("untitled");
-			comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
-			MPI_Barrier(MPI_COMM_WORLD);
-		}
+        for (int i = 0; i < vInputnames.size(); i++) {
+            vInputLayers[i]->readNeighborhood(dataNeighbor);
+            vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
+        }
+        fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
+        for (int i = 0; i < clusterNum; i++) {
+            vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
+        }
+        //执行计算
+        starttime = MPI_Wtime();
+        FCMOperator fcmOper;
+        fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, weight);
+        fcmOper.inputLayer(vInputLayers);
+        fcmOper.fcmLayer(fcmLayer);
+        fcmOper.degLayer(vDegreeLayer);
+        fcmOper.Run();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    endtime = MPI_Wtime();
+    if (myRank == 0)
+        cout << "compute time is " << endtime - starttime << endl;
+    fcmLayer.writeFile(outputFileName);
+    //for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
+    //	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
+    //}
+    cout << "write done." << endl;
 
-		cout<<myRank<<" subWorkBR "<<subWorkBR.minIRow()<<" "<<subWorkBR.maxIRow()<<" "<<subWorkBR.nRows()<<endl;
-		endtime = MPI_Wtime();
-		if (myRank==0)
-			cout<<"dcmp time is "<<endtime-starttime<<endl;
-
-		////读入真实计算指导划分
-		//starttime = MPI_Wtime();
-		//ComputLayer<double> comptLayer("untitled");
-		//char* comptfilename = "/data/aibb/PaRGO_develop/comp.tif";
-		//comptLayer.readNeighborhood(compuNeighbor);
-		//comptLayer.readFile(comptfilename);
-		//CoordBR subWorkBR;
-		//comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
-		//cout<<myRank<<" subWorkBR "<<subWorkBR.minIRow()<<" "<<subWorkBR.maxIRow()<<" "<<subWorkBR.nRows()<<endl;
-		//endtime = MPI_Wtime();
-		//if (myRank==0)
-		//	cout<<"dcmp time is "<<endtime-starttime<<endl;
-
-		//读入数据
-		for(int i=0; i<vInputnames.size(); i++){
-			vInputLayers[i]->readNeighborhood(dataNeighbor);
-			vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
-		}
-		fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
-		for(int i=0; i<clusterNum; i++){
-			vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
-		}
-		//执行计算
-		starttime = MPI_Wtime();
-		FCMOperator fcmOper;
-		fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, wm);
-		fcmOper.inputLayer(vInputLayers);
-		fcmOper.fcmLayer(fcmLayer);
-		fcmOper.degLayer(vDegreeLayer);
-		fcmOper.Run();
-	}
-	//starttime = MPI_Wtime();
-	MPI_Barrier(MPI_COMM_WORLD);
-	endtime = MPI_Wtime();
-	if (myRank==0)
-		cout<<"compute time is "<<endtime-starttime<<endl;
-	fcmLayer.writeFile(outputfilename);
-	//for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
-	//	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
-	//}
-	cout<<"write done."<<endl;
-
-	Application::END();
-	//system("pause");
-	return 0;
+    Application::END();
+    //system("pause");
+    return 0;
 }

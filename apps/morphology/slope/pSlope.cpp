@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
 	RasterLayer<double> demLayer("demLayer");
 	demLayer.readNeighborhood(neighborfile);
-	demLayer.readFile(inputfilename);
+	demLayer.readFile(inputfilename,ROWWISE_DCMP);
 
 	RasterLayer<double> slopeLayer("slopeLayer");
 	slopeLayer.copyLayerInfo(demLayer);

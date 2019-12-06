@@ -343,6 +343,7 @@ inline void GPRO::CellSpace<elemType>::
 clear() {
     if ( _matrix ) {
         delete[] _matrix;
+        _matrix=0;
     }
 }
 

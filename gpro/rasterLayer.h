@@ -990,9 +990,7 @@ writeFile( const char *outputfile ){
     }else if( NON_DCMP == _pMetaData->_domDcmpType ){
         //待完成，只由主进程来写?or不支持
     }else{
-        //cout << __FILE__ << " " << __FUNCTION__ \
-            << "Warning: not support this dcmpType_" << _pMetaData->_domDcmpType \
-            << " right now, using row-wise decomposition as default." << endl;
+
     }
     return rowWriteFile(outputfile);
 }

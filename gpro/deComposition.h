@@ -303,7 +303,7 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
         return false;
     }
 
-//根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR
+    //根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR
     CellSpace<elemType> &comptL = *( layer.cellSpace());
     double *rowComptLoad = new double[layer._pMetaData->_glbDims.nRows()];
     double totalComptLoad = 0.0;
@@ -318,11 +318,9 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
         }
         totalComptLoad += rowComptLoad[cRow];
     }
-    //cout << layer._pMetaData->_glbDims.nRows() << " rows with totalComptLoad " << totalComptLoad << endl;
 
     double averComptLoad = totalComptLoad / ( nSubSpcs );
     double accuComptLoad = 0;
-    //int subBegin = pWorkBR->minIRow();
     int subBegin = 0;
     int subEnd = subBegin;    //至少分配一行；是计算域的一行
     for ( int i = 0; i < nSubSpcs - 1; ++i ) {    ////共寻找nSubSpcs-1个划分位置,每个划分位置都在剩下的局部最优
@@ -344,10 +342,7 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
                     CoordBR subMBR( nwCorner, seCorner );
                     vDcmpBR.push_back( subMBR );
                     averComptLoad = ( totalComptLoad - accuComptLoad ) / ( nSubSpcs - i - 1 );
-                    //cout<<"averComptLoad "<<averComptLoad*10000/totalComptLoad<<endl;
-                    //cout<<"subComptLoad "<<subComptLoad<<endl;
                     subBegin = cRow + 1;
-                    //subComptLoad = 0;
                 } else {
                     subEnd = cRow - 1;
                     accuComptLoad -= rowComptLoad[rowGap];
@@ -357,11 +352,8 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
                     vDcmpBR.push_back( subMBR );
                     subComptLoad -= rowComptLoad[rowGap];
                     averComptLoad = ( totalComptLoad - accuComptLoad ) / ( nSubSpcs - i - 1 );
-                    //cout<<"averComptLoad "<<averComptLoad*10000/totalComptLoad<<endl;
                     subBegin = cRow;
-                    //subComptLoad = 0;
                 }
-                //cout<<"the "<<rowGap<<" subComptLoad "<<subComptLoad<<endl;
                 break;
             }
         }

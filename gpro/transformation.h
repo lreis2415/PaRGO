@@ -172,7 +172,7 @@ Operator(const CellCoord &coord)
 		CellSpace<elemType> &dataL = *((*iter)->cellSpace());	//模板类迭代指针这样用是否正确
 		for( int dRow = cRow*_computGrain+_dataWorkBR.minIRow(); dRow<(cRow+1)*_computGrain+_dataWorkBR.minIRow(); ++dRow ){
 			for( int dCol = cCol*_computGrain+_dataWorkBR.minICol(); dCol<(cCol+1)*_computGrain+_dataWorkBR.minICol(); ++dCol ){
-				if( dRow > _dataMBR.maxIRow() || dCol > _dataMBR.maxICol() ){
+				if( dRow > _dataMBR.maxIRow()||dRow>=dataL.nRows() || dCol > _dataMBR.maxICol() ||dCol>=dataL.nCols()){
 					continue;
 				}else{
 					if( fabs(dataL[dRow][dCol] - _noData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){	//9999是针对我们的测试数据而多写的，其实没必要，属于数据问题，不属于程序问题

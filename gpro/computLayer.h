@@ -37,20 +37,19 @@ namespace GPRO {
         ~ComputLayer();
 
         int getGrain() { return _comptGrain; }
-
+        void setComputGrain(int comptGrain) { _comptGrain = comptGrain;}
         void cleanDataLayers();
         vector<RasterLayer<elemType> *> *dataLayers();
         const vector<RasterLayer<elemType> *> *dataLayers() const;    //这里返回地址不可以是const,why
         //第一个const,修饰返回值；第二个const,类成员函数为const，即此函数不会修改数据成员
 
-        //bool newMetaData( const MetaData& rhs, int compuSize );
         bool newMetaData( int comptGrain );    //参数冗余，已在数据成员中添加
         //bool transformation();
         bool getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR );
 
         bool readComptFile( const char *outputfile );//待实际完成
         bool writeComptFile( const char *outputfile );
-
+        bool extractSubWorkBR( const char *outputfile );
     public:
         vector<RasterLayer<elemType> *> _pDataLayers;
     protected:
@@ -188,7 +187,6 @@ newMetaData( int comptGrain ) {
     if ( _pDataLayers.empty()) {
         return false;
     }
-    //_comptGrain = comptGrain;
     const MetaData &rhs = *( _pDataLayers[0]->_pMetaData );
 
     RasterLayer<elemType>::_pMetaData = new MetaData();    //new元数据
@@ -203,31 +201,20 @@ newMetaData( int comptGrain ) {
     pMetaData->projection = rhs.projection;
     pMetaData->noData = rhs.noData;
     pMetaData->myrank = rhs.myrank;
-    //pMetaData->processor_number = rhs.processor_number;
     pMetaData->processor_number = 0;    //目前只是串行构建
     pMetaData->_domDcmpType = rhs._domDcmpType;    //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
     SpaceDims sdim( pMetaData->row, pMetaData->column );
     pMetaData->_glbDims = sdim;
     if ( pMetaData->_domDcmpType == NON_DCMP ) {
         CoordBR _glbWorkBR;
-        //Neighborhood<elemType>* &pNbrhood = RasterLayer<elemType>::_pNbrhood;
         RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims );    //根据计算域的邻域范围去求计算空间
         //计算域这里也只处理“数据范围-邻域范围”的范围
         pMetaData->_localworkBR = _glbWorkBR;
-        //cout<<"comptLayer L113 "<<*(RasterLayer<elemType>::_pNbrhood)<<endl;
-        //int glbBegin = _glbWorkBR.nwCorner().iRow();
-        //int glbEnd = _glbWorkBR.seCorner().iRow();
-        //CellCoord nwCorner(glbBegin + pNbrhood->minIRow(),
-        //	0);
-        //CellCoord seCorner(glbEnd + pNbrhood->maxIRow(),
-        //	pMetaData->_glbDims.nCols() - 1);
         CellCoord nwCorner( 0, 0 );
         CellCoord seCorner( pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1 );
         CoordBR subMBR( nwCorner, seCorner );
         pMetaData->_MBR = subMBR;
         pMetaData->_localdims = pMetaData->_glbDims;
-        //cout<<"comptLayer L127"<<" dcmpType "<<pMetaData->_domDcmpType<<" glbDims "<<pMetaData->_glbDims<<" localDims "<<pMetaData->_localdims<<" MBR "<<pMetaData->_MBR<<endl;
-        //cout<<"comptLayer L128"<<" _localworkBR "<<pMetaData->_localworkBR<<endl;
     } else {
         cerr << "not support computLayer parallel construct now." << endl;
         return false;
@@ -243,7 +230,6 @@ newMetaData( int comptGrain ) {
     pMetaData->pTransform[1] *= comptGrain;//东西、南北方向一个像素对应的距离，需更新
     pMetaData->pTransform[5] *= comptGrain;
 
-    //newCellSpace(pMetaData->_localdims,pMetaData->noData); //allocate
     RasterLayer<elemType>::newCellSpace( pMetaData->_localdims, 0 ); //allocate,计算域栅格值初始化为0
 
     return true;
@@ -255,44 +241,6 @@ newMetaData( int comptGrain ) {
 //template <class elemType>
 //bool GPRO::ComputLayer<elemType>::
 //transformation(){
-//	//这里写计算强度函数，求解计算域图层栅格值
-//	//cout<<RasterLayer<elemType>::_pMetaData->_localworkBR<<endl;
-//	CoordBR &workBR = RasterLayer<elemType>::_pMetaData->_localworkBR;
-//	//cout<<"L159 done"<<workBR.minIRow()<<" "<<workBR.maxIRow()<<" "<<workBR.minICol()<<" "<<workBR.maxICol()<<endl;
-//	CellSpace<elemType> &computL = *(RasterLayer<elemType>::_pCellSpace);
-//	CellSpace<elemType> &dataL = *(_pDataLayers[0]->cellSpace());
-//	double dataNoData = _pDataLayers[0]->_pMetaData->noData;
-//	int computSize = RasterLayer<elemType>::_pMetaData->cellSize / _pDataLayers[0]->_pMetaData->cellSize;
-//	//计算域图层不存在空值，只有0值
-//	//cout<<dataNoData<<endl;
-//	//dataNoData = -9999;
-//	int maxDRow = _pDataLayers[0]->_pMetaData->row;
-//	int maxDCol = _pDataLayers[0]->_pMetaData->column;
-//	int glbBeginRow = _pDataLayers[0]->_pMetaData->_localworkBR.minIRow();
-//	int glbBeginCol = _pDataLayers[0]->_pMetaData->_localworkBR.minICol();
-//	//cout<<"L171 done"<<maxDRow<<" "<<maxDCol<<" "<<glbBeginRow<<" "<<glbBeginCol<<endl;
-//	for(int cRow = workBR.minIRow(); cRow <= workBR.maxIRow(); cRow++) 
-//	{
-//		for(int cCol = workBR.minICol(); cCol <= workBR.maxICol(); cCol++) 
-//		{
-//			//cout<<computL[cRow][cCol]<<endl;
-//			//以本计算域cell内有效数据量为负载计算
-//			for( int dRow = cRow*computSize+glbBeginRow; dRow < (cRow+1)*computSize+glbBeginRow; ++dRow ){
-//				for( int dCol = cCol*computSize+glbBeginCol; dCol < (cCol+1)*computSize+glbBeginCol; ++dCol ){
-//					if( dRow > maxDRow-1 || dCol > maxDCol-1 ){
-//						continue;
-//					}else{
-//						if( fabs(dataL[dRow][dCol] - dataNoData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){	//9999是针对我们的测试数据而多写的，其实没必要，属于数据问题，不属于程序问题
-//							computL[cRow][cCol] += 10;
-//						}else{
-//							computL[cRow][cCol] += 1;
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
-//	return true;
 //}
 
 //template <class elemType>
@@ -333,7 +281,7 @@ newMetaData( int comptGrain ) {
 //			subBegin = vComptDcmpBR[i].minIRow()*computSize + _glbWorkBR.minIRow();
 //			subEnd = (vComptDcmpBR[i+1].minIRow())*computSize + _glbWorkBR.minIRow()-1;
 //			//cout<<i<<" "<<subBegin<<" , "<<subEnd<<endl;
-//			CellCoord nwCorner(subBegin, _glbWorkBR.minICol());
+//			CellCoord nwCorner(subBegin, _glbWorkBR.mi nICol());
 //			CellCoord seCorner(subEnd, _glbWorkBR.maxICol());
 //			CoordBR subMBR(nwCorner, seCorner);
 //			vDcmpBR.push_back(subMBR);
@@ -390,8 +338,7 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
 
         vector<CoordBR> vComptDcmpBR;
         cout << "hold " << RasterLayer<elemType>::_pMetaData->_glbDims << endl;
-        DeComposition<elemType>
-            deComp( RasterLayer<elemType>::_pMetaData->_glbDims, *( RasterLayer<elemType>::_pNbrhood ));
+        DeComposition<elemType> deComp( RasterLayer<elemType>::_pMetaData->_glbDims, *( RasterLayer<elemType>::_pNbrhood ));
         if ( dcmpType == ROWWISE_DCMP ) {
             deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs );    //按值划分，故需要图层为参数;划分结果会以引用传回给vComptDcmpBR
             //_pDataLayers[0]->_pMetaData->_domDcmpType = ROWWISE_DCMP;	//暂时;估计没用//0316删除，不知道是否影响
@@ -403,6 +350,7 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         Neighborhood<elemType> *pDataNbrhood = _pDataLayers[0]->nbrhood();
         pDataNbrhood->calcWorkBR( _glbWorkBR, _pDataLayers[0]->_pMetaData->_glbDims );    //数据图层的全局工作空间
         int subBegin = _glbWorkBR.minIRow(), subEnd = _glbWorkBR.minIRow() - 1;
+        _comptGrain=_pDataLayers[0]->_pMetaData->_glbDims.nRows()/this->metaData()->_glbDims.nRows();//wyj 2019-12-6 加了这一行...解决读负载图时，图源粒度不统一的问题（比如空间均衡划分的负载图是等比例的，但计算负载划分的负载图是1:10的）
         int i = 0;
         for ( ; i < nSubSpcs - 1; ++i ) {
             subBegin = vComptDcmpBR[i].minIRow() * _comptGrain + _glbWorkBR.minIRow();
@@ -491,4 +439,9 @@ writeComptFile( const char *outputfile ) {
     return true;
 }
 
+template<class elemType>
+bool GPRO::ComputLayer<elemType>::
+extractSubWorkBR( const char *outputfile ) {
+    
+}
 #endif

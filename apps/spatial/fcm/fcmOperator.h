@@ -6,12 +6,18 @@
 #include "rasterOperator.h"
 #include "rasterLayer.h"
 #include "transformation.h"
+#include "utility.h"
 #include <cmath>
 #include <functional>
 
 using namespace GPRO;
 
 #define Eps 0.0000001
+
+bool ifDecomposeBySpace(const string& arg);
+bool ifEstimateLoad(const string& arg);
+bool ifProduceLoadFile(const string& arg);
+
 class FCMOperator : public RasterOperator<double> 
 {
 public:
@@ -35,6 +41,8 @@ public:
 	void createRandomIdx( int nums, int range, int* randomIdx );	//在range范围内产生nums个随机数，randomIdx返回
 	void fnDistance(int curRow, int curCol, double* pInputVal); //计算距离
 	void InitDegree(int curRow, int curCol);//计算隶属度
+	void initRandomClusterCenters(double *clusterCenters);
+	void assignMaxMembershipDegrees();
 	virtual bool Operator(const CellCoord &coord, bool operFlag);
 
 
@@ -52,7 +60,7 @@ protected:
 	int clusterNum; //分类数目
 	int maxIteration; //最大迭代次数
 	double tolerance;//迭代阈值
-	double wm;//加权指数
+	double weight;//加权指数
 	int imageNum;//输入的影像数目
 
 	int block;	//各进程分块数据量
