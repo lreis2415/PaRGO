@@ -31,24 +31,29 @@
 
 using namespace std;
 
-namespace GPRO {
+namespace GPRO
+{
     /**
      * \ingroup gpro
      * \class RasterOperator
      * \brief A basic super class that each Operator of a specific algorithm should extends
      */
-    template<class elemType>
-    class RasterOperator {
+    template <class elemType>
+    class RasterOperator
+    {
     public:
         RasterOperator()
-            : _domDcmpType( NON_DCMP ),
-              _pCellSpace( NULL ),
-              _pNbrhood( NULL ),
-              _pWorkBR( NULL ),
-              commFlag( false ),
-              Termination( true ) {}
+            : _domDcmpType(NON_DCMP),
+              _pCellSpace(NULL),
+              _pNbrhood(NULL),
+              _pWorkBR(NULL),
+              _pComptLayer(NULL),
+              commFlag(false),
+              Termination(true) {
+        }
 
-        virtual ~RasterOperator() {}
+        virtual ~RasterOperator() {
+        }
 
         //virtual void processing(){}
         //virtual bool updatematrix(const CellCoord &coord){}
@@ -58,40 +63,50 @@ namespace GPRO {
          * \param[in] coord coordinate of the central cell(point)
          * \param[in] operFlag an unused controlling variable.
          */
-        virtual bool Operator( const CellCoord &coord, bool operFlag ) { return operFlag; }
+        virtual bool Operator(const CellCoord& coord, bool operFlag) { return operFlag; }
 
         virtual bool isTermination() { return false; }
 
-        bool Work( const CoordBR *const pWorkBR );
+        bool Work(const CoordBR* const pWorkBR);
         bool Run();
-        bool Configure( RasterLayer<elemType> *pLayer, bool isCommunication );
+        bool Configure(RasterLayer<elemType>* pLayer, bool isCommunication);
+        void comptLayer(RasterLayer<elemType>& layerD);
+
 
     private:
         DomDcmpType _domDcmpType;
 
     public:
-
-        vector<RasterLayer<elemType> *> CommVec; 
-        CellSpace<elemType> *_pCellSpace;
-        Neighborhood<elemType> *_pNbrhood;    //目前这两个成员变量并没有使用
-        CoordBR *_pWorkBR;
+        RasterLayer<elemType>* _pComptLayer; ///暂时捕捉真实计算时间用
+        vector<RasterLayer<elemType> *> CommVec;
+        CellSpace<elemType>* _pCellSpace;
+        Neighborhood<elemType>* _pNbrhood; //目前这两个成员变量并没有使用
+        CoordBR* _pWorkBR;
         bool commFlag;
         int Termination;
     };
 };
 
-template<class elemType>
+template <class elemType>
+void GPRO::RasterOperator<elemType>::
+comptLayer(RasterLayer<elemType>& layerD) {
+    _pComptLayer = &layerD;
+    _pComptLayer->cellSpace()->initVals(0); //wyj 2019-12-7 这样的话fcm idw Operator里就不用每个初始化了
+    Configure(_pComptLayer, false);
+}
+
+template <class elemType>
 bool GPRO::RasterOperator<elemType>::
-Configure( RasterLayer<elemType> *pLayer, bool isCommunication ) {
-    if ( _pWorkBR == NULL ) {
+Configure(RasterLayer<elemType>* pLayer, bool isCommunication) {
+    if (_pWorkBR == NULL) {
         _pWorkBR = &pLayer->_pMetaData->_localworkBR;
         _domDcmpType = pLayer->_pMetaData->_domDcmpType;
     }
     //cout<<_pWorkBR->minIRow()<<" "<<_pWorkBR->minICol()<<" "<<_pWorkBR->maxIRow()<<" "<<_pWorkBR->maxICol()<<endl;
-    if ( isCommunication ) {
-        CommVec.push_back( pLayer );
+    if (isCommunication) {
+        CommVec.push_back(pLayer);
         //cout<<"_pCommVec->size is "<<endl;
-        if ( commFlag == false ) {
+        if (commFlag == false) {
             commFlag = true;
         }
     }
@@ -99,69 +114,71 @@ Configure( RasterLayer<elemType> *pLayer, bool isCommunication ) {
     return true;
 }
 
-template<class elemType>
+template <class elemType>
 bool GPRO::RasterOperator<elemType>::
-Work( const CoordBR *const pWBR ) {
-    bool flag = true;	//标识本函数是否得以正确执行，会返回给run函数
- 
-	//cout<<"pWBR->minIRow() "<<pWBR->minIRow()<<"  pWBR->maxIRow()"<<pWBR->maxIRow()<<endl;
+Work(const CoordBR* const pWBR) {
+    bool flag = true; //标识本函数是否得以正确执行，会返回给run函数
+
+    //cout<<"pWBR->minIRow() "<<pWBR->minIRow()<<"  pWBR->maxIRow()"<<pWBR->maxIRow()<<endl;
     //cout<<"_pCommVec->size() "<<CommVec.size()<<endl;
-    Communication<elemType> COMNI( &CommVec );
-    if ( commFlag ) {
+    Communication<elemType> COMNI(&CommVec);
+    if (commFlag) {
         COMNI.setBuffer();
     }
-    int noterm = 1;    //是否继续迭代，考虑换别的变量
-    int itera = 0;    //迭代次数
+    int noterm = 1; //是否继续迭代，考虑换别的变量
+    int itera = 0; //迭代次数
     int myRank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &myRank );
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-    if ( Application::_programType == MPI_Type ) {
-        MPI_Barrier( MPI_COMM_WORLD );
+    if (Application::_programType == MPI_Type) {
+        MPI_Barrier(MPI_COMM_WORLD);
         //double endtime1;
         //double endtime2;
         //double starttime;
         do {
             Termination = 1;
-            for ( int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++ ) {
-                for ( int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++ ) {
-                    CellCoord coord( iRow, iCol );
-                    if ( !Operator( coord, true )) {
+            for (int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) {
+                for (int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++) {
+                    CellCoord coord(iRow, iCol);
+                    if (!Operator(coord, true)) {
                         cout << "Operator is not successes!" << endl;
                         flag = false;
                         break;
                     }
                 }
             }
-            if ( commFlag ) {
-				//这里应该是统一调用函数，在函数内部，根据元数据获取的划分方式再确定调用哪一个通信
-                if ( _domDcmpType == ROWWISE_DCMP ) {
+            if (commFlag) {
+                //这里应该是统一调用函数，在函数内部，根据元数据获取的划分方式再确定调用哪一个通信
+                if (_domDcmpType == ROWWISE_DCMP) {
                     COMNI.rowComm();
                 }
-                if ( _domDcmpType == COLWISE_DCMP ) {
+                if (_domDcmpType == COLWISE_DCMP) {
                     COMNI.colComm();
                 }
             }
             //endtime1 = MPI_Wtime();
             //cout<<myRank<<" in the "<<itera<<" need time "<<endtime1-starttime<<endl;
-            MPI_Allreduce( &Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD );
+            MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
             itera++;
             /*if(itera%1000 == 0)
             {
               cout<<"itera is "<<itera<<endl;
             }*/
 
-        } while ( !noterm );
-        MPI_Barrier( MPI_COMM_WORLD );
+        }
+        while (!noterm);
+        MPI_Barrier(MPI_COMM_WORLD);
         //cout<<"iterative number is "<<itera<<endl;
-    } else if ( Application::_programType == MPI_OpenMP_Type ) {
-        MPI_Barrier( MPI_COMM_WORLD );
+    }
+    else if (Application::_programType == MPI_OpenMP_Type) {
+        MPI_Barrier(MPI_COMM_WORLD);
         do {
             Termination = 1;
 #pragma omp parallel for
-            for ( int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++ ) {
-                for ( int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++ ) {
-                    CellCoord coord( iRow, iCol );
-                    if ( !Operator( coord, true )) {
+            for (int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) {
+                for (int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++) {
+                    CellCoord coord(iRow, iCol);
+                    if (!Operator(coord, true)) {
                         cout << "Operator is not sucessess!" << endl;
                         flag = false;
                         break;
@@ -169,130 +186,134 @@ Work( const CoordBR *const pWBR ) {
                 }
             }
 
-            if ( commFlag ) {
-                if ( _domDcmpType == ROWWISE_DCMP ) {
+            if (commFlag) {
+                if (_domDcmpType == ROWWISE_DCMP) {
                     COMNI.rowComm();
                 }
-                if ( _domDcmpType == COLWISE_DCMP ) {
+                if (_domDcmpType == COLWISE_DCMP) {
                     COMNI.colComm();
                 }
             }
 
-            MPI_Allreduce( &Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD );
+            MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 
             itera++;
 
-        } while ( !noterm );
-        MPI_Barrier( MPI_COMM_WORLD );
+        }
+        while (!noterm);
+        MPI_Barrier(MPI_COMM_WORLD);
         cout << "iterative numerber is " << itera << endl;
-//		MPI_Barrier(MPI_COMM_WORLD);
-//		double tcount=0;
-//		double tcount2=0;
-//		do
-//		{
-//			Termination = 1;
-//			double starttime;
-//			double endtime;
-//			double starttime2;
-//			double endtime2;
-//
-//			if (itera==0)
-//			{
-//				processing();
-//			}
-//			starttime = MPI_Wtime();
-//
-//#pragma omp parallel 
-//			{
-//			//#pragma omp for schedule(dynamic,8)
-//#pragma omp for
-//				for(int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) 
-//				{
-//					for(int iCol = pWBR->minICol();	iCol <= pWBR->maxICol(); iCol++) 
-//					{
-//						CellCoord coord(iRow, iCol);
-//						if(!Operator(coord)) 
-//						{
-//							cout<<"Operator is not sucessess!"<<endl;
-//							flag = false;
-//							break;
-//
-//						}    
-//					}
-//				}
-////#pragma omp barrier
-//				endtime = MPI_Wtime();
-//			//for(int num = 1; num <= (pWBR->maxIRow()-pWBR->minIRow()+1)*(pWBR->maxICol()-pWBR->minICol()+1); num++) 
-//			//{
-//			//	int iRow=num/(pWBR->maxICol()-pWBR->minICol()+1);
-//			//	int iCol=num%(pWBR->maxICol()-pWBR->minICol()+1);
-//			//	if (iCol==0)
-//			//	{
-//			//		iRow=iRow+pWBR->minIRow()-1;
-//			//		iCol=pWBR->maxICol();
-//			//	} 
-//			//	else
-//			//	{
-//			//		iRow=iRow+pWBR->minIRow();
-//			//		iCol=iCol+pWBR->minICol()-1;
-//			//	}
-//
-//			//	CellCoord coord(iRow, iCol);
-//			//	//if(!Operator(coord)) 
-//			//	//{
-//			//	//	cout<<"Operator is not sucessess!"<<endl;
-//			//	//	flag = false;
-//			//	//	break;
-//
-//			//	//}    
-//			//	Operator(coord);
-//			//}
-//	
-//			starttime2 = MPI_Wtime();
-//#pragma omp for 
-//			for(int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) 
-//			{
-//				for(int iCol = pWBR->minICol();	iCol <= pWBR->maxICol(); iCol++) 
-//				{
-//					CellCoord coord(iRow, iCol);
-//					if(!updatematrix(coord)) 
-//					{
-//						cout<<"updatematrix is not sucessess!"<<endl;
-//						flag = false;
-//						break;
-//
-//					}    
-//				}
-//			}
-//			}
-//
-//			endtime2 = MPI_Wtime();
-//			tcount+=endtime-starttime;
-//			tcount2+=endtime2-starttime2;
-//			COMNI.rowComm();
-//			MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
-//			
-//			itera++;
-//		}while( !noterm );
-//		MPI_Barrier(MPI_COMM_WORLD);
-//		cout<<"calculate matrix time:"<<tcount<<endl;
-//		cout<<"update matrix time:"<<tcount2<<endl;
-//		cout<<"iterative numerber is "<<itera<<endl;
-    } else if ( Application::_programType == CUDA_Type ) {
-		;
-    } else {
-		;
+        //		MPI_Barrier(MPI_COMM_WORLD);
+        //		double tcount=0;
+        //		double tcount2=0;
+        //		do
+        //		{
+        //			Termination = 1;
+        //			double starttime;
+        //			double endtime;
+        //			double starttime2;
+        //			double endtime2;
+        //
+        //			if (itera==0)
+        //			{
+        //				processing();
+        //			}
+        //			starttime = MPI_Wtime();
+        //
+        //#pragma omp parallel 
+        //			{
+        //			//#pragma omp for schedule(dynamic,8)
+        //#pragma omp for
+        //				for(int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) 
+        //				{
+        //					for(int iCol = pWBR->minICol();	iCol <= pWBR->maxICol(); iCol++) 
+        //					{
+        //						CellCoord coord(iRow, iCol);
+        //						if(!Operator(coord)) 
+        //						{
+        //							cout<<"Operator is not sucessess!"<<endl;
+        //							flag = false;
+        //							break;
+        //
+        //						}    
+        //					}
+        //				}
+        ////#pragma omp barrier
+        //				endtime = MPI_Wtime();
+        //			//for(int num = 1; num <= (pWBR->maxIRow()-pWBR->minIRow()+1)*(pWBR->maxICol()-pWBR->minICol()+1); num++) 
+        //			//{
+        //			//	int iRow=num/(pWBR->maxICol()-pWBR->minICol()+1);
+        //			//	int iCol=num%(pWBR->maxICol()-pWBR->minICol()+1);
+        //			//	if (iCol==0)
+        //			//	{
+        //			//		iRow=iRow+pWBR->minIRow()-1;
+        //			//		iCol=pWBR->maxICol();
+        //			//	} 
+        //			//	else
+        //			//	{
+        //			//		iRow=iRow+pWBR->minIRow();
+        //			//		iCol=iCol+pWBR->minICol()-1;
+        //			//	}
+        //
+        //			//	CellCoord coord(iRow, iCol);
+        //			//	//if(!Operator(coord)) 
+        //			//	//{
+        //			//	//	cout<<"Operator is not sucessess!"<<endl;
+        //			//	//	flag = false;
+        //			//	//	break;
+        //
+        //			//	//}    
+        //			//	Operator(coord);
+        //			//}
+        //	
+        //			starttime2 = MPI_Wtime();
+        //#pragma omp for 
+        //			for(int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) 
+        //			{
+        //				for(int iCol = pWBR->minICol();	iCol <= pWBR->maxICol(); iCol++) 
+        //				{
+        //					CellCoord coord(iRow, iCol);
+        //					if(!updatematrix(coord)) 
+        //					{
+        //						cout<<"updatematrix is not sucessess!"<<endl;
+        //						flag = false;
+        //						break;
+        //
+        //					}    
+        //				}
+        //			}
+        //			}
+        //
+        //			endtime2 = MPI_Wtime();
+        //			tcount+=endtime-starttime;
+        //			tcount2+=endtime2-starttime2;
+        //			COMNI.rowComm();
+        //			MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+        //			
+        //			itera++;
+        //		}while( !noterm );
+        //		MPI_Barrier(MPI_COMM_WORLD);
+        //		cout<<"calculate matrix time:"<<tcount<<endl;
+        //		cout<<"update matrix time:"<<tcount2<<endl;
+        //		cout<<"iterative numerber is "<<itera<<endl;
+    }
+    else if (Application::_programType == CUDA_Type) {
+        ;
+    }
+    else {
+        ;
     }
 
     return flag;
 }
 
-template<class elemType>
+template <class elemType>
 bool GPRO::RasterOperator<elemType>::
 Run() {
-    if ( Work( _pWorkBR )) {
+    if (Work(_pWorkBR)) {
         return true;
-    } else {
+    }
+    else {
         return false;
     }
 }

@@ -84,14 +84,15 @@ namespace GPRO {
 
         //IO function
         bool readNeighborhood( const char *neighborfile );
-		//wyj: 为什么默认NON_DCMP了，暂时修改成row dcmp?
         bool readFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
         bool readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
 		//每个进程都读整个文件;全区计算和主进程构建计算域这两步常用；或者，主进程读了，然后发送？
         bool readGlobalFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
 		//上面这个不是串行读，串行读的意思应该是主进程读然后发布给各进程，没必要；上面这个其实是读全区，合并到subWorkBR那种类型
 		//Todo:改指定行列范围来读
-
+		GDALRasterBand * readFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType);
+        bool layerDcmp(DomDcmpType dcmpType );
+        bool layerDcmp(const CoordBR &subWorkBR);
 		bool copyLayerInfo( const RasterLayer<elemType> &rhs );
 
 		//void col2row( int &subRows, int &lastSubRows );	//按列写出的数据重分布为按行写出
@@ -106,8 +107,8 @@ namespace GPRO {
         bool colWriteFile( const char *outputfile );
 
     public:
-        MetaData *_pMetaData; //wyj 2019-11-12: 这个和 _pCellSpace里的 Metadata有什么区别？
-
+        MetaData *_pMetaData; //wyj 2019-11-12: 这个和 _pCellSpace里的 Metadata有什么区别？已删去cellSpace里的
+        
     protected:
         string _strLayerName; /// layer name
         CellSpace<elemType> *_pCellSpace; /// data of raster
@@ -507,79 +508,11 @@ bool GPRO::RasterLayer<elemType>::
 readGlobalFile(const char* inputfile, DomDcmpType dcmpType)
 {
 	GDALAllRegister();
-	//cout<<inputfile<<endl;
 	GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
-	//GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
-	if( poDatasetsrc == NULL /*检查是否正常打开文件*/)
-	{
-		cout<<"[ERROR] data file is not open correct"<<endl;
-		exit(1);
-	}
-	_pMetaData = new MetaData();
 
-	if(_pMetaData == NULL)
-	{
-		cout<<"[ERROR] MetaData is not allocate correct"<<endl;
-		exit(1);
-	}
+    GDALRasterBand *poBandsrc=readFileInfo(poDatasetsrc, dcmpType);
 
-	
-	poDatasetsrc->GetGeoTransform(_pMetaData->pTransform);
-	_pMetaData->projection = poDatasetsrc->GetProjectionRef();
-	GDALRasterBand* poBandsrc = poDatasetsrc->GetRasterBand( 1 );
-
-	_pMetaData->noData = poBandsrc->GetNoDataValue();
-	_pMetaData->row = poBandsrc->GetYSize();
-	_pMetaData->column = poBandsrc->GetXSize();
-	SpaceDims sdim(_pMetaData->row, _pMetaData->column);
-	_pMetaData->_glbDims = sdim;
-	_pMetaData->cellSize = _pMetaData->pTransform[1];
-	_pMetaData->format = "GTiff";
-
-	MPI_Comm_rank(MPI_COMM_WORLD, &_pMetaData->myrank);
-	MPI_Comm_size(MPI_COMM_WORLD, &_pMetaData->processor_number);	//实际进程数，哪怕只有主进程执行此函数
-
-	//数据空间是全区,工作空间dcmpType决定
-	_pMetaData->_domDcmpType = dcmpType;	//这个变量考虑改为const类型
-	//cout<<"rasterLayer L782 "<<_pMetaData->processor_number<<" dcmpType "<<_pMetaData->_domDcmpType<<endl;
-
-	DeComposition<elemType> deComp(_pMetaData->_glbDims, *_pNbrhood);
-	if( dcmpType == ROWWISE_DCMP ){
-		//根据数据范围按行划分,初始化了metaData._MBR，metaData._localdims，metaData._localworkBR
-		deComp.rowDcmp(*_pMetaData, _pMetaData->processor_number);
-	}else{
-		if( dcmpType == COLWISE_DCMP ){
-			deComp.colDcmp(*_pMetaData, _pMetaData->processor_number);
-		}else{
-			if( dcmpType == BLOCK_DCMP ){			
-				cout<<"not support right now."<<endl;//待完整
-			}else{
-				if( dcmpType == NON_DCMP ){
-					//求解本进程的数据范围
-					_pMetaData->_localdims = _pMetaData->_glbDims;
-					CoordBR _glbWorkBR;
-					_pNbrhood->calcWorkBR( _glbWorkBR, _pMetaData->_glbDims );
-					_pMetaData->_localworkBR = _glbWorkBR;
-					//int glbBegin = _glbWorkBR.nwCorner().iRow();
-					//int glbEnd = _glbWorkBR.seCorner().iRow();
-					//CellCoord nwCorner(glbBegin + _pNbrhood->minIRow(),
-					//	0);
-					//CellCoord seCorner(glbEnd + _pNbrhood->maxIRow(),
-					//	_pMetaData->_glbDims.nCols() - 1);
-					CellCoord nwCorner(0, 0);
-					CellCoord seCorner(_pMetaData->_glbDims.nRows()-1, _pMetaData->_glbDims.nCols()-1);
-					CoordBR subMBR(nwCorner, seCorner);
-					_pMetaData->_MBR = subMBR;
-				}else{
-					cerr<<"please choose right decomposition type."<<endl;
-					return false;
-				}
-			}
-		}
-	}
-	newCellSpace(_pMetaData->_localdims);
-
-	_pMetaData->dataType = getGDALType();
+    layerDcmp(dcmpType);
 
 	poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
 
@@ -588,7 +521,6 @@ readGlobalFile(const char* inputfile, DomDcmpType dcmpType)
 		GDALClose((GDALDatasetH)poDatasetsrc);
 		poDatasetsrc = NULL;
 	}
-	//MPI_Barrier(MPI_COMM_WORLD);
 	return true;
 }
 
@@ -631,13 +563,9 @@ copyLayerInfo( const RasterLayer<elemType> &rhs ) {
 
 //补充一个copyLayerInfo是不同类型图层间的
 
-//Todo:对于不规则邻域，测试是否支持
 template<class elemType>
-bool GPRO::RasterLayer<elemType>::
-readFile( const char *inputfile, DomDcmpType dcmpType ) {
-    GDALAllRegister();
-
-    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
+GDALRasterBand * GPRO::RasterLayer<elemType>::
+readFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType ){
     if ( poDatasetsrc == NULL /*检查是否正常打开文件*/) {
         cout << "[ERROR] data file is not open correct" << endl;
         exit( 1 );
@@ -659,13 +587,18 @@ readFile( const char *inputfile, DomDcmpType dcmpType ) {
     _pMetaData->cellSize = _pMetaData->pTransform[1];
     _pMetaData->format = "GTiff";
     _pMetaData->_domDcmpType = dcmpType;
-
+    _pMetaData->dataType = getGDALType();
     SpaceDims sdim( _pMetaData->row, _pMetaData->column );
     _pMetaData->_glbDims = sdim;
 
+    return poBandsrc;
+}
+
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+layerDcmp(DomDcmpType dcmpType ){
     MPI_Comm_rank( MPI_COMM_WORLD, &_pMetaData->myrank );
     MPI_Comm_size( MPI_COMM_WORLD, &_pMetaData->processor_number );
-    _pMetaData->dataType = getGDALType();
 
     //根据数据范围进行划分，计算工作空间等，NON_DCMP则各个进程都读全区算全区？or只有主进程来读写？
     DeComposition<elemType> deComp( _pMetaData->_glbDims, *_pNbrhood );
@@ -700,63 +633,12 @@ readFile( const char *inputfile, DomDcmpType dcmpType ) {
         }
     }
     newCellSpace( _pMetaData->_localdims );
-
-    //按行读写本质执行了下一句
-    //poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
-    poBandsrc->RasterIO( GF_Read, _pMetaData->_MBR.minICol(), _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
-                         _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
-                         _pMetaData->dataType, 0, 0 );
-
-    if ( poDatasetsrc != NULL ) {
-        //poDatasetsrc->~GDALDataset();
-        GDALClose((GDALDatasetH) poDatasetsrc );
-        poDatasetsrc = NULL;
-    }
-    MPI_Barrier( MPI_COMM_WORLD );
-
     return true;
 }
 
-//Todo:对用户来说，CoordBR不可访问，改为行列ID
-//dcmpType参数是否还有用
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType ) {
-    //已知subWorkBR是自己的工作空间范围，进而推导所需数据范围，并读入
-    //读文件之前，先清理之前可能残留的信息;why cleanMetaData会出错？
-    if ( _pMetaData ) {
-        cleanMetaData();
-    }    //也可以不clean，直接覆盖
-    //cleanCellSpace();	//这里没必要clean是因为下面new的时候会先调用clean，这里再写就会重复clean，没必要
-
-    GDALAllRegister();
-
-    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
-    if ( poDatasetsrc == NULL /*检查是否正常打开文件*/) {
-        cout << "[ERROR] data file is not open correct" << endl;
-        exit( 1 );
-    }
-
-    _pMetaData = new MetaData();    //也可以不需要再new，直接覆盖原信息
-    if ( _pMetaData == NULL ) {
-        cout << "[ERROR] MetaData is not allocate correct" << endl;
-        exit( 1 );
-    }
-
-    poDatasetsrc->GetGeoTransform( _pMetaData->pTransform );
-    _pMetaData->projection = poDatasetsrc->GetProjectionRef();
-    GDALRasterBand *poBandsrc = poDatasetsrc->GetRasterBand( 1 );
-
-    _pMetaData->noData = poBandsrc->GetNoDataValue();
-    _pMetaData->row = poBandsrc->GetYSize();
-    _pMetaData->column = poBandsrc->GetXSize();
-	_pMetaData->cellSize = _pMetaData->pTransform[1];
-	_pMetaData->format = "GTiff";
-	_pMetaData->_domDcmpType = dcmpType;
-
-	SpaceDims sdim( _pMetaData->row, _pMetaData->column );
-    _pMetaData->_glbDims = sdim;
-
+layerDcmp(const CoordBR &subWorkBR){
     MPI_Comm_rank( MPI_COMM_WORLD, &_pMetaData->myrank );
     MPI_Comm_size( MPI_COMM_WORLD, &_pMetaData->processor_number );
 
@@ -766,8 +648,10 @@ readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType 
     CellCoord seCorner( glbEnd + _pNbrhood->maxIRow(), _pMetaData->_glbDims.nCols() - 1 );
     CoordBR subMBR( nwCorner, seCorner );
     _pMetaData->_MBR = subMBR;
+
     SpaceDims dims( subMBR.nRows(), subMBR.nCols());
     _pMetaData->_localdims = dims;
+
     //subWorkBR是全局行列号，计算局部行列号表达的_localworkBR
     CoordBR workBR;
     if ( !_pNbrhood->calcWorkBR( workBR, dims )) {
@@ -776,8 +660,48 @@ readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType 
     _pMetaData->_localworkBR = workBR;
 
     newCellSpace( _pMetaData->_localdims );
+    return true;
+}
+//Todo:对于不规则邻域，测试是否支持
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+readFile( const char *inputfile, DomDcmpType dcmpType ) {
+    GDALAllRegister();
+    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
 
-    _pMetaData->dataType = getGDALType();
+    GDALRasterBand *poBandsrc=readFileInfo(poDatasetsrc, dcmpType);
+
+    if(!layerDcmp(dcmpType)) return false;
+
+    poBandsrc->RasterIO( GF_Read, _pMetaData->_MBR.minICol(), _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
+                         _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
+                         _pMetaData->dataType, 0, 0 );
+
+    if ( poDatasetsrc != NULL ) {
+        GDALClose((GDALDatasetH) poDatasetsrc );
+        poDatasetsrc = NULL;
+    }
+    MPI_Barrier( MPI_COMM_WORLD );
+
+    return true;
+}
+
+//Todo:对用户来说，CoordBR不可访问，改为行列ID
+//dcmpType参数是否还有用 //wyj 有
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType ) {
+    //已知subWorkBR是自己的工作空间范围，进而推导所需数据范围，并读入
+    //读文件之前，先清理之前可能残留的信息;why cleanMetaData会出错？
+    if ( _pMetaData ) {
+        cleanMetaData();
+    }    //也可以不clean，直接覆盖
+    //cleanCellSpace();	//这里没必要clean是因为下面new的时候会先调用clean，这里再写就会重复clean，没必要
+    GDALAllRegister();
+    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
+    GDALRasterBand *poBandsrc = readFileInfo(poDatasetsrc, dcmpType );
+ 
+    if(!layerDcmp(subWorkBR)) return false;
 
 	poBandsrc->RasterIO( GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
 						 _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),

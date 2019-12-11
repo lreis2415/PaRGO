@@ -101,9 +101,9 @@ int main(int argc, char* argv[]) {
     int maxIteration; //最大迭代次数
     double tolerance; //迭代阈值
     int weight; //加权指数
-    bool decomposeBySapce; /// decomp by load if false.
-    char* writeLoadPath=nullptr; /// 
-    char* readLoadPath=nullptr; /// 
+    bool decomposeBySapce; /// decomp by compute load if false
+    char* writeLoadPath=nullptr;
+    char* readLoadPath=nullptr;
     int i = 1;
     bool simpleusage = true;
     while (argc > i) {

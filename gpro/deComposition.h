@@ -326,7 +326,8 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
     for ( int i = 0; i < nSubSpcs - 1; ++i ) {    ////共寻找nSubSpcs-1个划分位置,每个划分位置都在剩下的局部最优
         double subComptLoad = 0.0;
         double minComptDiff = 0.0;
-        for ( int cRow = subBegin; cRow <= layer._pMetaData->_MBR.maxIRow(); cRow++ ) {
+        //for ( int cRow = subBegin; cRow <= layer._pMetaData->_MBR.maxIRow(); cRow++ ) {
+        for ( int cRow = subBegin; cRow < _glbDims.nRows(); cRow++ ) { //wyj 目前是串行的，就改成这样了
             int rowGap = cRow - 0;
             subComptLoad += rowComptLoad[rowGap];
             accuComptLoad += rowComptLoad[rowGap];

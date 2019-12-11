@@ -1,29 +1,5 @@
 #include "fcmOperator.h"
 
-bool ifDecomposeBySpace(const string& arg) {
-    if (StringMatch(arg, "space")) {
-        return true;
-    }
-    if (StringMatch(arg, "compute")) {
-        return false;
-    }
-    return true;
-}
-
-bool ifEstimateLoad(const string& arg) {
-    if (StringMatch(arg, "estimate")) {
-        return true;
-    }
-    return false;
-}
-
-bool ifProduceLoadFile(const string& arg) {
-    if (StringMatch(arg, "reuse")) {
-        return false;
-    }
-    return true;
-}
-
 FCMOperator::~FCMOperator() {
     delete centerVal;
     delete centerIndex;
@@ -76,11 +52,6 @@ void FCMOperator::degLayer(vector<RasterLayer<double> *> layerD) {
         _vDegLayer.push_back(layerD[i]);
         Configure(layerD[i], false);
     }
-}
-
-void FCMOperator::comptLayer(RasterLayer<double>& layerD) {
-    _pComptLayer = &layerD;
-    Configure(_pComptLayer, false);
 }
 
 bool FCMOperator::isTermination() {
@@ -172,10 +143,11 @@ void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
 
 ///归类,确定每个cell的最大隶属类，并将该类编号赋给fcmL[i][j]
 void FCMOperator::assignMaxMembershipDegrees() {
+    double startTime=0,endTime=0;
     CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
     for (int i = 1; i < _xSize - 1; i++) {
         for (int j = 1; j < _ySize - 1; j++) {
-            starttime = MPI_Wtime();
+            startTime = MPI_Wtime();
             if ((_vInputLayer[0]->cellSpace()[0])[i][j] != _noData) {
                 int cNum = -1; //所属类号
                 double degreeMax = 0.0; //最大隶属度值
@@ -212,7 +184,8 @@ void FCMOperator::assignMaxMembershipDegrees() {
 
 bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //cout<<"rank"<<_rank<<" ("<<coord.iRow()<<","<<coord.iCol()<<")"<<endl;
-    starttime = MPI_Wtime();
+    double startTime, endTime;
+    startTime = MPI_Wtime();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
     if (_rank == 0 && _pComptLayer) {
@@ -223,10 +196,10 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
 
     if (!((iRow == 1) && (iCol == 1)) && (fabs((*_vInputLayer[0]->cellSpace())[iRow][iCol] + 9999) <= Eps ||
         fabs((*(_vInputLayer[0]->cellSpace()))[iRow][iCol] - _noData) <= Eps) && !((iRow == _xSize - 2) && (iCol == _ySize - 2))) {
-        endtime = MPI_Wtime();
+        endTime = MPI_Wtime();
         if (_rank == 0 && _pComptLayer)
-            (*_pComptLayer->cellSpace())[iRow][iCol] += (endtime - starttime) * 1000;
-        tmpSumTime1 += (endtime - starttime) * 1000;
+            (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
+        tmpSumTime1 += (endTime - startTime) * 1000;
         return true; //空值栅格没必要做后续操作，直接跳过
     }
 
@@ -275,7 +248,6 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
     }
 
-    //starttime = MPI_Wtime();	//计算时间捕捉
     if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
         //空值不做处理，最后一并赋空值
     }
@@ -319,7 +291,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 for (int i = 1; i < _xSize - 1; i++) {
                     //一定要注意这里只计算有效空间
                     for (int j = 1; j < _ySize - 1; j++) {
-                        starttime = MPI_Wtime();
+                        startTime = MPI_Wtime();
                         if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
                             sumDenominator[p] += pow(degree[p][i][j], weight);
                             for (int q = 0; q < imageNum; q++) {
@@ -344,11 +316,11 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
 
     delete pInputVal;
 
-    endtime = MPI_Wtime();
+    endTime = MPI_Wtime();
     if (_rank == 0 && _pComptLayer) {
-        (*_pComptLayer->cellSpace())[iRow][iCol] += (endtime - starttime) * 1000;
+        (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
     }
-    //*_pComptLayer->cellSpace()[iRow][iCol] += (endtime - starttime) * 1000;
+    //*_pComptLayer->cellSpace()[iRow][iCol] += (endTime - startTime) * 1000;
     // if (comptL[iRow][iCol] > 30)
     // {
     // 	cout<<"("<<iRow<<","<<iCol<<":"<<comptL[iRow][iCol]<<") after compute.";

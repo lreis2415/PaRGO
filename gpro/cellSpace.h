@@ -244,7 +244,6 @@ namespace GPRO {
         // GDALDataType getType();
 
     public:
-        MetaData _metadata;
         elemType *_matrix; /// data of cells
     protected:
         SpaceDims _dims;

@@ -48,9 +48,12 @@ public:
 
 	~IDWOperator();
 
+    int getBlockGrain(){return _blockGrain;}
+
 	int readSampleNums( const char* filename, char** pSpatialRefWkt );
 	bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array );
 	void creatSampleBlocks( double **pSamples );
+    Sample_block* getSampleBlocks(){return _pSampleBlocks;}
 
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt);
 	virtual bool isTermination();
@@ -59,7 +62,16 @@ public:
 
 	virtual bool Operator(const CellCoord &coord, bool operFlag);
 
+    int getBlockRowIndex(double x);
+    int getBlockColIndex(double y);
 
+    int getBlockRowIndex(int iRow);
+    int getBlockColIndex(int iCol);
+
+    int getBlockCols(){return _blockCols;}
+    int getBlockRows(){return _blockRows;}
+
+    int getNbrPoints(){return _nbrPoints;}
 private:
 	float _cellSize;
 	int _xSize, _ySize;	//当前进程中DEM块的行数
@@ -68,8 +80,6 @@ private:
 	int _myRank;
 	int _iterNum;//迭代次数
 	bool flag;
-	double starttime, endtime;
-
 protected:
 	int _nbrPoints;	//插值邻域样点数
 	int _idw_power;
@@ -79,8 +89,10 @@ protected:
 	int _sample_nums;	//全区总样点数量
 	int _blockGrain;
 	Sample_block* _pSampleBlocks;	//以粗网格块,按行组织的样点;每个进程都存了全部块，析构函数中要释放；
-
+    int _blockRows;
+    int _blockCols;
 	RasterLayer<double> *_pIDWLayer;
+
 
 };
 

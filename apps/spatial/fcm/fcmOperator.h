@@ -14,10 +14,6 @@ using namespace GPRO;
 
 #define Eps 0.0000001
 
-bool ifDecomposeBySpace(const string& arg);
-bool ifEstimateLoad(const string& arg);
-bool ifProduceLoadFile(const string& arg);
-
 class FCMOperator : public RasterOperator<double> 
 {
 public:
@@ -34,7 +30,6 @@ public:
 	void inputLayer(vector<RasterLayer<double> *> layerD);
 	void fcmLayer(RasterLayer<double> &layerD);
 	void degLayer(vector<RasterLayer<double> *> layerD);
-	void comptLayer(RasterLayer<double> &layerD);
 	
 	virtual bool isTermination();
 
@@ -85,7 +80,6 @@ protected:
 	vector<RasterLayer<double> *> _vInputLayer;
 	RasterLayer<double> *_pFCMLayer;
 	vector<RasterLayer<double> *> _vDegLayer;
-	RasterLayer<double> *_pComptLayer;	//暂时捕捉真实计算时间用
 
 	Neighborhood<double> *_pDEMNbrhood;
 

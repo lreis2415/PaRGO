@@ -17,10 +17,21 @@
 ****************************************************************************/
 
 #include "rasterLayer.h"
+#include "utility.h"
 #include <iostream>
 
 using namespace std;
 #define Eps 0.0000001
+
+inline bool ifDecomposeBySpace(const string& arg) {
+    if (StringMatch(arg, "space")) {
+        return true;
+    }
+    if (StringMatch(arg, "compute")) {
+        return false;
+    }
+    return true;
+}
 
 namespace GPRO {
     template<class elemType>
@@ -49,11 +60,10 @@ namespace GPRO {
 
         bool readComptFile( const char *outputfile );//待实际完成
         bool writeComptFile( const char *outputfile );
-        bool extractSubWorkBR( const char *outputfile );
     public:
         vector<RasterLayer<elemType> *> _pDataLayers;
     protected:
-        int _comptGrain;
+        double _comptGrain;
     };
 };
 
@@ -76,7 +86,7 @@ inline GPRO::ComputLayer<elemType>::
 	ComputLayer( RasterLayer<elemType> * dataLayer, const int tmpGrain, const string RasterLayerName )
 	: RasterLayer<elemType>( RasterLayerName ), _comptGrain( tmpGrain ) {
 		_pDataLayers.push_back(dataLayer);
-		//newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR
+		//newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR ///wyj 所以要再手动调用newMetaData...
 }
 
 template<class elemType>
@@ -84,7 +94,7 @@ inline GPRO::ComputLayer<elemType>::
 ComputLayer( vector<RasterLayer<elemType> *> dataLayers, const int tmpGrain, const string RasterLayerName )
     : RasterLayer<elemType>( RasterLayerName ),
       _pDataLayers( dataLayers ), _comptGrain( tmpGrain ) {
-    //newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR
+    //newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR ///wyj 所以要再手动调用newMetaData...
 }
 
 template<class elemType>
@@ -350,7 +360,9 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         Neighborhood<elemType> *pDataNbrhood = _pDataLayers[0]->nbrhood();
         pDataNbrhood->calcWorkBR( _glbWorkBR, _pDataLayers[0]->_pMetaData->_glbDims );    //数据图层的全局工作空间
         int subBegin = _glbWorkBR.minIRow(), subEnd = _glbWorkBR.minIRow() - 1;
-        _comptGrain=_pDataLayers[0]->_pMetaData->_glbDims.nRows()/this->metaData()->_glbDims.nRows();//wyj 2019-12-6 加了这一行...解决读负载图时，图源粒度不统一的问题（比如空间均衡划分的负载图是等比例的，但计算负载划分的负载图是1:10的）
+        int loadFileRows=_pDataLayers[0]->_pMetaData->_glbDims.nRows();
+        int outputRows=this->metaData()->_glbDims.nRows();
+        _comptGrain=(double)loadFileRows/outputRows;//wyj 2019-12-6 加了这一行...解决读负载图时，图源粒度不统一的问题（比如空间均衡划分的负载图是等比例的，但计算负载划分的负载图是1:10的）
         int i = 0;
         for ( ; i < nSubSpcs - 1; ++i ) {
             subBegin = vComptDcmpBR[i].minIRow() * _comptGrain + _glbWorkBR.minIRow();
@@ -439,9 +451,4 @@ writeComptFile( const char *outputfile ) {
     return true;
 }
 
-template<class elemType>
-bool GPRO::ComputLayer<elemType>::
-extractSubWorkBR( const char *outputfile ) {
-    
-}
 #endif
