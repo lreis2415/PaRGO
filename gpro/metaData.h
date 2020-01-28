@@ -47,10 +47,9 @@ namespace GPRO {
 		GDALDataType dataType; /// data type of GDAL
         DomDcmpType _domDcmpType; /// domain decomposition type
         SpaceDims _glbDims; /// space dimension globally
-        CoordBR _MBR; /* this processor's MBR is in global coordinates */
+        CoordBR _MBR; /* this processor's MBR in global coordinates */
         SpaceDims _localdims; /// space dimension locally
-        //CoordBR _subMBR;
-        CoordBR _localworkBR; /// this processor's workBR is in local coordinates
+        CoordBR _localworkBR; /// this processor's workBR in local coordinates
 
 	public:
         MetaData() { pTransform = new double[6]; }

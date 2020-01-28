@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
             idw_nbrPoints = atoi(argv[8]);//搜索邻近点数
             idw_buffer = atoi(argv[8]);//最大搜索半径
 			if(argc>=10){
-            	decomposeBySapce = argv[9];
+            	decomposeBySapce = ifDecomposeBySpace(argv[9]);
 			}
             if(argc>=11){
                 writeLoadPath = argv[10];
@@ -261,13 +261,21 @@ int main(int argc, char *argv[])
 	}
 
 	Application::START(MPI_Type, argc, argv);
+
 	int myRank, process_nums;
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 	MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
+    int name_len = MPI_MAX_PROCESSOR_NAME;
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    MPI_Get_processor_name(processor_name,&name_len);
+    if(myRank==0)
+        cout<<"pargo-idw. decompose by space: "<<decomposeBySapce<<". "<<process_nums<<" core(s)."<<endl;
+    cout << "process " << myRank << " on " << processor_name << endl;
+    
 	double starttime;
 	double endtime;
 
-	int blockGrain = 100;	//granularity,样点以块存放的粗网格粒度，以栅格分辨率为基本单位；用户根据数据指定
+	int blockGrain = 5;	//granularity,样点以块存放的粗网格粒度，以栅格分辨率为基本单位；用户根据数据指定
 	IDWOperator idwOper(cellSize, idw_nbrPoints, idw_power, idw_buffer, blockGrain);
 	char* spatialrefWkt;	//投影信息
 	int sample_nums;
@@ -287,6 +295,7 @@ int main(int argc, char *argv[])
 	//以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
 	RasterLayer<double> idwLayer("idwLayer");
 	idwLayer.readNeighborhood(dataNeighbor);
+
 	if(decomposeBySapce){
 		//equal row dcmp based on region
 		idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
@@ -305,28 +314,37 @@ int main(int argc, char *argv[])
 	else{
 		//balanced row dcmp based on compute burden
         const int compuSize = 10;	//计算域图层分辨率是数据图层的10倍,粒度用户指定，这里暂定为10
-		idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
+		idwOper.idwLayer(idwLayer, &spatialrefWkt);
 		idwLayer._pMetaData->_domDcmpType = NON_DCMP;	//wyj 2019-11-12:暂时写在外面
 		CoordBR subWorkBR;
 
         RasterLayer<double> idwGlobalLayer("globalLayer");
+	    idwGlobalLayer.readNeighborhood(dataNeighbor);
+     //   idwOper.idwLayer(idwGlobalLayer, &spatialrefWkt);
         idwGlobalLayer.copyLayerInfo(idwLayer);
-        idwGlobalLayer.newCellSpace(idwLayer.metaData()->_glbDims,0);
+        if(myRank==0) {
+            idwGlobalLayer.newCellSpace(idwGlobalLayer.metaData()->_glbDims,0);            
+        }
         idwGlobalLayer._pMetaData->_localworkBR.seCorner(idwGlobalLayer._pMetaData->_glbDims.nRows()-idwGlobalLayer.nbrhood()->nRows(),
             idwGlobalLayer._pMetaData->_glbDims.nCols()-idwGlobalLayer.nbrhood()->nCols());
-        ComputLayer<double> comptLayer(&idwGlobalLayer,compuSize,"computLayer"); 
+        ComputLayer<double> comptLayer(&idwGlobalLayer,compuSize,"computLayer");
+        //comptLayer.setComputGrain(compuSize);
+        comptLayer.copyLayerMetadata(idwGlobalLayer);
         comptLayer.readNeighborhood(compuNeighbor);
         if(readLoadPath) {
-            //读入真实计算指导划分
-            comptLayer.readFile(readLoadPath);
+            if(myRank==0) {
+                comptLayer.readFile(readLoadPath);  
+            }else {
+                MPI_Barrier( MPI_COMM_WORLD );
+            }
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
         }else{
-            if( myRank==0 )	//这一步不应该交给用户，考虑内置到computLayer类去
+            if( myRank==0 )
             {
                 starttime = MPI_Wtime();
-                comptLayer.newMetaData( compuSize ); // wyj 这个有点乱
-                IdwTransformation idwTrans(&comptLayer,&idwOper);	//指定有值无值栅格的计算强度
-                idwTrans.run();	//调用已有计算函数,更新comptLayer._pCellSpace
+                comptLayer.newMetaData(compuSize);
+                IdwTransformation idwTrans(&comptLayer,&idwOper);
+                idwTrans.run();
                 comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);	
                 if (writeLoadPath) {
                     comptLayer.writeComptFile(writeLoadPath);
@@ -336,22 +354,32 @@ int main(int argc, char *argv[])
             }else{
                 ComputLayer<double> comptLayer("untitled");
                 comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
-                MPI_Barrier(MPI_COMM_WORLD);
+                if(writeLoadPath) {
+                    MPI_Barrier(MPI_COMM_WORLD);
+                }
             }
         }
 	    cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()<< endl;
-		//创建邻域类的临时对象，根据本图层的元数据直接划分,是否可行待定？
         idwLayer.layerDcmp(subWorkBR);
+		idwOper.idwLayer(idwLayer, &spatialrefWkt,subWorkBR);
 		starttime = MPI_Wtime();
-		idwOper.Run();	//运行，结果写在idwLayer的cellspace中
+
+		idwOper.Run();
 	}
+	endtime = MPI_Wtime();
+	if (myRank==0)
+		cout<<"compute time is "<<endtime-starttime<<endl<<endl;
 	idwLayer.writeFile(outputFileName);
     
 	MPI_Barrier(MPI_COMM_WORLD);
-	endtime = MPI_Wtime();
-	if (myRank==0)
-		cout<<"compute time is "<<endtime-starttime<<endl;
-
+  //  if(myRank==2) {
+  //      double t1,t2;
+		//t1 = MPI_Wtime();
+		//t2 = MPI_Wtime();
+  //      while(t2-t1<600) {
+  //          t2=MPI_Wtime();
+  //      }
+  //  }
 	cout<<"write done."<<endl;
 
 	Application::END();

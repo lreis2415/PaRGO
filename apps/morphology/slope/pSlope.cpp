@@ -137,7 +137,6 @@ int main(int argc, char *argv[])
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	double starttime = MPI_Wtime();
-
 	SlopeOperator slpOper;
 	slpOper.demLayer(demLayer);
 	slpOper.slopeLayer(slopeLayer);

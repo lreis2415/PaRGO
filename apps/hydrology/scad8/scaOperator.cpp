@@ -105,7 +105,6 @@ bool SCAOperator::Operator(const CellCoord &coord,bool operFlag)
 					degreeL[tRow][tCol] = -2;
 				}
 
-				Termination = 0;
 			}
 			dir--;
 		}
@@ -126,6 +125,7 @@ bool SCAOperator::Operator(const CellCoord &coord,bool operFlag)
 				}
 			}
 		}
+		Termination = 1;
 		//num++;
 	}
 

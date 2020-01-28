@@ -87,7 +87,9 @@ bool SCAOperator::Operator(const CellCoord &coord,bool operFlag)
 		}
 		return true;
 	}
-
+    if( iRow == _maxRow && iCol == _maxCol ){
+		Termination = 1;
+	}
 	if( degreeL[iRow][iCol]<=0 ){
 		return true;
 	}
@@ -99,13 +101,11 @@ bool SCAOperator::Operator(const CellCoord &coord,bool operFlag)
 				scaL[iRow][iCol] += scaL[tRow][tCol]*(*weightLs[dir-1])[tRow][tCol];
 				degreeL[iRow][iCol]--;
 				(*weightLs[dir-1])[tRow][tCol] = 0;
-				Termination = 0;
 			}
 			if( dir<4 && degreeL[tRow][tCol]==0 && (*weightLs[dir])[tRow][tCol]>0 ){
 				scaL[iRow][iCol] += scaL[tRow][tCol]*(*weightLs[dir])[tRow][tCol];
 				degreeL[iRow][iCol]--;
 				(*weightLs[dir])[tRow][tCol] = 0;
-				Termination = 0;
 			}
 
 			dir--;

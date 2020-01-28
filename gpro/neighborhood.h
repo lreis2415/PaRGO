@@ -400,6 +400,8 @@ nbrIDs( MeshDir dir ) const {
 template<class elemType>
 bool GPRO::Neighborhood<elemType>::
 calcWorkBR( CoordBR &workBR, const SpaceDims &dims ) const {
+    int rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
     if ( empty() ) {
         cerr << __FILE__ << " " << __FUNCTION__ \
             << " Error: unable to calculate workBR" \
@@ -413,7 +415,7 @@ calcWorkBR( CoordBR &workBR, const SpaceDims &dims ) const {
         return false;
     }
     if ( dims.nRows() < nRows() || dims.nCols() < nCols() ) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
+        cerr << __FILE__ << " " << __FUNCTION__  <<" rank "<<rank \
             << " Error: the dimensions (" << dims << ") is smaller than" \
             << " the dimensions of the Neighborhood (" << nRows() \
             << " " << nCols() << ")" << endl;

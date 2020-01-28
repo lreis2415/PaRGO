@@ -188,7 +188,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     startTime = MPI_Wtime();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
-    if (_rank == 0 && _pComptLayer) {
+    if (_pComptLayer) {
         if (_iterNum == 0) {
             (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0; //引入了额外代价，影响估计的准确程度;但不这样对-9999会计算有误，对空值和非空值都没影响
         }
@@ -197,7 +197,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     if (!((iRow == 1) && (iCol == 1)) && (fabs((*_vInputLayer[0]->cellSpace())[iRow][iCol] + 9999) <= Eps ||
         fabs((*(_vInputLayer[0]->cellSpace()))[iRow][iCol] - _noData) <= Eps) && !((iRow == _xSize - 2) && (iCol == _ySize - 2))) {
         endTime = MPI_Wtime();
-        if (_rank == 0 && _pComptLayer)
+        if (_pComptLayer)
             (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
         tmpSumTime1 += (endTime - startTime) * 1000;
         return true; //空值栅格没必要做后续操作，直接跳过
@@ -291,7 +291,6 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 for (int i = 1; i < _xSize - 1; i++) {
                     //一定要注意这里只计算有效空间
                     for (int j = 1; j < _ySize - 1; j++) {
-                        startTime = MPI_Wtime();
                         if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
                             sumDenominator[p] += pow(degree[p][i][j], weight);
                             for (int q = 0; q < imageNum; q++) {
@@ -317,7 +316,9 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     delete pInputVal;
 
     endTime = MPI_Wtime();
-    if (_rank == 0 && _pComptLayer) {
+    if (_pComptLayer && 
+        !(iRow == _xSize - 2 && iCol == _ySize - 2) &&
+        !(iRow == 1 && iCol == 1)) {
         (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
     }
     //*_pComptLayer->cellSpace()[iRow][iCol] += (endTime - startTime) * 1000;

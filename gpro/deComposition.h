@@ -293,6 +293,9 @@ colDcmp( MetaData &metaData, int nSubSpcs ) const {
 template<class elemType>
 bool GPRO::DeComposition<elemType>::
 valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs ) const {
+    int myRank, process_nums;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
     //目前仅主进程会访问这个函数，串行对全区划分；划分的对象是layer的全区范围
     //若设计并行策略,则划分边界等都有待更新
     if ( nSubSpcs < 1 || nSubSpcs > _glbWorkBR.nRows()) {
@@ -308,7 +311,7 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
     double *rowComptLoad = new double[layer._pMetaData->_glbDims.nRows()];
     double totalComptLoad = 0.0;
     //这里目前只针对串行
-    for ( int cRow = 0; cRow < layer._pMetaData->_glbDims.nRows(); cRow++ ) {
+    for ( int cRow = 0; cRow < layer._pMetaData->_glbDims.nRows(); cRow++ ) { //wyj 2019-12-23 ...
         rowComptLoad[cRow] = 0.0;
         for ( int cCol = 0; cCol < layer._pMetaData->_glbDims.nCols(); cCol++ ) {
 			//这里为什么对-9999需要单独写出来，nodata会无效？
@@ -316,10 +319,15 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
                 rowComptLoad[cRow] += comptL[cRow][cCol];
             }
         }
+        //if(cRow<=2||cRow>=layer._pMetaData->_glbDims.nRows()-3) {
+        //    rowComptLoad[cRow] = 0;
+        //}
         totalComptLoad += rowComptLoad[cRow];
+
     }
 
     double averComptLoad = totalComptLoad / ( nSubSpcs );
+    cout<<"rank "<<myRank<<". avg compt load: "<<averComptLoad<<endl;
     double accuComptLoad = 0;
     int subBegin = 0;
     int subEnd = subBegin;    //至少分配一行；是计算域的一行
@@ -364,7 +372,6 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs
     CellCoord seCorner( layer._pMetaData->_MBR.maxIRow(), layer._pMetaData->_MBR.maxICol());
     CoordBR subMBR( nwCorner, seCorner );
     vDcmpBR.push_back( subMBR );
-
     delete[]rowComptLoad;
     //for( vector<CoordBR>::iterator iter = vDcmpBR.begin(); iter!=vDcmpBR.end(); ++iter ){
     //	cout<<*iter<<endl;

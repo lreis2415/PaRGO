@@ -56,6 +56,7 @@ public:
     Sample_block* getSampleBlocks(){return _pSampleBlocks;}
 
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt);
+	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt,CoordBR& subWorkBR);
 	virtual bool isTermination();
 
 	int searchNbrSamples( const int subMinRow, int cellRow, int cellCol, double *nbrSamples);
@@ -72,6 +73,7 @@ public:
     int getBlockRows(){return _blockRows;}
 
     int getNbrPoints(){return _nbrPoints;}
+    void initIdwLayerGlobalInfo(RasterLayer<double>& layerD, char** pSpatialRefWkt);
 private:
 	float _cellSize;
 	int _xSize, _ySize;	//当前进程中DEM块的行数

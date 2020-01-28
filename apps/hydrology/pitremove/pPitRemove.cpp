@@ -100,15 +100,15 @@ int main(int argc, char *argv[])
 
 	RasterLayer<double> demLayer("demLayer");
 	demLayer.readNeighborhood(neighborfile);
-	demLayer.readFile(inputfilename);
+	demLayer.readFile(inputfilename,ROWWISE_DCMP);
 
 	RasterLayer<double> wdemLayer("wdemLayer");
 	wdemLayer.readNeighborhood(neighborfile);
 	wdemLayer.copyLayerInfo(demLayer);
 	
+	MPI_Barrier(MPI_COMM_WORLD);
 	double starttime1=0;
 	double endtime1=0;
-	MPI_Barrier(MPI_COMM_WORLD);	//等待每个线程都输出自己的行列数
 	starttime1 = MPI_Wtime();
 
 	PitRemoveOperator PitOper;
@@ -117,9 +117,10 @@ int main(int argc, char *argv[])
 	PitOper.Run();
 
 	MPI_Barrier(MPI_COMM_WORLD);
+    
 	endtime1 = MPI_Wtime();
-
 	cout<<"run time is "<<endtime1-starttime1<<endl;
+
 	wdemLayer.writeFile(outputfilename);
 	
 	Application::END();

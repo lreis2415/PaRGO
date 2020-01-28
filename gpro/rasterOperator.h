@@ -128,16 +128,21 @@ Work(const CoordBR* const pWBR) {
     int noterm = 1; //是否继续迭代，考虑换别的变量
     int itera = 0; //迭代次数
     int myRank;
+    int nRow=pWBR->maxIRow()-pWBR->minIRow();
+    int delim=20;
+    int lastRowInterval=0;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-
+    double startTime=MPI_Wtime();
+    double endTime;
+    double iterStartTime;
+    double rowStartTime=MPI_Wtime();
     if (Application::_programType == MPI_Type) {
         MPI_Barrier(MPI_COMM_WORLD);
-        //double endtime1;
-        //double endtime2;
-        //double starttime;
         do {
+            iterStartTime=MPI_Wtime();
             Termination = 1;
             for (int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) {
+                
                 for (int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++) {
                     CellCoord coord(iRow, iCol);
                     if (!Operator(coord, true)) {
@@ -146,7 +151,25 @@ Work(const CoordBR* const pWBR) {
                         break;
                     }
                 }
+                
+                int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
+                if(rowInterval != lastRowInterval) {
+                    lastRowInterval=rowInterval;
+                    cout<<"rank"<<myRank<<"\t[";
+                    for (int i = 0; i < lastRowInterval; ++i) {
+                        cout<<".";
+                    }
+                    for (int i = 0; i < delim-lastRowInterval; ++i) {
+                        cout<<" ";
+                    }
+                    endTime=MPI_Wtime();
+                    cout<<"]"<<endTime-rowStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
+                    rowStartTime=MPI_Wtime();
+                }
             }
+            endTime=MPI_Wtime();
+            cout<<"rank"<<myRank<<" iter time "<<endTime-iterStartTime<<"s"<<endl;
+            startTime=MPI_Wtime();
             if (commFlag) {
                 //这里应该是统一调用函数，在函数内部，根据元数据获取的划分方式再确定调用哪一个通信
                 if (_domDcmpType == ROWWISE_DCMP) {
@@ -156,15 +179,11 @@ Work(const CoordBR* const pWBR) {
                     COMNI.colComm();
                 }
             }
-            //endtime1 = MPI_Wtime();
-            //cout<<myRank<<" in the "<<itera<<" need time "<<endtime1-starttime<<endl;
             MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
             itera++;
-            /*if(itera%1000 == 0)
-            {
-              cout<<"itera is "<<itera<<endl;
-            }*/
-
+            
+            endTime=MPI_Wtime();
+            cout<<"rank"<<myRank<<" commu time "<<endTime-startTime<<"s"<<endl;
         }
         while (!noterm);
         MPI_Barrier(MPI_COMM_WORLD);

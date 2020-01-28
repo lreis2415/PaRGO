@@ -51,13 +51,17 @@ bool PitRemoveOperator::Operator(const CellCoord &coord,bool operFlag)
 		//wdem[iRow][iCol] = 10000.0;
 		if( (iRow==_xSize-2) && (iCol==_ySize-2) )
 		{
-			MPI_Barrier(MPI_COMM_WORLD); 
+			//MPI_Barrier(MPI_COMM_WORLD); //wyj 这里不用等待吧
 			num = 1;
 			Termination = 0;
 		}
 	}
 	else
 	{
+        if( (iRow==_xSize-2) && (iCol==_ySize-2) )
+		{
+			Termination = 1;
+		}
 		if( fabs(dem[iRow][iCol]-noData)>Eps ){
 			if( wdem[iRow][iCol] > dem[iRow][iCol] )
 			{
@@ -68,14 +72,14 @@ bool PitRemoveOperator::Operator(const CellCoord &coord,bool operFlag)
 						if( ( dem[iRow][iCol] >= (wdem[i][j] + gap) ) || fabs(wdem[i][j]-noData)<Eps )
 						{
 							wdem[iRow][iCol] = dem[iRow][iCol];
-							Termination = 0;
+							//Termination = 0;
 						}
 						else 
 						{
 							if( wdem[iRow][iCol] > (wdem[i][j] + gap) )
 							{
 								wdem[iRow][iCol] = wdem[i][j] + gap;
-								Termination = 0;
+								//Termination = 0;
 							}
 						}
 

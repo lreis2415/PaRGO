@@ -253,6 +253,14 @@ int main(int argc, char* argv[]) {
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
+
+    int name_len = MPI_MAX_PROCESSOR_NAME;
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    MPI_Get_processor_name(processor_name,&name_len);
+    if(myRank==0)
+        cout<<"pargo-fcm. decompose by space: "<<decomposeBySapce<<". "<<process_nums<<" core(s)."<<endl;
+    cout << "process " << myRank << " on " << processor_name << endl;
+
     double starttime;
     double endtime;
 
@@ -290,7 +298,6 @@ int main(int argc, char* argv[]) {
             vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
         }
 
-        starttime = MPI_Wtime();
         FCMOperator fcmOper;
         fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, weight);
         fcmOper.inputLayer(vInputLayers);
@@ -302,6 +309,7 @@ int main(int argc, char* argv[]) {
             comptLayer.newMetaData(10);
             fcmOper.comptLayer(comptLayer); //测试用
         }
+        starttime = MPI_Wtime();
         fcmOper.Run();
         if(writeLoadPath)
             comptLayer.writeFile(writeLoadPath); //测试用，写出捕捉到的计算时间
@@ -318,8 +326,12 @@ int main(int argc, char* argv[]) {
         comptLayer._pDataLayers.push_back(vInputLayers[0]);
         if(readLoadPath) {
             //读入真实计算指导划分
-            comptLayer.readFile(readLoadPath);
-            comptLayer.setComputGrain(comptGrain);
+            if(myRank==0) {
+                comptLayer.readFile(readLoadPath);
+                comptLayer.setComputGrain(comptGrain);
+            }else {
+                MPI_Barrier( MPI_COMM_WORLD );
+            }
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
         }
         else {
@@ -353,23 +365,23 @@ int main(int argc, char* argv[]) {
             vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
         }
         //执行计算
-        starttime = MPI_Wtime();
         FCMOperator fcmOper;
         fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, weight);
         fcmOper.inputLayer(vInputLayers);
         fcmOper.fcmLayer(fcmLayer);
         fcmOper.degLayer(vDegreeLayer);
+        starttime = MPI_Wtime();
         fcmOper.Run();
     }
     MPI_Barrier(MPI_COMM_WORLD);
     endtime = MPI_Wtime();
     if (myRank == 0)
-        cout << "compute time is " << endtime - starttime << endl;
+        cout << "compute time is " << endtime - starttime << endl<<endl;
     fcmLayer.writeFile(outputFileName);
     //for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
     //	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
     //}
-    cout << "write done." << endl;
+    //cout << "write done." << endl;
 
     Application::END();
     //system("pause");

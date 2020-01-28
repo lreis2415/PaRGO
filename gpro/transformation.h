@@ -88,7 +88,7 @@ Transformation( ComputLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
 	Termination(1)
 {
 	Configure(pLayer,false);
-	_myRank = pLayer->_pMetaData->myrank;
+	_myRank = pLayer->metaData()->myrank;
 }
 
 

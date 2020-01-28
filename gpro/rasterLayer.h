@@ -88,13 +88,12 @@ namespace GPRO {
         bool readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
 		//每个进程都读整个文件;全区计算和主进程构建计算域这两步常用；或者，主进程读了，然后发送？
         bool readGlobalFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
-		//上面这个不是串行读，串行读的意思应该是主进程读然后发布给各进程，没必要；上面这个其实是读全区，合并到subWorkBR那种类型
 		//Todo:改指定行列范围来读
 		GDALRasterBand * readFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType);
         bool layerDcmp(DomDcmpType dcmpType );
         bool layerDcmp(const CoordBR &subWorkBR);
-		bool copyLayerInfo( const RasterLayer<elemType> &rhs );
-
+		bool copyLayerInfo(const RasterLayer<elemType> &rhs);
+        bool copyLayerMetadata(const RasterLayer<elemType> &rhs);
 		//void col2row( int &subRows, int &lastSubRows );	//按列写出的数据重分布为按行写出
 		//IO：串行+行列块并行,待补充串行的IO
 		bool writeFile( const char *outputfile );
@@ -526,7 +525,7 @@ readGlobalFile(const char* inputfile, DomDcmpType dcmpType)
 
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
-copyLayerInfo( const RasterLayer<elemType> &rhs ) {
+copyLayerMetadata( const RasterLayer<elemType> &rhs ) {
     _pMetaData = new MetaData();
     if ( _pMetaData == NULL ) {
         cout << "[ERROR] MetaData is not allocate correct" << endl;
@@ -551,11 +550,15 @@ copyLayerInfo( const RasterLayer<elemType> &rhs ) {
     for ( int i = 0; i < 6; i++ ) {
         _pMetaData->pTransform[i] = rhs._pMetaData->pTransform[i];
     }
-
     newNbrhood( *( rhs.nbrhood()));	//allocate and init
+    return true;
+}
+
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+copyLayerInfo( const RasterLayer<elemType> &rhs ) {
+    copyLayerMetadata(rhs);
     //若初始化为空值，double类型的nodata赋值给elemtype类型，可能越界
-    //newCellSpace( _pMetaData->_localdims, _pMetaData->noData );	//allocate
-    //newCellSpace(_pMetaData->_localdims,0); //allocate
     newCellSpace( _pMetaData->_localdims, rhs._pMetaData->noData );	//allocate
 
     return true;
@@ -648,7 +651,6 @@ layerDcmp(const CoordBR &subWorkBR){
     CellCoord seCorner( glbEnd + _pNbrhood->maxIRow(), _pMetaData->_glbDims.nCols() - 1 );
     CoordBR subMBR( nwCorner, seCorner );
     _pMetaData->_MBR = subMBR;
-
     SpaceDims dims( subMBR.nRows(), subMBR.nCols());
     _pMetaData->_localdims = dims;
 
@@ -956,7 +958,6 @@ rowWriteFile( const char *outputfile ) {
    if ( _pMetaData->myrank == 0 ) {
        poBanddest->SetNoDataValue( _pMetaData->noData );	//为啥是交给主进程，不是每个进程都做
    }
-
    if ( _pMetaData->processor_number == 1 ) {
        poBanddest->RasterIO( GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
                              _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
@@ -976,7 +977,6 @@ rowWriteFile( const char *outputfile ) {
                                  _pMetaData->dataType, 0, 0 );
        }
    }
-
    MPI_Barrier( MPI_COMM_WORLD );	//是否需要
    if ( poDataset != NULL ) {
        GDALClose((GDALDatasetH) poDataset );
