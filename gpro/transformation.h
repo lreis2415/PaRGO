@@ -19,7 +19,7 @@
 #include "basicTypes.h"
 #include "cellSpace.h"
 #include "application.h"
-#include "computLayer.h"
+#include "computeLayer.h"
 #include <iostream>
 
 using namespace std;
@@ -31,14 +31,14 @@ namespace GPRO
 	{
 	public:
 		Transformation();
-		Transformation( ComputLayer<elemType>* pLayer );	//继承类自定义实现时调用此类型
-		Transformation( elemType load1, elemType load2, ComputLayer<elemType>* pLayer );
+		Transformation( ComputeLayer<elemType>* pLayer );	//继承类自定义实现时调用此类型
+		Transformation( elemType load1, elemType load2, ComputeLayer<elemType>* pLayer );
 		//基类根据负载实现了一个默认版本，用于数据分布不均匀而计算分布均匀的情况
 
 		virtual ~Transformation(){}	//可能是作为基类，因此写成虚析构;防止基类指针指向子类对象，释放不当
 
 		virtual bool isTermination(bool isIter=false) {return isIter;}	//继承类直接改吧termination成员值
-		bool Configure(ComputLayer<elemType>* pLayer, bool isCommunication);
+		bool Configure(ComputeLayer<elemType>* pLayer, bool isCommunication);
 		bool paramInit();
 		virtual bool Operator(const CellCoord &coord);
 		bool run();
@@ -59,7 +59,7 @@ namespace GPRO
 
 	protected:
 		//vector<RasterLayer<elemType>* > CommVec;	//待定，若为并行求解，则会需要
-		ComputLayer<elemType>* _pComptLayer;
+		ComputeLayer<elemType>* _pComptLayer;
 		//vector<RasterLayer<elemType>* > _pDataLayersV;	//引入这个是为了实现一些默认强度版本
 		CoordBR* _pWorkBR;
 		int Termination;
@@ -80,7 +80,7 @@ Transformation()
 
 template <class elemType>
 inline GPRO::Transformation<elemType>::
-Transformation( ComputLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
+Transformation( ComputeLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
 	:minLoad(0),
 	maxLoad(0),
 	_pComptLayer(pLayer),
@@ -94,7 +94,7 @@ Transformation( ComputLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
 
 template <class elemType>
 inline GPRO::Transformation<elemType>::
-Transformation( elemType load1, elemType load2, ComputLayer<elemType>* pLayer )	//基类根据负载指定默认版本
+Transformation( elemType load1, elemType load2, ComputeLayer<elemType>* pLayer )	//基类根据负载指定默认版本
 	:minLoad(load1),
 	maxLoad(load2),
 	_pComptLayer(pLayer),
@@ -108,7 +108,7 @@ Transformation( elemType load1, elemType load2, ComputLayer<elemType>* pLayer )	
 
 template <class elemType>
 bool GPRO::Transformation<elemType>::
-Configure(ComputLayer<elemType>* pLayer, bool isCommunication)
+Configure(ComputeLayer<elemType>* pLayer, bool isCommunication)
 {
 	//目前很简略，以后可能会设计通信及更多数据成员
 	if(_pWorkBR == NULL)
@@ -128,14 +128,14 @@ bool GPRO::Transformation<elemType>::
 paramInit()
 {
 	//必要的private数据成员一次性初始化，operator函数中会用到
-	if( _pComptLayer->_pDataLayers.empty() ){
+	if( _pComptLayer->_vDataLayers.empty() ){
 		cerr<<"Datalayers used for calculating compute layer should not be null."<<endl;
 		return false;
 	}
-	_noData = _pComptLayer->_pDataLayers[0]->_pMetaData->noData;
-	_computGrain = (int)(_pComptLayer->_pMetaData->cellSize / _pComptLayer->_pDataLayers[0]->_pMetaData->cellSize);
-	_dataMBR = _pComptLayer->_pDataLayers[0]->_pMetaData->_MBR;
-	_dataWorkBR = _pComptLayer->_pDataLayers[0]->_pMetaData->_localworkBR;
+	_noData = _pComptLayer->_vDataLayers[0]->_pMetaData->noData;
+	_computGrain = (int)(_pComptLayer->_pMetaData->cellSize / _pComptLayer->_vDataLayers[0]->_pMetaData->cellSize);
+	_dataMBR = _pComptLayer->_vDataLayers[0]->_pMetaData->_MBR;
+	_dataWorkBR = _pComptLayer->_vDataLayers[0]->_pMetaData->_localworkBR;
 
 	return true;
 }
@@ -167,7 +167,7 @@ Operator(const CellCoord &coord)
 		}
 	}
 	computL[cRow][cCol] = 0.0;	//初始化
-	for( typename vector<RasterLayer<elemType>* >::iterator iter = _pComptLayer->_pDataLayers.begin(); iter!=_pComptLayer->_pDataLayers.end(); ++iter ){
+	for( typename vector<RasterLayer<elemType>* >::iterator iter = _pComptLayer->_vDataLayers.begin(); iter!=_pComptLayer->_vDataLayers.end(); ++iter ){
 		//对每个图层遍历计算，累积给计算域图层值
 		CellSpace<elemType> &dataL = *((*iter)->cellSpace());	//模板类迭代指针这样用是否正确
 		for( int dRow = cRow*_computGrain+_dataWorkBR.minIRow(); dRow<(cRow+1)*_computGrain+_dataWorkBR.minIRow(); ++dRow ){

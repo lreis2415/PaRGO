@@ -25,7 +25,7 @@
 
 namespace GPRO {
     template<class elemType>
-    class ComputLayer;
+    class ComputeLayer;
 
     template<class elemType>
     class DeComposition {
@@ -43,7 +43,7 @@ namespace GPRO {
                        int nRowSubSpcs,
                        int nColSubSpcs) const;*/
 		//这个应该改成_val1DDcmp这样的形式，提高通用性
-        bool valRowDcmp( vector<CoordBR> &vDcmpIdx, ComputLayer<elemType> &computLayer, int nSubSpcs ) const;
+        bool valRowDcmp( vector<CoordBR> &vDcmpIdx, ComputeLayer<elemType> &computLayer, int nSubSpcs ) const;
 
     private:
         void _smpl1DDcmp( int &subBegin, int &subEnd,
@@ -292,7 +292,7 @@ colDcmp( MetaData &metaData, int nSubSpcs ) const {
  */
 template<class elemType>
 bool GPRO::DeComposition<elemType>::
-valRowDcmp( vector<CoordBR> &vDcmpBR, ComputLayer<elemType> &layer, int nSubSpcs ) const {
+valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpcs ) const {
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);

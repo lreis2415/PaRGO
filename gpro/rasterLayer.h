@@ -106,12 +106,12 @@ namespace GPRO {
         bool colWriteFile( const char *outputfile );
 
     public:
-        MetaData *_pMetaData; //wyj 2019-11-12: 这个和 _pCellSpace里的 Metadata有什么区别？已删去cellSpace里的
+        MetaData *_pMetaData;
         
     protected:
         string _strLayerName; /// layer name
-        CellSpace<elemType> *_pCellSpace; /// data of raster
-        Neighborhood<elemType> *_pNbrhood; /// data of neighborhood
+        CellSpace<elemType> *_pCellSpace; /// raster data
+        Neighborhood<elemType> *_pNbrhood; /// neighbor data
         int _nLayerID; /// layer ID
     };
 };
@@ -558,9 +558,7 @@ template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 copyLayerInfo( const RasterLayer<elemType> &rhs ) {
     copyLayerMetadata(rhs);
-    //若初始化为空值，double类型的nodata赋值给elemtype类型，可能越界
-    newCellSpace( _pMetaData->_localdims, rhs._pMetaData->noData );	//allocate
-
+    newCellSpace( _pMetaData->_localdims, rhs._pMetaData->noData );
     return true;
 }
 

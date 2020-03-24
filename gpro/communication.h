@@ -117,7 +117,6 @@ setBuffer() {
         bufsize = _pComVec->size() * ( MPI_BSEND_OVERHEAD + styleSize * ( up + up + low + low ));
         buf = malloc( bufsize );
         MPI_Buffer_attach( buf, bufsize );
-        return true;
     } else {
 		if ( _pMetadata->_domDcmpType == COLWISE_DCMP ) {
 			int styleSize;
@@ -127,13 +126,14 @@ setBuffer() {
 			bufsize = _pComVec->size() * ( MPI_BSEND_OVERHEAD + styleSize * ( left + left + right + right ));
 			buf = malloc( bufsize );
 			MPI_Buffer_attach( buf, bufsize );
-			return true;
 		} else {
 			cerr << __FILE__ << " " << __FUNCTION__ \
 				<< " Error: unable to support this _domDcmpType" \
 				<< endl;
+            return false;
 		}
 	}
+    return true;
 }
 
 
@@ -156,7 +156,7 @@ bool GPRO::Communication<elemType>::
 rowComm() {
 	//现在是多个图层分别整合，分别通信；可以考虑多个图层整合成一个数组，一次性通信,不知能否提升效率；其他划分方式也一样
     MPI_Status status;
-    for ( int i = 0; i < _pComVec->size(); i++ ) {
+    for ( std::size_t i = 0; i < _pComVec->size(); i++ ) {
         //cout<<"_pComVec->size is "<<_pComVec->size()<<endl;
         CellSpace<elemType> *pCellSpace = _pComVec->at( i )->cellSpace();
         MPI_Datatype datatype = _pComVec->at( i )->getMPIType();
@@ -197,7 +197,7 @@ template<class elemType>
 bool GPRO::Communication<elemType>::
 colComm() {
     MPI_Status status;
-    for ( int i = 0; i < _pComVec->size(); i++ ) {
+    for ( std::size_t i = 0; i < _pComVec->size(); i++ ) {
         CellSpace<elemType> *pCellSpace = _pComVec->at( i )->cellSpace();
         MPI_Datatype datatype = _pComVec->at( i )->getMPIType();
         elemType *_matrix = pCellSpace->_matrix;

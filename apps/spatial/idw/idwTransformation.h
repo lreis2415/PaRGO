@@ -29,7 +29,7 @@ using namespace GPRO;
 class IdwTransformation: public Transformation<double>
 {
 public:
-    IdwTransformation(ComputLayer<double> *comptLayer,IDWOperator *idwOperator):
+    IdwTransformation(ComputeLayer<double> *comptLayer,IDWOperator *idwOperator):
     _idwOperrator(idwOperator),Transformation(comptLayer) {}
     bool Operator(const CellCoord &coord);
 private:

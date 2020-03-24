@@ -44,19 +44,14 @@ namespace GPRO
     public:
         RasterOperator()
             : _domDcmpType(NON_DCMP),
-              _pCellSpace(NULL),
-              _pNbrhood(NULL),
+              //_pCellSpace(NULL),
+              //_pNbrhood(NULL),
               _pWorkBR(NULL),
               _pComptLayer(NULL),
               commFlag(false),
-              Termination(true) {
-        }
+              Termination(true) {}
 
-        virtual ~RasterOperator() {
-        }
-
-        //virtual void processing(){}
-        //virtual bool updatematrix(const CellCoord &coord){}
+        virtual ~RasterOperator() {}
 
         /**
          * \brief Basic function in which serial-style algorithm should be writen
@@ -70,17 +65,20 @@ namespace GPRO
         bool Work(const CoordBR* const pWorkBR);
         bool Run();
         bool Configure(RasterLayer<elemType>* pLayer, bool isCommunication);
+        
         void comptLayer(RasterLayer<elemType>& layerD);
-
+        void comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath);
 
     private:
         DomDcmpType _domDcmpType;
 
     public:
-        RasterLayer<elemType>* _pComptLayer; ///暂时捕捉真实计算时间用
+        RasterLayer<elemType>* _pComptLayer; ///capture
+        char* _computeLayerOutPath;
+
         vector<RasterLayer<elemType> *> CommVec;
-        CellSpace<elemType>* _pCellSpace;
-        Neighborhood<elemType>* _pNbrhood; //目前这两个成员变量并没有使用
+        //CellSpace<elemType>* _pCellSpace;
+        //Neighborhood<elemType>* _pNbrhood; //unused
         CoordBR* _pWorkBR;
         bool commFlag;
         int Termination;
@@ -91,8 +89,16 @@ template <class elemType>
 void GPRO::RasterOperator<elemType>::
 comptLayer(RasterLayer<elemType>& layerD) {
     _pComptLayer = &layerD;
-    _pComptLayer->cellSpace()->initVals(0); //wyj 2019-12-7 这样的话fcm idw Operator里就不用每个初始化了
+    _pComptLayer->cellSpace()->initVals(0); //wyj 2019-12-7 init for fcm idw Operator
     Configure(_pComptLayer, false);
+}
+
+
+template <class elemType>
+void GPRO::RasterOperator<elemType>::
+comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath) {
+    comptLayer(layerD);
+    _computeLayerOutPath=computeLayerOutPath;
 }
 
 template <class elemType>

@@ -1,11 +1,11 @@
-#ifndef ComputLayer_H
-#define ComputLayer_H
+#ifndef ComputeLayer_H
+#define ComputeLayer_H
 
 /***************************************************************************
 * computLayer.h
 *
 * Project: GPRO, v 2.0
-* Purpose: Header file for class GPRO::ComputLayer
+* Purpose: Header file for class GPRO::ComputeLayer
 * Author:  Ai Beibei
 * E-mail:  aibb@lreis.ac.cn
 ****************************************************************************
@@ -35,110 +35,126 @@ inline bool ifDecomposeBySpace(const string& arg) {
 
 namespace GPRO {
     template<class elemType>
-    class ComputLayer : public RasterLayer<elemType> {
+    class ComputeLayer : public RasterLayer<elemType> {
     public:
-        ComputLayer();
-		ComputLayer( const string RasterLayerName = "Untitled" );
-		ComputLayer( RasterLayer<elemType> * dataLayers,
+        ComputeLayer();
+		ComputeLayer( const string RasterLayerName = "Untitled" );
+		ComputeLayer( RasterLayer<elemType> * dataLayers,
 			         const int tmpGrain,
 			         const string RasterLayerName = "Untitled" );
-        ComputLayer( vector<RasterLayer<elemType> *> dataLayers,
+        ComputeLayer( vector<RasterLayer<elemType> *> dataLayers,
                      const int tmpGrain,
                      const string RasterLayerName = "Untitled" );
-        ~ComputLayer();
-
+        
+        ~ComputeLayer();
         int getGrain() { return _comptGrain; }
         void setComputGrain(int comptGrain) { _comptGrain = comptGrain;}
+        ComputeLayerType getComputeLayerType() {return _computeLayerType;}
+        void setComputeLayerType(ComputeLayerType type) {_computeLayerType=type;}
+        
+
+        bool init(const RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain=1);
+        bool init(int comptGrain=1);
+
         void cleanDataLayers();
         vector<RasterLayer<elemType> *> *dataLayers();
         const vector<RasterLayer<elemType> *> *dataLayers() const;
         void addRasterLayer(RasterLayer<elemType> &dataLayer);
+        void addRasterLayers(vector<RasterLayer<elemType> *> dataLayers);
 
-        bool newMetaData( int comptGrain );    //参数冗余，已在数据成员中添加
         bool getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR );
 
-        bool readComptFile( const char *loadFile, const char* nbrFile);
-        bool writeComptFile( const char *outputfile );
+        bool readComputeFile( const char *loadFile, const char* nbrFile);
+        bool writeComputeFile( const char *outputfile );
     public:
-        vector<RasterLayer<elemType> *> _pDataLayers;
-    protected:
+        vector<RasterLayer<elemType> *> _vDataLayers;
+    private:
         double _comptGrain;
+        ComputeLayerType _computeLayerType;
     };
 };
 
 template<class elemType>
-inline GPRO::ComputLayer<elemType>::
-ComputLayer()
-    :RasterLayer<elemType>() {
-}
+inline GPRO::ComputeLayer<elemType>::
+ComputeLayer()
+    :RasterLayer<elemType>() {}
 
 template<class elemType>
-inline GPRO::ComputLayer<elemType>::
-ComputLayer( const string RasterLayerName )
-    :RasterLayer<elemType>( RasterLayerName ) {
-    //_comptGrain = 10;
-    //_pDataLayers.push_back(this);
-}
+inline GPRO::ComputeLayer<elemType>::
+ComputeLayer( const string RasterLayerName )
+    :RasterLayer<elemType>( RasterLayerName ) {}
 
 template<class elemType>
-inline GPRO::ComputLayer<elemType>::
-	ComputLayer( RasterLayer<elemType> * dataLayer, const int tmpGrain, const string RasterLayerName )
+inline GPRO::ComputeLayer<elemType>::
+ComputeLayer( RasterLayer<elemType> * dataLayer, const int tmpGrain, const string RasterLayerName )
 	: RasterLayer<elemType>( RasterLayerName ), _comptGrain( tmpGrain ) {
-		_pDataLayers.push_back(dataLayer);
+		_vDataLayers.push_back(dataLayer);
     //GPRO::RasterLayer<elemType>::_pMetaData=dataLayer->metaData(); // wyj 12-19 太乱，临时加一笔看能不能跑。发现不能，存了人家的引用导致多重析构了
 		//newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR ///wyj 所以要再手动调用newMetaData...
 }
 
 template<class elemType>
-inline GPRO::ComputLayer<elemType>::
-ComputLayer( vector<RasterLayer<elemType> *> dataLayers, const int tmpGrain, const string RasterLayerName )
+inline GPRO::ComputeLayer<elemType>::
+ComputeLayer( vector<RasterLayer<elemType> *> dataLayers, const int tmpGrain, const string RasterLayerName )
     : RasterLayer<elemType>( RasterLayerName ),
-      _pDataLayers( dataLayers ), _comptGrain( tmpGrain ) {
+      _vDataLayers( dataLayers ), _comptGrain( tmpGrain ) {
     //newMetaData(_comptGrain);	//没有邻域信息，故而这里无法new出workBR ///wyj 所以要再手动调用newMetaData...
 }
 
 template<class elemType>
-inline GPRO::ComputLayer<elemType>::
-~ComputLayer() {
+inline GPRO::ComputeLayer<elemType>::
+~ComputeLayer() {
     //这里会自动调用基类的析构函数，只需要再释放_pDataLayers成员即可
     cleanDataLayers();
 }
 
 template<class elemType>
-void GPRO::ComputLayer<elemType>::
+void GPRO::ComputeLayer<elemType>::
 cleanDataLayers() {
     //dataLayers中存放的是图层的指针，这里值释放vector，并不真正释放这些指针所指的图层
     //这些图层后续会继续使用，直到计算结束，调用自身析构函数去释放
     vector<RasterLayer<elemType> *> vTemp;
-    vTemp.swap( _pDataLayers );
+    vTemp.swap( _vDataLayers );
 }
 
 template<class elemType>
-inline vector<GPRO::RasterLayer<elemType> *> *GPRO::ComputLayer<elemType>::
+inline vector<GPRO::RasterLayer<elemType> *> *GPRO::ComputeLayer<elemType>::
 dataLayers() {
-    return &_pDataLayers;
-}
-template<class elemType>
-inline void GPRO::ComputLayer<elemType>::
-addRasterLayer(RasterLayer<elemType> &dataLayer) {
-    _pDataLayers.push_back(dataLayer);
+    return &_vDataLayers;
 }
 
 template<class elemType>
-bool GPRO::ComputLayer<elemType>::
-newMetaData( int comptGrain ) {
-    //目前仅有进程0会来调用此函数
-    //_pMetaData = new MetaData();	//VS这样的方式通过，而gc++不允许直接使用来自基类部分的数据成员
-    if ( _pDataLayers.empty()) {
+inline void GPRO::ComputeLayer<elemType>::
+addRasterLayer(RasterLayer<elemType> &dataLayer) {
+    _vDataLayers.push_back(&dataLayer);
+}
+
+template<class elemType>
+inline void GPRO::ComputeLayer<elemType>::
+addRasterLayers(vector<RasterLayer<elemType> *> dataLayers) {
+    _vDataLayers=dataLayers;
+}
+
+template<class elemType>
+bool GPRO::ComputeLayer<elemType>::
+init(int comptGrain) {
+    // It is a SERIAL function. Only invoked by process 0.
+    // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
+    int myRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    if ( pDataLayer == nullptr ) {
         return false;
     }
-    const MetaData &rhs = *( _pDataLayers[0]->_pMetaData );
+    
+    RasterLayer<elemType>::readNeighborhood(neighborFile);
 
-    RasterLayer<elemType>::_pMetaData = new MetaData();    //new元数据
-    MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData;    //指针的引用，只是为了简化书写,且用毕无需释放
+    const MetaData &rhs = *( pDataLayer->_pMetaData );
+
+    RasterLayer<elemType>::_pMetaData = new MetaData();
+    MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
 
     pMetaData->cellSize = rhs.cellSize * comptGrain;
-    pMetaData->row = rhs._localworkBR.nRows() / comptGrain;    //这里的元数据都需要根据粒度换算
+    pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
     pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
     pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
     pMetaData->column += ( rhs._localworkBR.nCols() % comptGrain ) ? 1 : 0;
@@ -146,14 +162,13 @@ newMetaData( int comptGrain ) {
     pMetaData->projection = rhs.projection;
     pMetaData->noData = rhs.noData;
     pMetaData->myrank = rhs.myrank;
-    pMetaData->processor_number = 0;    //目前只是串行构建
-    pMetaData->_domDcmpType = rhs._domDcmpType;    //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
+    pMetaData->processor_number = myRank; //目前只是串行构建
+    pMetaData->_domDcmpType = rhs._domDcmpType; //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
     SpaceDims sdim( pMetaData->row, pMetaData->column );
-    pMetaData->_glbDims = sdim;
+    pMetaData->_glbDims = sdim
     if ( pMetaData->_domDcmpType == NON_DCMP ) {
         CoordBR _glbWorkBR;
-        RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims );    //根据计算域的邻域范围去求计算空间
-        //计算域这里也只处理“数据范围-邻域范围”的范围
+        RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims ); //根据计算域的邻域范围去求计算空间
         pMetaData->_localworkBR = _glbWorkBR;
         CellCoord nwCorner( 0, 0 );
         CellCoord seCorner( pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1 );
@@ -161,8 +176,8 @@ newMetaData( int comptGrain ) {
         pMetaData->_MBR = subMBR;
         pMetaData->_localdims = pMetaData->_glbDims;
     } else {
-        cerr << "not support computLayer parallel construct now." << endl;
-        return false;
+        cerr << "not support computeLayer parallel construct now." << endl;
+        return false; 
     }
 
     pMetaData->dataType = RasterLayer<elemType>::getGDALType();
@@ -181,7 +196,67 @@ newMetaData( int comptGrain ) {
 }
 
 template<class elemType>
-bool GPRO::ComputLayer<elemType>::
+bool GPRO::ComputeLayer<elemType>::
+init(const RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain) {
+    // It is a SERIAL function. Only invoked by process 0.
+    // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
+    int myRank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    if ( pDataLayer == nullptr ) {
+        return false;
+    }
+    
+    RasterLayer<elemType>::readNeighborhood(neighborFile);
+
+    const MetaData &rhs = *( pDataLayer->_pMetaData );
+
+    RasterLayer<elemType>::_pMetaData = new MetaData();
+    MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
+
+    pMetaData->cellSize = rhs.cellSize * comptGrain;
+    pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
+    pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
+    pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
+    pMetaData->column += ( rhs._localworkBR.nCols() % comptGrain ) ? 1 : 0;
+    pMetaData->format = rhs.format;
+    pMetaData->projection = rhs.projection;
+    pMetaData->noData = rhs.noData;
+    pMetaData->myrank = rhs.myrank;
+    pMetaData->processor_number = myRank; //目前只是串行构建
+    pMetaData->_domDcmpType = rhs._domDcmpType; //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
+    SpaceDims sdim( pMetaData->row, pMetaData->column );
+    pMetaData->_glbDims = sdim;
+    if ( pMetaData->_domDcmpType == NON_DCMP ) {
+        CoordBR _glbWorkBR;
+        RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims ); //根据计算域的邻域范围去求计算空间
+        pMetaData->_localworkBR = _glbWorkBR;
+        CellCoord nwCorner( 0, 0 );
+        CellCoord seCorner( pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1 );
+        CoordBR subMBR( nwCorner, seCorner );
+        pMetaData->_MBR = subMBR;
+        pMetaData->_localdims = pMetaData->_glbDims;
+    } else {
+        cerr << "not support computeLayer parallel construct now." << endl;
+        return false; 
+    }
+
+    pMetaData->dataType = RasterLayer<elemType>::getGDALType();
+
+    for ( int i = 0; i < 6; i++ ) {
+        pMetaData->pTransform[i] = rhs.pTransform[i];
+    }
+    pMetaData->pTransform[0] += rhs._localworkBR.minICol() * rhs.cellSize;//计算域左上角坐标是工作空间范围开始的
+    pMetaData->pTransform[3] -= rhs._localworkBR.minIRow() * rhs.cellSize;
+    pMetaData->pTransform[1] *= comptGrain;//东西、南北方向一个像素对应的距离，需更新
+    pMetaData->pTransform[5] *= comptGrain;
+
+    RasterLayer<elemType>::newCellSpace( pMetaData->_localdims, 0 ); //allocate,计算域栅格值初始化为0
+
+    return true;
+}
+
+template<class elemType>
+bool GPRO::ComputeLayer<elemType>::
 getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
     int myRank, process_nums;
     MPI_Comm_rank( MPI_COMM_WORLD, &myRank );
@@ -201,16 +276,16 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         DeComposition<elemType> deComp( RasterLayer<elemType>::_pMetaData->_glbDims, *( RasterLayer<elemType>::_pNbrhood ));
         if ( dcmpType == ROWWISE_DCMP ) {
             deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs );    //按值划分，故需要图层为参数;划分结果会以引用传回给vComptDcmpBR
-            //_pDataLayers[0]->_pMetaData->_domDcmpType = ROWWISE_DCMP;	//暂时;估计没用//0316删除，不知道是否影响
+            //_vDataLayers[0]->_pMetaData->_domDcmpType = ROWWISE_DCMP;	//暂时;估计没用//0316删除，不知道是否影响
         } else {
             cerr << "computLayer L388: not support until now." << endl;
         }
         //将划分结果映射给数据空间的子范围
         CoordBR glbWorkBR;
-        Neighborhood<elemType> *pDataNbrhood = _pDataLayers[0]->nbrhood();
-        pDataNbrhood->calcWorkBR( glbWorkBR, _pDataLayers[0]->_pMetaData->_glbDims );    //数据图层的全局工作空间
+        Neighborhood<elemType> *pDataNbrhood = _vDataLayers[0]->nbrhood();
+        pDataNbrhood->calcWorkBR( glbWorkBR, _vDataLayers[0]->_pMetaData->_glbDims );    //数据图层的全局工作空间
         int subBegin = glbWorkBR.minIRow(), subEnd = glbWorkBR.minIRow() - 1;
-        int outputRows=_pDataLayers[0]->_pMetaData->_glbDims.nRows();
+        int outputRows=_vDataLayers[0]->_pMetaData->_glbDims.nRows();
         int loadFileRows=this->metaData()->_glbDims.nRows();
         _comptGrain=outputRows/double(loadFileRows);//wyj 2019-12-6 加了这一行...解决读负载图时，图源粒度不统一的问题（比如空间均衡划分的负载图是等比例的，但计算负载划分的负载图是1:10的）
         int i = 0;
@@ -252,8 +327,8 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
     return true;
 }
 template<class elemType>
-bool GPRO::ComputLayer<elemType>::
-readComptFile(const char *loadFile, const char* nbrFile ) {
+bool GPRO::ComputeLayer<elemType>::
+readComputeFile(const char *loadFile, const char* nbrFile ) {
     RasterLayer<elemType> loadLayer("loadLayer");
     loadLayer.readNeighborhood(nbrFile);
     loadLayer.readFile(loadFile);
@@ -263,8 +338,8 @@ readComptFile(const char *loadFile, const char* nbrFile ) {
 }
 
 template<class elemType>
-bool GPRO::ComputLayer<elemType>::
-writeComptFile( const char *outputfile ) {
+bool GPRO::ComputeLayer<elemType>::
+writeComputeFile( const char *outputfile ) {
     //目前仅支持串行写出
     GDALAllRegister();
 

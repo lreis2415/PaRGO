@@ -23,7 +23,7 @@
 #include "cellSpace.h"
 #include "basicTypes.h"
 #include "rasterLayer.h"
-#include "computLayer.h"
+#include "computeLayer.h"
 #include "application.h"
 #include "fcmOperator.h"
 #include "communication.h"
@@ -287,6 +287,7 @@ int main(int argc, char* argv[]) {
         vDegreeLayer.push_back(pLayer);
     }
 
+    const int comptGrain=10;
     if (decomposeBySapce) {
         //equal row dcmp based on region
         for (int i = 0; i < vInputnames.size(); i++) {
@@ -303,11 +304,13 @@ int main(int argc, char* argv[]) {
         fcmOper.inputLayer(vInputLayers);
         fcmOper.fcmLayer(fcmLayer);
         fcmOper.degLayer(vDegreeLayer);
-        ComputLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
+
+        ComputeLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
         if(writeLoadPath) {
-            comptLayer.copyLayerInfo(*vInputLayers[0]);
-            comptLayer.newMetaData(10);
-            fcmOper.comptLayer(comptLayer); //测试用
+            comptLayer.init(vInputLayers[0],compuNeighbor);
+            //comptLayer.copyLayerInfo(*vInputLayers[0]);
+            //comptLayer.newMetaData(10);
+            fcmOper.comptLayer(comptLayer);
         }
         starttime = MPI_Wtime();
         fcmOper.Run();
@@ -316,16 +319,14 @@ int main(int argc, char* argv[]) {
     }
     else{
         ////balanced row dcmp based on compute burden
-        const int comptGrain = 10; //计算域图层分辨率是数据图层的10倍,粒度用户指定
         starttime = MPI_Wtime();
         vInputLayers[0]->readNeighborhood(dataNeighbor);
         CoordBR subWorkBR;
-        ComputLayer<double> comptLayer("computLayer");
+        ComputeLayer<double> comptLayer("computLayer");
         comptLayer.readNeighborhood(compuNeighbor);
         vInputLayers[0]->readGlobalFile(vInputnames[0]);
-        comptLayer._pDataLayers.push_back(vInputLayers[0]);
+        comptLayer.addRasterLayer(*vInputLayers[0]);
         if(readLoadPath) {
-            //读入真实计算指导划分
             if(myRank==0) {
                 comptLayer.readFile(readLoadPath);
                 comptLayer.setComputGrain(comptGrain);
@@ -336,12 +337,12 @@ int main(int argc, char* argv[]) {
         }
         else {
             if (myRank == 0) {
-                comptLayer.newMetaData(comptGrain);
-                Transformation<double> transOper(1, 15, &comptLayer); //指定有值无值栅格的计算强度
-                transOper.run(); //调用已有计算函数,更新comptLayer._pCellSpace
-                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); //内含了同步
+                comptLayer.init(vInputLayers[0],compuNeighbor,comptGrain);
+                Transformation<double> transOper(1, 15, &comptLayer); 
+                transOper.run();
+                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
                 if (writeLoadPath) {
-                    comptLayer.writeComptFile(writeLoadPath);               
+                    comptLayer.writeComputeFile(writeLoadPath);               
                 }
             } else {
                 comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
@@ -384,6 +385,5 @@ int main(int argc, char* argv[]) {
     //cout << "write done." << endl;
 
     Application::END();
-    //system("pause");
     return 0;
 }

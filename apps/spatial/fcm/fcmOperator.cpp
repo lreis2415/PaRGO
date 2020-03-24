@@ -199,7 +199,6 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         endTime = MPI_Wtime();
         if (_pComptLayer)
             (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
-        tmpSumTime1 += (endTime - startTime) * 1000;
         return true; //空值栅格没必要做后续操作，直接跳过
     }
 

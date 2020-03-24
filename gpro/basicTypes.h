@@ -31,6 +31,17 @@ using namespace std;
 
 namespace GPRO {
     /**
+     * \enum ComputeLayerType
+     * \ingroup gpro
+     * \brief How compute layer functions
+     */
+    enum ComputeLayerType {
+        CAPTURE = 0, /**< capture real-time computation */
+        INSTRUCT, /**< read load file to instruct decomposition */
+        ESTIMATE, /**< estimate load roughly */
+    };
+
+    /**
      * \enum DomDcmpType
      * \ingroup gpro
      * \brief Domain decompose type
@@ -524,7 +535,7 @@ oppositeDir( MeshDir dir ) {
 
 inline ostream &GPRO::
 operator<<( ostream &os, const IntVect &vInt ) {
-    for ( int iVal = 0; iVal < vInt.size(); iVal++ ) {
+    for ( std::size_t iVal = 0; iVal < vInt.size(); iVal++ ) {
         os << vInt[iVal] << " ";
     }
     return os;
@@ -532,7 +543,7 @@ operator<<( ostream &os, const IntVect &vInt ) {
 
 inline ostream &GPRO::
 operator<<( ostream &os, const DblVect &vDbl ) {
-    for ( int iVal = 0; iVal < vDbl.size(); iVal++ ) {
+    for ( std::size_t iVal = 0; iVal < vDbl.size(); iVal++ ) {
         os << vDbl[iVal] << " ";
     }
     return os;
@@ -540,7 +551,7 @@ operator<<( ostream &os, const DblVect &vDbl ) {
 
 inline ostream &GPRO::
 operator<<( ostream &os, const CharVect &vChar ) {
-    for ( int iVal = 0; iVal < vChar.size(); iVal++ ) {
+    for ( std::size_t iVal = 0; iVal < vChar.size(); iVal++ ) {
         os << vChar[iVal] << " ";
     }
     return os;

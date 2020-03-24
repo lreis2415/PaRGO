@@ -118,7 +118,7 @@ _initCoords( const vector<CellCoord> &vNbrCoords, double weight ) {
 
     CellCoord nwCorner, seCorner;
     vector<CellCoord> addedCoords;
-    for ( int iNbr = 0; iNbr < vNbrCoords.size(); iNbr++ ) {
+    for ( std::size_t iNbr = 0; iNbr < vNbrCoords.size(); iNbr++ ) {
         if ( find( addedCoords.begin(), addedCoords.end(), vNbrCoords[iNbr] ) != addedCoords.end()) {
             cerr << __FILE__ << " " << __FUNCTION__ \
 				 << " Error: a duplicated coordinate [" \
@@ -190,7 +190,7 @@ _initWeights( const vector<double> &vNbrWeights ) {
              << " NOT match the number of weights" << endl;
         return false;
     }
-    for ( int iNbr = 0; iNbr < vNbrWeights.size(); iNbr++ ) {
+    for ( std::size_t iNbr = 0; iNbr < vNbrWeights.size(); iNbr++ ) {
         _vNbrs[iNbr].weight( vNbrWeights[iNbr] );
     }
 

@@ -18,7 +18,7 @@
 #include "mpi.h"
 #include "basicTypes.h"
 #include "rasterLayer.h"
-#include "computLayer.h"
+#include "computeLayer.h"
 #include "application.h"
 #include "idwOperator.h"
 #include "transformation.h"
@@ -300,11 +300,12 @@ int main(int argc, char *argv[])
 		//equal row dcmp based on region
 		idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
 		//创建邻域类的临时对象，根据本图层的元数据直接划分,是否可行待定？
-		ComputLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
+		ComputeLayer<double> comptLayer("computeLayer");
         if(writeLoadPath) {
-            comptLayer.copyLayerInfo(idwLayer);
-            comptLayer.newMetaData(10);
-            idwOper.comptLayer(comptLayer); //测试用
+            comptLayer.init(&idwLayer,compuNeighbor,10);
+            //comptLayer.copyLayerInfo(idwLayer);
+            //comptLayer.newMetaData(10);
+            idwOper.comptLayer(comptLayer);
         }
 		starttime = MPI_Wtime();
 		idwOper.Run();	//运行，结果写在idwLayer的cellspace中
@@ -327,7 +328,7 @@ int main(int argc, char *argv[])
         }
         idwGlobalLayer._pMetaData->_localworkBR.seCorner(idwGlobalLayer._pMetaData->_glbDims.nRows()-idwGlobalLayer.nbrhood()->nRows(),
             idwGlobalLayer._pMetaData->_glbDims.nCols()-idwGlobalLayer.nbrhood()->nCols());
-        ComputLayer<double> comptLayer(&idwGlobalLayer,compuSize,"computLayer");
+        ComputeLayer<double> comptLayer(&idwGlobalLayer,compuSize,"computLayer");
         //comptLayer.setComputGrain(compuSize);
         comptLayer.copyLayerMetadata(idwGlobalLayer);
         comptLayer.readNeighborhood(compuNeighbor);
@@ -342,17 +343,17 @@ int main(int argc, char *argv[])
             if( myRank==0 )
             {
                 starttime = MPI_Wtime();
-                comptLayer.newMetaData(compuSize);
+                comptLayer.init(compuSize);
                 IdwTransformation idwTrans(&comptLayer,&idwOper);
                 idwTrans.run();
                 comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);	
                 if (writeLoadPath) {
-                    comptLayer.writeComptFile(writeLoadPath);
+                    comptLayer.writeComputeFile(writeLoadPath);
                 }
                 endtime = MPI_Wtime();
                 cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
             }else{
-                ComputLayer<double> comptLayer("untitled");
+                ComputeLayer<double> comptLayer("untitled");
                 comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
                 if(writeLoadPath) {
                     MPI_Barrier(MPI_COMM_WORLD);
