@@ -286,8 +286,7 @@ int main(int argc, char* argv[]) {
         RasterLayer<double>* pLayer = new RasterLayer<double>(pDegLayerName[i]);
         vDegreeLayer.push_back(pLayer);
     }
-
-    const int comptGrain=10;
+    int comptGrain=10;
     if (decomposeBySapce) {
         //equal row dcmp based on region
         for (int i = 0; i < vInputnames.size(); i++) {
@@ -307,48 +306,34 @@ int main(int argc, char* argv[]) {
 
         ComputeLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
         if(writeLoadPath) {
-            comptLayer.init(vInputLayers[0],compuNeighbor);
-            //comptLayer.copyLayerInfo(*vInputLayers[0]);
-            //comptLayer.newMetaData(10);
+            comptLayer.initSerial(vInputLayers[0],compuNeighbor);
             fcmOper.comptLayer(comptLayer);
         }
         starttime = MPI_Wtime();
         fcmOper.Run();
         if(writeLoadPath)
-            comptLayer.writeFile(writeLoadPath); //测试用，写出捕捉到的计算时间
+            comptLayer.writeComputeIntensityFileSerial(writeLoadPath); //测试用，写出捕捉到的计算时间
     }
     else{
         ////balanced row dcmp based on compute burden
         starttime = MPI_Wtime();
         vInputLayers[0]->readNeighborhood(dataNeighbor);
         CoordBR subWorkBR;
-        ComputeLayer<double> comptLayer("computLayer");
-        comptLayer.readNeighborhood(compuNeighbor);
         vInputLayers[0]->readGlobalFile(vInputnames[0]);
-        comptLayer.addRasterLayer(*vInputLayers[0]);
         if(readLoadPath) {
-            if(myRank==0) {
-                comptLayer.readFile(readLoadPath);
-                comptLayer.setComputGrain(comptGrain);
-            }else {
-                MPI_Barrier( MPI_COMM_WORLD );
-            }
+            ComputeLayer<double> comptLayer("computLayer");
+            comptLayer.initSerial(vInputLayers[0],compuNeighbor,comptGrain);
+            comptLayer.readComputeLoadFile(readLoadPath);
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
         }
         else {
-            if (myRank == 0) {
-                comptLayer.init(vInputLayers[0],compuNeighbor,comptGrain);
-                Transformation<double> transOper(1, 15, &comptLayer); 
-                transOper.run();
-                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
-                if (writeLoadPath) {
-                    comptLayer.writeComputeFile(writeLoadPath);               
-                }
-            } else {
-                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
-                if(writeLoadPath) {
-                    MPI_Barrier(MPI_COMM_WORLD);                    
-                }
+            ComputeLayer<double> comptLayer("computLayer");
+            comptLayer.initSerial(vInputLayers[0],compuNeighbor,comptGrain);
+            Transformation<double> transOper(1, 15, &comptLayer); 
+            transOper.run();
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+            if (writeLoadPath) {
+                comptLayer.writeComputeIntensityFileSerial(writeLoadPath);               
             }
         }
         cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()

@@ -4,13 +4,13 @@
  * \brief Header file for class GPRO::BasicCell
  * \version 1.0
  * 
- * \copyright Copyright (c) 2013
+ * \copyright Copyright (c) 2013-2020
  *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
  *  purposes, NO COMMERCIAL usages are allowed unless the author is 
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Yujing Wang - Code reformat
  */
 
 #ifndef BASICCELL_H

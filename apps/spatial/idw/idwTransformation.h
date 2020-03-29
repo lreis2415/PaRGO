@@ -19,7 +19,7 @@
 #include "basicTypes.h"
 #include "cellSpace.h"
 #include "application.h"
-#include "computLayer.h"
+#include "computeLayer.h"
 #include "transformation.h"
 #include "idwOperator.h"
 #include <iostream>

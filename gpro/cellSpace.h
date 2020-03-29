@@ -4,13 +4,13 @@
  * \brief Header file for class GPRO::Transition, and GPRO::CellSpace
  * \version 1.0
  * 
- * \copyright Copyright (c) 2013
+ * \copyright Copyright (c) 2013-2020
  *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
  *  purposes, NO COMMERCIAL usages are allowed unless the author is 
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Yujing Wang - Code reformat
  */
 
 #ifndef CELLSPACE_H
@@ -148,6 +148,8 @@ namespace GPRO {
 
         elemType *operator[]( int iRow );
         const elemType *operator[]( int iRow ) const;
+
+        ///copy memory
         CellSpace<elemType> &operator=( const CellSpace<elemType> &rhs );
 
         int coord2idx( const CellCoord &coord ) const;

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include <sys/stat.h>
+#include <mpi.h>
 #ifdef WINDOWS
 #include <io.h>
 #endif
@@ -15,6 +16,12 @@
 
 using std::cout;
 using std::endl;
+
+int GetRank() {
+    int myRank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    return myRank;
+}
 
 string& Trim(string& s) {
     if (s.empty()) {

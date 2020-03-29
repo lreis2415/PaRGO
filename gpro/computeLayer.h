@@ -53,21 +53,21 @@ namespace GPRO {
         void setComputeLayerType(ComputeLayerType type) {_computeLayerType=type;}
         
 
-        bool init(const RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain=1);
-        bool init(int comptGrain=1);
+        bool initSerial( RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain=1);
+        bool initSerial( const char* neighborFile,int comptGrain=1);
 
         void cleanDataLayers();
         vector<RasterLayer<elemType> *> *dataLayers();
         const vector<RasterLayer<elemType> *> *dataLayers() const;
-        void addRasterLayer(RasterLayer<elemType> &dataLayer);
+        void addRasterLayer( RasterLayer<elemType> *dataLayer);
         void addRasterLayers(vector<RasterLayer<elemType> *> dataLayers);
 
         bool getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR );
 
-        bool readComputeFile( const char *loadFile, const char* nbrFile);
-        bool writeComputeFile( const char *outputfile );
+        bool readComputeLoadFile( const char *loadFile);
+        bool writeComputeIntensityFileSerial( const char *outputfile );
     public:
-        vector<RasterLayer<elemType> *> _vDataLayers;
+        vector< RasterLayer<elemType> *> _vDataLayers;
     private:
         double _comptGrain;
         ComputeLayerType _computeLayerType;
@@ -125,8 +125,8 @@ dataLayers() {
 
 template<class elemType>
 inline void GPRO::ComputeLayer<elemType>::
-addRasterLayer(RasterLayer<elemType> &dataLayer) {
-    _vDataLayers.push_back(&dataLayer);
+addRasterLayer(RasterLayer<elemType> *dataLayer) {
+    _vDataLayers.push_back(dataLayer);
 }
 
 template<class elemType>
@@ -137,18 +137,20 @@ addRasterLayers(vector<RasterLayer<elemType> *> dataLayers) {
 
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
-init(int comptGrain) {
+initSerial(const char* neighborFile,int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
-    int myRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-    if ( pDataLayer == nullptr ) {
+    
+    if(GetRank()!=0) {
+        return true;
+    }
+    if ( _vDataLayers.empty() ) {
         return false;
     }
     
     RasterLayer<elemType>::readNeighborhood(neighborFile);
 
-    const MetaData &rhs = *( pDataLayer->_pMetaData );
+    const MetaData &rhs = *( _vDataLayers[0]->_pMetaData );
 
     RasterLayer<elemType>::_pMetaData = new MetaData();
     MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
@@ -162,10 +164,10 @@ init(int comptGrain) {
     pMetaData->projection = rhs.projection;
     pMetaData->noData = rhs.noData;
     pMetaData->myrank = rhs.myrank;
-    pMetaData->processor_number = myRank; //目前只是串行构建
+    pMetaData->processor_number = GetRank(); //目前只是串行构建
     pMetaData->_domDcmpType = rhs._domDcmpType; //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
     SpaceDims sdim( pMetaData->row, pMetaData->column );
-    pMetaData->_glbDims = sdim
+    pMetaData->_glbDims = sdim;
     if ( pMetaData->_domDcmpType == NON_DCMP ) {
         CoordBR _glbWorkBR;
         RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims ); //根据计算域的邻域范围去求计算空间
@@ -194,25 +196,28 @@ init(int comptGrain) {
 
     return true;
 }
-
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
-init(const RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain) {
+initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
-    int myRank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+
+    if(GetRank()!=0) {
+        return true;
+    }
+
     if ( pDataLayer == nullptr ) {
         return false;
     }
-    
+    addRasterLayer(pDataLayer);
     RasterLayer<elemType>::readNeighborhood(neighborFile);
 
-    const MetaData &rhs = *( pDataLayer->_pMetaData );
+    MetaData &rhs = *( pDataLayer->_pMetaData );
 
     RasterLayer<elemType>::_pMetaData = new MetaData();
     MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
 
+    _comptGrain=comptGrain;
     pMetaData->cellSize = rhs.cellSize * comptGrain;
     pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
     pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
@@ -222,8 +227,8 @@ init(const RasterLayer<elemType>* pDataLayer, const char* neighborFile,int compt
     pMetaData->projection = rhs.projection;
     pMetaData->noData = rhs.noData;
     pMetaData->myrank = rhs.myrank;
-    pMetaData->processor_number = myRank; //目前只是串行构建
-    pMetaData->_domDcmpType = rhs._domDcmpType; //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
+    pMetaData->processor_number = GetRank(); //目前只是串行构建
+    pMetaData->_domDcmpType = NON_DCMP; //计算域的划分方式未必与数据域相同;目前是串行的,故是non_dcmp
     SpaceDims sdim( pMetaData->row, pMetaData->column );
     pMetaData->_glbDims = sdim;
     if ( pMetaData->_domDcmpType == NON_DCMP ) {
@@ -282,7 +287,7 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         }
         //将划分结果映射给数据空间的子范围
         CoordBR glbWorkBR;
-        Neighborhood<elemType> *pDataNbrhood = _vDataLayers[0]->nbrhood();
+        const Neighborhood<elemType> *pDataNbrhood = _vDataLayers[0]->nbrhood();
         pDataNbrhood->calcWorkBR( glbWorkBR, _vDataLayers[0]->_pMetaData->_glbDims );    //数据图层的全局工作空间
         int subBegin = glbWorkBR.minIRow(), subEnd = glbWorkBR.minIRow() - 1;
         int outputRows=_vDataLayers[0]->_pMetaData->_glbDims.nRows();
@@ -328,21 +333,25 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
 }
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
-readComputeFile(const char *loadFile, const char* nbrFile ) {
-    RasterLayer<elemType> loadLayer("loadLayer");
-    loadLayer.readNeighborhood(nbrFile);
-    loadLayer.readFile(loadFile);
-    loadLayer.newCellSpace(loadLayer.metaData()->_localdims);
-    addRasterLayer(loadLayer);
+readComputeLoadFile(const char *loadFile) {
+    if(GetRank()!=0){
+        MPI_Barrier( MPI_COMM_WORLD );
+        return true;
+    }
+    
+    RasterLayer<elemType>::readFile(loadFile,NON_DCMP);
     return true;
 }
 
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
-writeComputeFile( const char *outputfile ) {
+writeComputeIntensityFileSerial( const char *outputfile ) {
     //目前仅支持串行写出
     GDALAllRegister();
-
+    if(GetRank()!=0) {
+        MPI_Barrier( MPI_COMM_WORLD );
+        return true;
+    }
     if ( !RasterLayer<elemType>::createFile( outputfile )) {
         cout << "create file is not correct!" << endl;
         MPI_Finalize();

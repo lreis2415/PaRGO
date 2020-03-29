@@ -104,10 +104,14 @@ comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath) {
 template <class elemType>
 bool GPRO::RasterOperator<elemType>::
 Configure(RasterLayer<elemType>* pLayer, bool isCommunication) {
-    if (_pWorkBR == NULL) {
-        _pWorkBR = &pLayer->_pMetaData->_localworkBR;
-        _domDcmpType = pLayer->_pMetaData->_domDcmpType;
-    }
+    //wyj: why not overwrite workBR?
+    _pWorkBR = &pLayer->_pMetaData->_localworkBR;
+    _domDcmpType = pLayer->_pMetaData->_domDcmpType;
+    
+    //if (_pWorkBR == NULL) { //wyj: why not overwrite workBR?
+    //    _pWorkBR = &pLayer->_pMetaData->_localworkBR;
+    //    _domDcmpType = pLayer->_pMetaData->_domDcmpType;
+    //}
     //cout<<_pWorkBR->minIRow()<<" "<<_pWorkBR->minICol()<<" "<<_pWorkBR->maxIRow()<<" "<<_pWorkBR->maxICol()<<endl;
     if (isCommunication) {
         CommVec.push_back(pLayer);

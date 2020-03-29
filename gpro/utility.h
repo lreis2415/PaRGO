@@ -221,6 +221,12 @@ using std::vector;
 using std::string;
 
 /*!
+ * \brief return the rank of this process
+ * \return rank
+ */
+int GetRank();
+
+/*!
  * \brief Trim given string's heading and tailing by "<space>,\n,\t,\r"
  * \sa TrimSpaces
  * \param[in] s \a string information

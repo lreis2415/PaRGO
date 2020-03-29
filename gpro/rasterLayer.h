@@ -10,7 +10,7 @@
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Yujing Wang - Code reformat
  */
 
 
@@ -22,6 +22,7 @@
 #include "neighborhood.h"
 #include "metaData.h"
 #include "deComposition.h"
+#include "utility.h"
 #include <fstream>
 #include <sstream>
 
@@ -40,19 +41,32 @@ namespace GPRO {
     class RasterLayer {
     public:
 
+        ///constructors
         RasterLayer();
         RasterLayer( const string layerName );
         RasterLayer( const RasterLayer<elemType> &rhs );
         virtual ~RasterLayer();
 
+        ///copy constructor
         RasterLayer<elemType> &operator=( const RasterLayer<elemType> &rhs );
 
+        ///getters and setters
         const string &name() const;
         void name( const string &layerName );
         unsigned int id() const;
         void id(const int layerID);
         const string title() const;
 
+        ///getters
+        CellSpace<elemType> *cellSpace();
+        const CellSpace<elemType> *cellSpace() const;
+        Neighborhood<elemType> *nbrhood();
+        const Neighborhood<elemType> *nbrhood() const;
+        MetaData *metaData();
+        GDALDataType getGDALType();
+        MPI_Datatype getMPIType();
+
+        ///delete memories
         void cleanCellSpace();
         void cleanNbrhood();
         void cleanMetaData();
@@ -61,34 +75,30 @@ namespace GPRO {
         bool hasNbrhood() const;
         bool hasMetaData() const;
 
+        ///allocate memory according to parameters
         bool newCellSpace();
         bool newCellSpace( const SpaceDims &dims );
         bool newCellSpace( const SpaceDims &dims, const elemType &initVal );
         bool newCellSpace( int nRows, int nCols );
         bool newCellSpace( int nRows, int nCols, const elemType &initVal );
 
+        ///init neighborhood
         bool newNbrhood();
         bool newNbrhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 );
         bool newNbrhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights );
         template<class elemType2>
         bool newNbrhood( const Neighborhood<elemType2> &nbr );
 
-        CellSpace<elemType> *cellSpace();
-        const CellSpace<elemType> *cellSpace() const;
-        Neighborhood<elemType> *nbrhood();
-        const Neighborhood<elemType> *nbrhood() const;
-        MetaData *metaData();
 
-        GDALDataType getGDALType();
-        MPI_Datatype getMPIType();
-
-        //IO function
+        //read neighbor file and init member
         bool readNeighborhood( const char *neighborfile );
+
+        ///read raster layer according to the decomposition type.
         bool readFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
         bool readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
 		//每个进程都读整个文件;全区计算和主进程构建计算域这两步常用；或者，主进程读了，然后发送？
         bool readGlobalFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
-		//Todo:改指定行列范围来读
+        bool readGlobalFileSerial(const char* inputfile);
 		GDALRasterBand * readFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType);
         bool layerDcmp(DomDcmpType dcmpType );
         bool layerDcmp(const CoordBR &subWorkBR);
@@ -155,7 +165,7 @@ operator=( const RasterLayer<elemType> &rhs ) {
         _strLayerName = rhs._strLayerName + "_copy";
     }
 
-	////Todo:LayerID的复制
+	////Todo: copy LayerID
 
     if ( rhs._pCellSpace ) {
         if ( _pCellSpace ) {
@@ -512,6 +522,31 @@ readGlobalFile(const char* inputfile, DomDcmpType dcmpType)
     GDALRasterBand *poBandsrc=readFileInfo(poDatasetsrc, dcmpType);
 
     layerDcmp(dcmpType);
+
+	poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
+
+	if (poDatasetsrc != NULL)
+	{
+		GDALClose((GDALDatasetH)poDatasetsrc);
+		poDatasetsrc = NULL;
+	}
+	return true;
+}
+
+/// master process reads the whole layer
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
+readGlobalFileSerial(const char* inputfile)
+{
+    if(GetRank()!=0) {
+        MPI_Barrier( MPI_COMM_WORLD );
+        return true;
+    }
+	GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
+
+    GDALRasterBand *poBandsrc=readFileInfo(poDatasetsrc, NON_DCMP);
+
+    layerDcmp(NON_DCMP);
 
 	poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(), _pMetaData->dataType, 0, 0);
 

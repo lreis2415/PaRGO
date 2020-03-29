@@ -57,6 +57,7 @@ public:
 
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt);
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt,CoordBR& subWorkBR);
+	void idwLayerSerial(RasterLayer<double> &layerD, char** pSpatialRefWkt);
 	virtual bool isTermination();
 
 	int searchNbrSamples( const int subMinRow, int cellRow, int cellCol, double *nbrSamples);

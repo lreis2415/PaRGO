@@ -88,7 +88,9 @@ Transformation( ComputeLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
 	Termination(1)
 {
 	Configure(pLayer,false);
-	_myRank = pLayer->metaData()->myrank;
+    if(pLayer->_pMetaData!=NULL){
+	    _myRank = pLayer->metaData()->myrank;
+    }
 }
 
 
@@ -102,7 +104,9 @@ Transformation( elemType load1, elemType load2, ComputeLayer<elemType>* pLayer )
 	Termination(1)
 {
 	Configure(pLayer,false);
-	_myRank = pLayer->_pMetaData->myrank;
+    if(pLayer->_pMetaData!=NULL){
+	    _myRank = pLayer->_pMetaData->myrank;
+    }
 }
 
 
@@ -111,7 +115,7 @@ bool GPRO::Transformation<elemType>::
 Configure(ComputeLayer<elemType>* pLayer, bool isCommunication)
 {
 	//目前很简略，以后可能会设计通信及更多数据成员
-	if(_pWorkBR == NULL)
+	if(_pWorkBR == NULL && &pLayer->_pMetaData != NULL)
 	{
 		_pWorkBR = &pLayer->_pMetaData->_localworkBR;
 	}
@@ -169,7 +173,7 @@ Operator(const CellCoord &coord)
 	computL[cRow][cCol] = 0.0;	//初始化
 	for( typename vector<RasterLayer<elemType>* >::iterator iter = _pComptLayer->_vDataLayers.begin(); iter!=_pComptLayer->_vDataLayers.end(); ++iter ){
 		//对每个图层遍历计算，累积给计算域图层值
-		CellSpace<elemType> &dataL = *((*iter)->cellSpace());	//模板类迭代指针这样用是否正确
+		const CellSpace<elemType> &dataL = *((*iter)->cellSpace());	//模板类迭代指针这样用是否正确
 		for( int dRow = cRow*_computGrain+_dataWorkBR.minIRow(); dRow<(cRow+1)*_computGrain+_dataWorkBR.minIRow(); ++dRow ){
 			for( int dCol = cCol*_computGrain+_dataWorkBR.minICol(); dCol<(cCol+1)*_computGrain+_dataWorkBR.minICol(); ++dCol ){
 				if( dRow > _dataMBR.maxIRow()||dRow>=dataL.nRows() || dCol > _dataMBR.maxICol() ||dCol>=dataL.nCols()){
@@ -196,10 +200,8 @@ run()
 		cerr<<"not supported yet."<<endl;
 	}
 	bool flag = true;
-	//MPI_Barrier(MPI_COMM_WORLD);
 	if( _myRank == 0 ){	//目前仅支持串行求解
-		int iterNum = 0;	//迭代次数
-		int termSum = 1;
+        int termSum = 1;
 		do
 		{
 			Termination = 1;
@@ -220,7 +222,6 @@ run()
 			termSum = Termination;	//暂提供给目前的串行版本
 		} while (!termSum);
 	}
-	//MPI_Barrier(MPI_COMM_WORLD);
 
 	return flag;
 }

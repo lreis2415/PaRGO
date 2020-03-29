@@ -23,7 +23,7 @@ namespace GPRO {
     /**
      * \ingroup gpro
      * \class WeightedCell
-     * \brief BasicCell with weight
+     * \brief BasicCell with weight, used as neighbor cells
      */
     template<class elemType>
     class WeightedCell : public BasicCell<elemType> {

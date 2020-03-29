@@ -241,10 +241,10 @@ int main(int argc, char *argv[])
             // Simple Usage
             if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
             inputFileName = argv[1];
-            dataNeighbor = argv[2];//1*1邻域
+            dataNeighbor = argv[2];//1*1 neighbor
             compuNeighbor = argv[3];
             outputFileName = argv[4];
-            cellSize = atoi(argv[5]);//待插值栅格分辨率
+            cellSize = atoi(argv[5]);//output raster resolution
             fldIdx = atoi(argv[6]);//矢量数据属性值所在列
             idw_power = atoi(argv[7]);//反距离加权幂，通常取2
             idw_nbrPoints = atoi(argv[8]);//搜索邻近点数
@@ -295,73 +295,45 @@ int main(int argc, char *argv[])
 	//以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
 	RasterLayer<double> idwLayer("idwLayer");
 	idwLayer.readNeighborhood(dataNeighbor);
+	idwOper.idwLayer(idwLayer, &spatialrefWkt);
 
 	if(decomposeBySapce){
-		//equal row dcmp based on region
-		idwOper.idwLayer(idwLayer, &spatialrefWkt);	//先将idwOperator的数据成员指向idwLayer图层，再借此创建idwLayer的基本元数据
-		//创建邻域类的临时对象，根据本图层的元数据直接划分,是否可行待定？
 		ComputeLayer<double> comptLayer("computeLayer");
         if(writeLoadPath) {
-            comptLayer.init(&idwLayer,compuNeighbor,10);
-            //comptLayer.copyLayerInfo(idwLayer);
-            //comptLayer.newMetaData(10);
+            comptLayer.initSerial(&idwLayer,compuNeighbor,10);
             idwOper.comptLayer(comptLayer);
         }
 		starttime = MPI_Wtime();
-		idwOper.Run();	//运行，结果写在idwLayer的cellspace中
+		idwOper.Run();	//fill idwLayer
 		if(writeLoadPath)
-			comptLayer.writeFile(writeLoadPath); //测试用，写出捕捉到的计算时间
+			comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
 	}
 	else{
-		//balanced row dcmp based on compute burden
-        const int compuSize = 10;	//计算域图层分辨率是数据图层的10倍,粒度用户指定，这里暂定为10
-		idwOper.idwLayer(idwLayer, &spatialrefWkt);
-		idwLayer._pMetaData->_domDcmpType = NON_DCMP;	//wyj 2019-11-12:暂时写在外面
+        const int compuSize = 10;	//ComputeLayerGrain=10*DataLayerGrain (10 temporarily)
 		CoordBR subWorkBR;
-
-        RasterLayer<double> idwGlobalLayer("globalLayer");
-	    idwGlobalLayer.readNeighborhood(dataNeighbor);
-     //   idwOper.idwLayer(idwGlobalLayer, &spatialrefWkt);
-        idwGlobalLayer.copyLayerInfo(idwLayer);
-        if(myRank==0) {
-            idwGlobalLayer.newCellSpace(idwGlobalLayer.metaData()->_glbDims,0);            
-        }
-        idwGlobalLayer._pMetaData->_localworkBR.seCorner(idwGlobalLayer._pMetaData->_glbDims.nRows()-idwGlobalLayer.nbrhood()->nRows(),
-            idwGlobalLayer._pMetaData->_glbDims.nCols()-idwGlobalLayer.nbrhood()->nCols());
-        ComputeLayer<double> comptLayer(&idwGlobalLayer,compuSize,"computLayer");
-        //comptLayer.setComputGrain(compuSize);
-        comptLayer.copyLayerMetadata(idwGlobalLayer);
-        comptLayer.readNeighborhood(compuNeighbor);
         if(readLoadPath) {
-            if(myRank==0) {
-                comptLayer.readFile(readLoadPath);  
-            }else {
-                MPI_Barrier( MPI_COMM_WORLD );
-            }
+            ComputeLayer<double> comptLayer("computLayer");
+            comptLayer.initSerial(&idwLayer,compuNeighbor,compuSize);
+            comptLayer.readComputeLoadFile(readLoadPath);
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
         }else{
-            if( myRank==0 )
-            {
-                starttime = MPI_Wtime();
-                comptLayer.init(compuSize);
-                IdwTransformation idwTrans(&comptLayer,&idwOper);
-                idwTrans.run();
-                comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);	
-                if (writeLoadPath) {
-                    comptLayer.writeComputeFile(writeLoadPath);
-                }
-                endtime = MPI_Wtime();
-                cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
-            }else{
-                ComputeLayer<double> comptLayer("untitled");
-                comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
-                if(writeLoadPath) {
-                    MPI_Barrier(MPI_COMM_WORLD);
-                }
+            ComputeLayer<double> comptLayer("computLayer");
+            starttime = MPI_Wtime();
+
+            comptLayer.initSerial(&idwLayer,compuNeighbor,compuSize);
+            IdwTransformation idwTrans(&comptLayer,&idwOper);
+            idwTrans.run();
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+
+            endtime = MPI_Wtime();
+            cout<<myRank<<" dcmp time is "<<endtime-starttime<<endl;
+
+            if (writeLoadPath) {
+                comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
             }
         }
+
 	    cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()<< endl;
-        idwLayer.layerDcmp(subWorkBR);
 		idwOper.idwLayer(idwLayer, &spatialrefWkt,subWorkBR);
 		starttime = MPI_Wtime();
 
@@ -373,17 +345,8 @@ int main(int argc, char *argv[])
 	idwLayer.writeFile(outputFileName);
     
 	MPI_Barrier(MPI_COMM_WORLD);
-  //  if(myRank==2) {
-  //      double t1,t2;
-		//t1 = MPI_Wtime();
-		//t2 = MPI_Wtime();
-  //      while(t2-t1<600) {
-  //          t2=MPI_Wtime();
-  //      }
-  //  }
 	cout<<"write done."<<endl;
 
 	Application::END();
-	//system("pause");
 	return 0;
 }
