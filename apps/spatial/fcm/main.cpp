@@ -319,7 +319,7 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         vInputLayers[0]->readNeighborhood(dataNeighbor);
         CoordBR subWorkBR;
-        vInputLayers[0]->readGlobalFile(vInputnames[0]);
+        vInputLayers[0]->readFile(vInputnames[0]);
         if(readLoadPath) {
             ComputeLayer<double> comptLayer("computLayer");
             comptLayer.initSerial(vInputLayers[0],compuNeighbor,comptGrain);

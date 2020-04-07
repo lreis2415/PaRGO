@@ -10,7 +10,7 @@
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Yujing Wang - Code reformat
  */
 
 #ifndef WEIGHTEDCELL_H

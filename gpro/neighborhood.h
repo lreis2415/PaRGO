@@ -4,13 +4,13 @@
  * \brief Header file for class GPRO::Neighborhood
  * \version 1.0
  * 
- * \copyright Copyright (c) 2013
+ * \copyright Copyright (c) 2013-2020
  *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
  *  purposes, NO COMMERCIAL usages are allowed unless the author is 
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Wang Yujing - Code reformat
  */
 #ifndef NEIGHBORHOOD_H
 #define NEIGHBORHOOD_H
@@ -43,21 +43,27 @@ namespace GPRO {
         const WeightedCell<elemType> &operator[]( int iNbr ) const;
         Neighborhood<elemType> &operator=( const Neighborhood<elemType> &rhs );
 
-        bool empty() const; /// check if there is no WeightedCell inside
-        int size() const; /// return the num of WeightedCells
-        bool isEquallyWeighted( double &weight ) const; /// return if every Coord has the same weight
-        void clear(); /// empty member variables of the Neighborhood
+        bool empty() const; ///< check if there is no WeightedCell inside
+        int size() const; ///< return the num of WeightedCells
+        bool isEquallyWeighted( double &weight ) const; ///< return if every Coord has the same weight
+        void clear(); ///< empty member variables of the Neighborhood
 
-        int minIRow() const; /// Return the min row of Minimum Bounding Rectangle
-        int minICol() const; /// Return the min col of Minimum Bounding Rectangle
-        int maxIRow() const; /// Return the max row of Minimum Bounding Rectangle
-        int maxICol() const; /// Return the max col of Minimum Bounding Rectangle
-        int nRows() const; /// Return the row num
-        int nCols() const; /// Return the col num
+        int minIRow() const; ///< Return the min row of Minimum Bounding Rectangle
+        int minICol() const; ///< Return the min col of Minimum Bounding Rectangle
+        int maxIRow() const; ///< Return the max row of Minimum Bounding Rectangle
+        int maxICol() const; ///< Return the max col of Minimum Bounding Rectangle
+        int nRows() const; ///< Return the row num
+        int nCols() const; ///< Return the col num
 
         const CoordBR &getMBR() const;
         bool hasNbrs( MeshDir dir ) const; /// if neighbor exists in the direction
         const IntVect *nbrIDs( MeshDir dir ) const; /// return the vector of IDs in the direction
+
+        /**
+         * \brief calculate the work BoundingRectangle
+         * \param[out] workBR output
+         * \param[in] dims with which workBR is calculated
+         */
         bool calcWorkBR( CoordBR &workBR, const SpaceDims &dims ) const;
 
         void toVect( vector<CellCoord> &vNbrCoords ) const;
@@ -392,11 +398,7 @@ nbrIDs( MeshDir dir ) const {
     return &( _mNbrIDMap.at( dir ));
 }
 
-/**
- * \brief calculate the work BoundingRectangle
- * \param[out] workBR output
- * \param[in] dims with which workBR is calculated
- */
+
 template<class elemType>
 bool GPRO::Neighborhood<elemType>::
 calcWorkBR( CoordBR &workBR, const SpaceDims &dims ) const {

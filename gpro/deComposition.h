@@ -27,6 +27,11 @@ namespace GPRO {
     template<class elemType>
     class ComputeLayer;
 
+	/**
+     * \ingroup gpro
+     * \class DeComposition 
+     * \brief Decompose a layer to smaller parcels
+     */
     template<class elemType>
     class DeComposition {
     public:
@@ -46,13 +51,24 @@ namespace GPRO {
         bool valRowDcmp( vector<CoordBR> &vDcmpIdx, ComputeLayer<elemType> &computLayer, int nSubSpcs ) const;
 
     private:
+        /**
+         * \brief simple linear decomposition
+         *  
+         * divide the range between glbBegin and glbEnd, equally to nSubSpcs parcels
+         * \param[out] subBegin the begin index of this decomposition
+         * \param[out] subEnd the end index of this decomposition
+         * \param[in] glbBegin begin index of the global work bounding rectangle
+         * \param[in] glbEnd end index of the global work bounding rectangle
+         * \param[in] nSubSpcs num of result parcels
+         * \param[in] iSubSpc index of this parcel among the result parcels
+         */
         void _smpl1DDcmp( int &subBegin, int &subEnd,
                           int glbBegin, int glbEnd,
                           int nSubSpcs, int iSubSpc ) const;
 
     private:
         SpaceDims _glbDims;
-        CoordBR _glbWorkBR;
+        CoordBR _glbWorkBR; ///< ACTUAL BR. (refer to metaData.h)
         const Neighborhood <elemType> *_pNbrhood;
     };
 };
@@ -61,15 +77,7 @@ namespace GPRO {
 *             Private Methods           *
 *****************************************/
 
-/**
- * \brief simple linear decomposition
- * \param[out] subBegin the begin index of this decomposition
- * \param[out] subEnd the end index of this decomposition
- * \param[in] glbBegin begin index of the global work bounding rectangle
- * \param[in] glbEnd end index of the global work bounding rectangle
- * \param[in] nSubSpcs num of processors (or threads etc.)
- * \param[in] iSubSpc rank
- */
+
 template<class elemType>
 void GPRO::DeComposition<elemType>::
 _smpl1DDcmp( int &subBegin, int &subEnd,

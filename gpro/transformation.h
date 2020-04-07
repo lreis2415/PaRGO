@@ -1,20 +1,21 @@
+/**
+ * \file transformation
+ * \author Ai Beibei (aibb@lreis.ac.cn)
+ * \brief Header file for class GPRO::Transformation
+ * \version 2.0
+ * 
+ * \copyright Copyright (c) 2013-2020
+ *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
+ *  purposes, NO COMMERCIAL usages are allowed unless the author is 
+ *  contacted and a permission is granted
+ * 
+ * changelog:
+ *  - 1. 2020 - Wang Yujing - Code reformat
+ */
+
 #ifndef Transformation_H
 #define Transformation_H
 
-/***************************************************************************
-* transformation.h
-*
-* Project: GPRO, v 2.0
-* Purpose: Header file for class GPRO::Transformation
-* Author:  Ai Beibei
-* E-mail:  aibb@lreis.ac.cn
-****************************************************************************
-* Copyright (c) 2017. Ai Beibei
-* NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
-* purposes, NO COMMERCIAL usages are allowed unless the author is 
-* contacted and a permission is granted
-* 
-****************************************************************************/
 #include <vector>
 #include "basicTypes.h"
 #include "cellSpace.h"
@@ -26,51 +27,67 @@ using namespace std;
 
 namespace GPRO
 {
+	/**
+     * \ingroup gpro
+     * \class Transformation 
+     * \brief Transformation from data domain (RasterLayer) to compute domain (ComputeLayer)
+     */
 	template <class elemType>
 	class Transformation
 	{
 	public:
 		Transformation();
-		Transformation( ComputeLayer<elemType>* pLayer );	//继承类自定义实现时调用此类型
-		Transformation( elemType load1, elemType load2, ComputeLayer<elemType>* pLayer );
-		//基类根据负载实现了一个默认版本，用于数据分布不均匀而计算分布均匀的情况
 
-		virtual ~Transformation(){}	//可能是作为基类，因此写成虚析构;防止基类指针指向子类对象，释放不当
+        /**
+         * \brief To be overloaded by subclass.
+         * \param[in] pLayer the compute layer to be derived.
+         */		
+		Transformation( ComputeLayer<elemType>* pLayer );
 
-		virtual bool isTermination(bool isIter=false) {return isIter;}	//继承类直接改吧termination成员值
+		/**
+         * \brief A default implementation for uniform distribution of data but nonuniform distribution of computation.
+         * \param[in] nodataLoad intensity value for NoData grid.
+         * \param[in] validLoad intensity value for valid grid.
+         * \param[in] pLayer the compute layer to be derived.
+         */		
+		Transformation( elemType nodataLoad, elemType validLoad, ComputeLayer<elemType>* pLayer );
+
+		virtual ~Transformation(){}	//virtual Destructor
+
+		virtual bool isTermination(bool isIter=false) {return isIter;}	// confusing.
 		bool Configure(ComputeLayer<elemType>* pLayer, bool isCommunication);
 		bool paramInit();
 		virtual bool Operator(const CellCoord &coord);
+
+        /**
+         * \brief To start the process.
+         */		
 		bool run();
 
 	private:
-		elemType minLoad;
-		elemType maxLoad;
-		int _myRank;
+		elemType _nodataLoad; ///< intensity value for NoData grid
+		elemType _validLoad; ///< intensity value for valid grid
+		int _myRank;  ///< rank of this process
 
-		double _noData;	//数据图层的空值
-		int _computGrain;
-		CoordBR _dataMBR;	//数据图层的行列号
-		CoordBR _dataWorkBR;	//本进程处理的块对应的数据图层范围
-		//int maxDataRow;
-		//int maxDataCol;
-		//int glbBeginRow;
-		//int glbBeginCol;
+		double _noData;	///< empty value in data domain
+		int _computGrain;  ///< granularity for compute layer. 1 compute layer grid contains _computGrain^2 raster layer grids.
+		CoordBR _dataMBR;	///< MBR of data domain
+		CoordBR _dataWorkBR;	///< workBR of this process
 
 	protected:
-		//vector<RasterLayer<elemType>* > CommVec;	//待定，若为并行求解，则会需要
-		ComputeLayer<elemType>* _pComptLayer;
-		//vector<RasterLayer<elemType>* > _pDataLayersV;	//引入这个是为了实现一些默认强度版本
-		CoordBR* _pWorkBR;
-		int Termination;
+		//vector<RasterLayer<elemType>* > CommVec;	// to be decided. It's needed for parallel transformation
+		ComputeLayer<elemType>* _pComptLayer; ///< the output
+		//vector<RasterLayer<elemType>* > _pDataLayersV;	// to implement some default versions
+		CoordBR* _pWorkBR; ///< workBR of this Transformation
+		int Termination; ///< if it terminates after this round of traverse
 	};
 };
 
 template <class elemType>
 inline GPRO::Transformation<elemType>::
 Transformation()
-	:minLoad(0),
-	maxLoad(0),
+	:_nodataLoad(0),
+	_validLoad(0),
 	_pComptLayer(NULL),
 	_pWorkBR(NULL),
 	Termination(1)
@@ -80,9 +97,9 @@ Transformation()
 
 template <class elemType>
 inline GPRO::Transformation<elemType>::
-Transformation( ComputeLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
-	:minLoad(0),
-	maxLoad(0),
+Transformation( ComputeLayer<elemType>* pLayer )
+	:_nodataLoad(0),
+	_validLoad(0),
 	_pComptLayer(pLayer),
 	_pWorkBR(NULL),
 	Termination(1)
@@ -96,9 +113,9 @@ Transformation( ComputeLayer<elemType>* pLayer )	//继承类自定义实现时调用此类型
 
 template <class elemType>
 inline GPRO::Transformation<elemType>::
-Transformation( elemType load1, elemType load2, ComputeLayer<elemType>* pLayer )	//基类根据负载指定默认版本
-	:minLoad(load1),
-	maxLoad(load2),
+Transformation( elemType nodataLoad, elemType validLoad, ComputeLayer<elemType>* pLayer )
+	:_nodataLoad(nodataLoad),
+	_validLoad(validLoad),
 	_pComptLayer(pLayer),
 	_pWorkBR(NULL),
 	Termination(1)
@@ -114,7 +131,7 @@ template <class elemType>
 bool GPRO::Transformation<elemType>::
 Configure(ComputeLayer<elemType>* pLayer, bool isCommunication)
 {
-	//目前很简略，以后可能会设计通信及更多数据成员
+	//It is simple for the moment, may have more members or communications yet.
 	if(_pWorkBR == NULL && &pLayer->_pMetaData != NULL)
 	{
 		_pWorkBR = &pLayer->_pMetaData->_localworkBR;
@@ -131,7 +148,6 @@ template <class elemType>
 bool GPRO::Transformation<elemType>::
 paramInit()
 {
-	//必要的private数据成员一次性初始化，operator函数中会用到
 	if( _pComptLayer->_vDataLayers.empty() ){
 		cerr<<"Datalayers used for calculating compute layer should not be null."<<endl;
 		return false;
@@ -144,24 +160,21 @@ paramInit()
 	return true;
 }
 
-//基类根据负载实现了一个默认版本，用于数据分布不均匀而计算分布均匀的情况;且计算分布是可指定的，不是复杂计算
 template <class elemType>
 bool GPRO::Transformation<elemType>::
 Operator(const CellCoord &coord)
 {
-	//根据给定负载分布，进行计算
 	int cRow = coord.iRow();
 	int cCol = coord.iCol();
 	CellSpace<elemType> &computL = *(_pComptLayer->cellSpace());
 
 	if( cRow == _pWorkBR->minIRow() && cCol == _pWorkBR->minICol() ){
 		cout<<"Transformation operator() function called."<<endl;
-		//调用一个数据成员初始化函数，对行列范围等一次性初始化
-		if( minLoad == maxLoad ){
+		if( _nodataLoad == _validLoad ){
 			cerr<<"The load is balanced. No need to use compute layer."<<endl;
 			return false;
 		}
-		if( minLoad<0 || maxLoad<0 ){
+		if( _nodataLoad<0 || _validLoad<0 ){
 			cerr<<"The load specified cannot be negative."<<endl;
 			return false;
 		}
@@ -170,19 +183,19 @@ Operator(const CellCoord &coord)
 			return false;
 		}
 	}
-	computL[cRow][cCol] = 0.0;	//初始化
+	computL[cRow][cCol] = 0.0;
 	for( typename vector<RasterLayer<elemType>* >::iterator iter = _pComptLayer->_vDataLayers.begin(); iter!=_pComptLayer->_vDataLayers.end(); ++iter ){
-		//对每个图层遍历计算，累积给计算域图层值
-		const CellSpace<elemType> &dataL = *((*iter)->cellSpace());	//模板类迭代指针这样用是否正确
+		//iterates each layer, add up to the computeLayer
+		const CellSpace<elemType> &dataL = *((*iter)->cellSpace());
 		for( int dRow = cRow*_computGrain+_dataWorkBR.minIRow(); dRow<(cRow+1)*_computGrain+_dataWorkBR.minIRow(); ++dRow ){
 			for( int dCol = cCol*_computGrain+_dataWorkBR.minICol(); dCol<(cCol+1)*_computGrain+_dataWorkBR.minICol(); ++dCol ){
 				if( dRow > _dataMBR.maxIRow()||dRow>=dataL.nRows() || dCol > _dataMBR.maxICol() ||dCol>=dataL.nCols()){
 					continue;
 				}else{
-					if( fabs(dataL[dRow][dCol] - _noData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){	//9999是针对我们的测试数据而多写的，其实没必要，属于数据问题，不属于程序问题
-						computL[cRow][cCol] += maxLoad;//wyj 2019-11-12 noData不应该+=minLoad吗
+					if( fabs(dataL[dRow][dCol] - _noData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){ //9999 is for our test data set, but not for robustness. So it's not necessary. (? confusing)
+						computL[cRow][cCol] += _validLoad;
 					}else{
-						computL[cRow][cCol] += minLoad;
+						computL[cRow][cCol] += _nodataLoad;
 					}
 				}
 			}
@@ -200,7 +213,7 @@ run()
 		cerr<<"not supported yet."<<endl;
 	}
 	bool flag = true;
-	if( _myRank == 0 ){	//目前仅支持串行求解
+	if( _myRank == 0 ){	//It's serial for the moment.
         int termSum = 1;
 		do
 		{
@@ -219,7 +232,7 @@ run()
 				}
 			}
 			//MPI_Allreduce(&Termination, &termSum, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
-			termSum = Termination;	//暂提供给目前的串行版本
+			termSum = Termination;	//It's serial for the moment.
 		} while (!termSum);
 	}
 

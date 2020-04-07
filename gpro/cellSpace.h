@@ -10,7 +10,7 @@
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2020 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Wang Yujing - Code reformat
  */
 
 #ifndef CELLSPACE_H
@@ -19,9 +19,7 @@
 #include "basicTypes.h"
 #include "basicCell.h"
 #include "metaData.h"
-#include <string>
 #include <iostream>
-#include <typeinfo>	//哪里用到了这个库
 #include "mpi.h"
 #include <gdal_priv.h>
 
@@ -37,7 +35,7 @@ namespace GPRO {
     /**
      * \ingroup gpro
      * \class Transition
-     * \brief a
+     * \brief 
      */
     template<class elemType>
     class Transition {
@@ -91,13 +89,14 @@ namespace GPRO {
             return true;
         }
 
-        virtual bool evaluate( vector<pair<int, elemType> > &vUpdtedCells,
-                               const CellCoord &coord ) {}	/*后面被调用，但并没实现过，下同*/
+        // The following are called but never implemented. 
+        //virtual bool evaluate( vector<pair<int, elemType> > &vUpdtedCells,
+        //                       const CellCoord &coord ) {}	/*后面被调用，但并没实现过，下同*/
 
-        virtual bool finalize( const elemType &val,
-                               const CellCoord &coord ) {}
+        //virtual bool finalize( const elemType &val,
+        //                       const CellCoord &coord ) {}
 
-        virtual int workload( const CoordBR &workBR ) {}
+        //virtual int workload( const CoordBR &workBR ) {}
 
     protected:
         CellSpace<elemType> *_pCellSpace;
@@ -117,7 +116,7 @@ namespace GPRO {
     /**
      * \ingroup gpro
      * \class CellSpace
-     * \brief Data of cells and the space that contains them
+     * \brief Data (matrix) of cells
      */
     template<class elemType>
     class CellSpace {
@@ -230,19 +229,21 @@ namespace GPRO {
          * \param[in] vCells input value in the form of std::pair
          */
         bool updateCells( const vector<pair<int, elemType> > &vCells );
-        /* 以下几个函数不知想干嘛，而且觉得没用处 */
-        bool update( Transition<elemType> *pTransition,
-                     Neighborhood<elemType> *pNbrhood,
-                     const CoordBR *const pWorkBR = 0 );
-        bool update( IntVect &vIdxs2Eval,
-                     Transition<elemType> *pTransition,
-                     Neighborhood<elemType> *pNbrhood,
-                     const CoordBR *const pWorkBR = 0 );
-        bool updateFinalize( Transition<elemType> *pTransition = 0,
-                             Neighborhood<elemType> *pNbrhood = 0 );
-        bool add2UpdtMap( const elemType &newVal,
-                          const CellCoord &coord );
-        void cleanUpdtMap();
+
+        //Confusing, never used.
+
+        //bool update( Transition<elemType> *pTransition,
+        //             Neighborhood<elemType> *pNbrhood,
+        //             const CoordBR *const pWorkBR = 0 );
+        //bool update( IntVect &vIdxs2Eval,
+        //             Transition<elemType> *pTransition,
+        //             Neighborhood<elemType> *pNbrhood,
+        //             const CoordBR *const pWorkBR = 0 );
+        //bool updateFinalize( Transition<elemType> *pTransition = 0,
+        //                     Neighborhood<elemType> *pNbrhood = 0 );
+        //bool add2UpdtMap( const elemType &newVal,
+        //                  const CellCoord &coord );
+        //void cleanUpdtMap();
         // GDALDataType getType();
 
     public:
@@ -915,210 +916,210 @@ updateCells( const vector<pair<int, elemType> > &vCells ) {
 }
 
 
-
-template<class elemType>
-bool GPRO::CellSpace<elemType>::
-update( Transition<elemType> *pTransition, Neighborhood<elemType> *pNbrhood, const CoordBR *const pWorkBR ) {
-    if ( !pTransition ) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
-			 << " Error: unable to update a CellSpace" \
-			 << " using a void pointer to Transition" \
-			 << endl;
-        return false;
-    }
-    if ( empty()) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
-			 << " Error: unable to update an empty CellSpace" << endl;
-        return false;
-    }
-
-    const CoordBR *pWBR = pWorkBR;
-    CoordBR workBR;
-    if ( !pWorkBR ) {
-        if ( !pNbrhood->calcWorkBR( workBR, _dims )) {
-            return false;
-        }
-        pWBR = &workBR;
-    }
-    if ( !pWBR->valid( dims())) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
-			 << " Error: invalid workBR (" \
-			 << *pWBR << ")" << endl;
-        return false;
-    }
-
-    if ( !pTransition->cellSpace( this ) || !pTransition->nbrhood( pNbrhood )) {
-        return false;
-    }
-
-    vector<pair<int, elemType> > vUpdtedCells;
-    for ( int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++ ) {
-        for ( int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++ ) {
-            vUpdtedCells.clear();
-            CellCoord coord( iRow, iCol );
-            if ( !pTransition->evaluate( vUpdtedCells, coord )) {
-                return false;
-            }
-            if ( !vUpdtedCells.empty()) {
-                for ( int iCell = 0; iCell < vUpdtedCells.size(); iCell++ ) {
-                    int &iElem = vUpdtedCells[iCell].first;
-                    if ( !validIdx( iElem )) {
-                        cerr << __FILE__ << " " << __FUNCTION__ \
-							 << " Error: unable to update coord[" \
-							 << coord << "]" << endl;
-                        return false;
-                    }
-                    elemType &val = vUpdtedCells[iCell].second;
-                    if ( pTransition->needFinalize()) {
-                        _mUpdtCells[val].push_back( iElem );
-                    } else {
-                        _matrix[iElem] = val;
-                    }
-                }
-            }
-        }
-    }
-    return true;
-}
-
-template<class elemType>
-bool GPRO::CellSpace<elemType>::
-update( IntVect &vIdxs2Eval,
-        Transition<elemType> *pTransition,
-        Neighborhood<elemType> *pNbrhood,
-        const CoordBR *const pWorkBR ) {
-    if ( !pTransition ) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
- << " Error: unable to update a CellSpace" \
- << " using a void pointer to Transition" \
- << endl;
-        return false;
-    }
-    if ( empty()) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
- << " Error: unable to update an empty CellSpace" << endl;
-        return false;
-    }
-
-    const CoordBR *pWBR = pWorkBR;
-    CoordBR workBR;
-    if ( !pWorkBR ) {
-        if ( !pNbrhood->calcWorkBR( workBR, _dims )) {
-            return false;
-        }
-        pWBR = &workBR;
-    }
-    if ( !pWBR->valid( dims())) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
- << " Error: invalid workBR (" \
- << *pWBR << ")" << endl;
-        return false;
-    }
-    if ( !pTransition->cellSpace( this ) ||
-        !pTransition->nbrhood( pNbrhood )) {
-        return false;
-    }
-
-    if ( vIdxs2Eval.empty()) {
-        return true;
-    }
-    vector<pair<int, elemType> > vUpdtedCells;
-    IntVctItr iIdx = vIdxs2Eval.begin();
-    while ( iIdx != vIdxs2Eval.end()) {
-        int iElem = *iIdx;
-        CellCoord coord( iElem, _dims );
-        vUpdtedCells.clear();
-        if ( pWBR->contain( coord )) {
-            if ( !pTransition->evaluate( vUpdtedCells, coord )) {
-                return false;
-            }
-            if ( !vUpdtedCells.empty()) {
-                for ( int iCell = 0; iCell < vUpdtedCells.size(); iCell++ ) {
-                    int &iElem = vUpdtedCells[iCell].first;
-                    if ( !validIdx( iElem )) {
-                        cerr << __FILE__ << " " << __FUNCTION__ \
- << " Error: unable to update coord[" \
- << coord << "]" << endl;
-                        return false;
-                    }
-                    elemType &val = vUpdtedCells[iCell].second;
-                    if ( pTransition->needFinalize()) {
-                        _mUpdtCells[val].push_back( iElem );
-                    } else {
-                        _matrix[iElem] = val;
-                    }
-                }
-            }
-            vIdxs2Eval.erase( iIdx );
-        } else {
-            iIdx++;
-        }
-    } // End of iIdx loop
-
-    return true;
-}
-
-template<class elemType>
-bool GPRO::CellSpace<elemType>::
-updateFinalize( Transition<elemType> *pTransition,
-                Neighborhood<elemType> *pNbrhood ) {
-    if ( _mUpdtCells.empty()) {
-        return true;
-    }
-
-    if ( pTransition ) {
-        if ( !pTransition->cellSpace( this ) ||
-            !pTransition->nbrhood( pNbrhood )) {
-            return false;
-        }
-    }
-
-    typename map<elemType, IntVect>::iterator iCellGroup = _mUpdtCells.begin();
-    while ( iCellGroup != _mUpdtCells.end()) {
-        elemType newVal = ( *iCellGroup ).first;
-        IntVect &vIdxs = ( *iCellGroup ).second;
-        for ( int iIdx = 0; iIdx < vIdxs.size(); iIdx++ ) {
-            int &idx = vIdxs[iIdx];
-            if ( !validIdx( idx )) {
-                cerr << __FILE__ << " " << __FUNCTION__ \
- << " Error: unable to finalize the update of idx[" \
- << idx << "]" << endl;
-                return false;
-            }
-            if ( pTransition ) {
-                CellCoord coord( idx, _dims );
-                if ( !pTransition->finalize( newVal, coord )) {
-                    return false;
-                }
-            } else {
-                _matrix[idx] = newVal;
-            }
-        }
-        iCellGroup++;
-    }
-
-    _mUpdtCells.clear();
-    return true;
-}
-
-template<class elemType>
-bool GPRO::CellSpace<elemType>::
-add2UpdtMap( const elemType &newVal,
-             const CellCoord &coord ) {
-    if ( !validCoord( coord )) {
-        cerr << __FILE__ << " " << __FUNCTION__ \
- << " Error: unable to add a new location to" \
- << " the update cell map" << endl;
-        return false;
-    }
-    _mUpdtCells[newVal].push_back( coord2idx( coord ));
-    return true;
-}
-
-template<class elemType>
-void GPRO::CellSpace<elemType>::
-cleanUpdtMap() {
-    _mUpdtCells.clear();
-}
+//
+//template<class elemType>
+//bool GPRO::CellSpace<elemType>::
+//update( Transition<elemType> *pTransition, Neighborhood<elemType> *pNbrhood, const CoordBR *const pWorkBR ) {
+//    if ( !pTransition ) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+//			 << " Error: unable to update a CellSpace" \
+//			 << " using a void pointer to Transition" \
+//			 << endl;
+//        return false;
+//    }
+//    if ( empty()) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+//			 << " Error: unable to update an empty CellSpace" << endl;
+//        return false;
+//    }
+//
+//    const CoordBR *pWBR = pWorkBR;
+//    CoordBR workBR;
+//    if ( !pWorkBR ) {
+//        if ( !pNbrhood->calcWorkBR( workBR, _dims )) {
+//            return false;
+//        }
+//        pWBR = &workBR;
+//    }
+//    if ( !pWBR->valid( dims())) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+//			 << " Error: invalid workBR (" \
+//			 << *pWBR << ")" << endl;
+//        return false;
+//    }
+//
+//    if ( !pTransition->cellSpace( this ) || !pTransition->nbrhood( pNbrhood )) {
+//        return false;
+//    }
+//
+//    vector<pair<int, elemType> > vUpdtedCells;
+//    for ( int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++ ) {
+//        for ( int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++ ) {
+//            vUpdtedCells.clear();
+//            CellCoord coord( iRow, iCol );
+//            if ( !pTransition->evaluate( vUpdtedCells, coord )) {
+//                return false;
+//            }
+//            if ( !vUpdtedCells.empty()) {
+//                for ( int iCell = 0; iCell < vUpdtedCells.size(); iCell++ ) {
+//                    int &iElem = vUpdtedCells[iCell].first;
+//                    if ( !validIdx( iElem )) {
+//                        cerr << __FILE__ << " " << __FUNCTION__ \
+//							 << " Error: unable to update coord[" \
+//							 << coord << "]" << endl;
+//                        return false;
+//                    }
+//                    elemType &val = vUpdtedCells[iCell].second;
+//                    if ( pTransition->needFinalize()) {
+//                        _mUpdtCells[val].push_back( iElem );
+//                    } else {
+//                        _matrix[iElem] = val;
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    return true;
+//}
+//
+//template<class elemType>
+//bool GPRO::CellSpace<elemType>::
+//update( IntVect &vIdxs2Eval,
+//        Transition<elemType> *pTransition,
+//        Neighborhood<elemType> *pNbrhood,
+//        const CoordBR *const pWorkBR ) {
+//    if ( !pTransition ) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+// << " Error: unable to update a CellSpace" \
+// << " using a void pointer to Transition" \
+// << endl;
+//        return false;
+//    }
+//    if ( empty()) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+// << " Error: unable to update an empty CellSpace" << endl;
+//        return false;
+//    }
+//
+//    const CoordBR *pWBR = pWorkBR;
+//    CoordBR workBR;
+//    if ( !pWorkBR ) {
+//        if ( !pNbrhood->calcWorkBR( workBR, _dims )) {
+//            return false;
+//        }
+//        pWBR = &workBR;
+//    }
+//    if ( !pWBR->valid( dims())) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+// << " Error: invalid workBR (" \
+// << *pWBR << ")" << endl;
+//        return false;
+//    }
+//    if ( !pTransition->cellSpace( this ) ||
+//        !pTransition->nbrhood( pNbrhood )) {
+//        return false;
+//    }
+//
+//    if ( vIdxs2Eval.empty()) {
+//        return true;
+//    }
+//    vector<pair<int, elemType> > vUpdtedCells;
+//    IntVctItr iIdx = vIdxs2Eval.begin();
+//    while ( iIdx != vIdxs2Eval.end()) {
+//        int iElem = *iIdx;
+//        CellCoord coord( iElem, _dims );
+//        vUpdtedCells.clear();
+//        if ( pWBR->contain( coord )) {
+//            if ( !pTransition->evaluate( vUpdtedCells, coord )) {
+//                return false;
+//            }
+//            if ( !vUpdtedCells.empty()) {
+//                for ( int iCell = 0; iCell < vUpdtedCells.size(); iCell++ ) {
+//                    int &iElem = vUpdtedCells[iCell].first;
+//                    if ( !validIdx( iElem )) {
+//                        cerr << __FILE__ << " " << __FUNCTION__ \
+// << " Error: unable to update coord[" \
+// << coord << "]" << endl;
+//                        return false;
+//                    }
+//                    elemType &val = vUpdtedCells[iCell].second;
+//                    if ( pTransition->needFinalize()) {
+//                        _mUpdtCells[val].push_back( iElem );
+//                    } else {
+//                        _matrix[iElem] = val;
+//                    }
+//                }
+//            }
+//            vIdxs2Eval.erase( iIdx );
+//        } else {
+//            iIdx++;
+//        }
+//    } // End of iIdx loop
+//
+//    return true;
+//}
+//
+//template<class elemType>
+//bool GPRO::CellSpace<elemType>::
+//updateFinalize( Transition<elemType> *pTransition,
+//                Neighborhood<elemType> *pNbrhood ) {
+//    if ( _mUpdtCells.empty()) {
+//        return true;
+//    }
+//
+//    if ( pTransition ) {
+//        if ( !pTransition->cellSpace( this ) ||
+//            !pTransition->nbrhood( pNbrhood )) {
+//            return false;
+//        }
+//    }
+//
+//    typename map<elemType, IntVect>::iterator iCellGroup = _mUpdtCells.begin();
+//    while ( iCellGroup != _mUpdtCells.end()) {
+//        elemType newVal = ( *iCellGroup ).first;
+//        IntVect &vIdxs = ( *iCellGroup ).second;
+//        for ( int iIdx = 0; iIdx < vIdxs.size(); iIdx++ ) {
+//            int &idx = vIdxs[iIdx];
+//            if ( !validIdx( idx )) {
+//                cerr << __FILE__ << " " << __FUNCTION__ \
+// << " Error: unable to finalize the update of idx[" \
+// << idx << "]" << endl;
+//                return false;
+//            }
+//            if ( pTransition ) {
+//                CellCoord coord( idx, _dims );
+//                if ( !pTransition->finalize( newVal, coord )) {
+//                    return false;
+//                }
+//            } else {
+//                _matrix[idx] = newVal;
+//            }
+//        }
+//        iCellGroup++;
+//    }
+//
+//    _mUpdtCells.clear();
+//    return true;
+//}
+//
+//template<class elemType>
+//bool GPRO::CellSpace<elemType>::
+//add2UpdtMap( const elemType &newVal,
+//             const CellCoord &coord ) {
+//    if ( !validCoord( coord )) {
+//        cerr << __FILE__ << " " << __FUNCTION__ \
+// << " Error: unable to add a new location to" \
+// << " the update cell map" << endl;
+//        return false;
+//    }
+//    _mUpdtCells[newVal].push_back( coord2idx( coord ));
+//    return true;
+//}
+//
+//template<class elemType>
+//void GPRO::CellSpace<elemType>::
+//cleanUpdtMap() {
+//    _mUpdtCells.clear();
+//}
 
 #endif

@@ -10,7 +10,7 @@
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2020 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Wang Yujing - Code reformat
  */
 
 #ifndef BASICCELL_H
@@ -27,69 +27,69 @@ namespace GPRO {
     template<class elemType>
     class BasicCell {
     public:
-        //! Constructor
+        ///< Constructor
         BasicCell() {}
 
-        //! Construct with row&col value
+        ///< Construct with row&col value
         BasicCell( int iRow, int iCol )
             : _coord( iRow, iCol ) {}
             
-        //! Constuct with row&col value and element
+        ///< Constuct with row&col value and element
         BasicCell( int iRow, int iCol,
                    const elemType &val )
             : _coord( iRow, iCol ),  _val( val ) {}
 
-        //! Construct with coordinate
+        ///< Construct with coordinate
         BasicCell( const CellCoord &coord )
             : _coord( coord ) {}
 
-        //! Construct with coordinate and element
+        ///< Construct with coordinate and element
         BasicCell( const CellCoord &coord,
                    const elemType &val )
             : _coord( coord ), _val( val ) {}
 
-        //! Deep copy
+        ///< Deep copy
         BasicCell( const BasicCell<elemType> &rhs )
             : _coord( rhs._coord ), _val( rhs._val ) {}
         
-        /// Deconstructor
+        ///< Destructor
         ~BasicCell() {}
 
-        /// return the copy of the stored value
+        ///< return the copy of the stored value
         const elemType &val() const {
             return _val;
         }
-        /// Getter
+        ///< Getter
         int iRow() const {
             return _coord.iRow();
         }
-        /// Getter
+        ///< Getter
         int iCol() const {
             return _coord.iCol();
         }
-        /// return the copy of coordinate
+        ///< return the copy of coordinate
         const CellCoord &coord() const {
             return _coord;
         }
-        /// Setter
+        ///< Setter
         void val( const elemType &val ) {
             _val = val;
         }
-        /// Setter
+        ///< Setter
         void iRow( int iRow ) {
             _coord.iRow( iRow );
         }
-        /// Setter
+        ///< Setter
         void iCol( int iCol ) {
             _coord.iCol( iCol );
         }
 
-        /// Shallow copy
+        ///< Shallow copy
         void coord( const CellCoord &coord ) {
             _coord = coord;
         }
 
-        /// Deep copy
+        ///< Deep copy
         BasicCell &operator=( const BasicCell<elemType> &rhs ) {
             if ( this != &rhs ) {
                 _coord = rhs._coord;

@@ -6,13 +6,13 @@
  *        GPRO::SpaceDims, GPRO::CellCoord, and GPRO::CoordBR
  * \version 1.0
  * 
- * \copyright Copyright (c) 2013
+ * \copyright Copyright (c) 2013-2020
  *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
  *  purposes, NO COMMERCIAL usages are allowed unless the author is 
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Wang Yujing - Code reformat
  */
 
 #ifndef BASICTYPES_H
@@ -47,7 +47,7 @@ namespace GPRO {
      * \brief Domain decompose type
      */
     enum DomDcmpType {
-        NON_DCMP = 0, /**< no decompose */
+        NON_DCMP = 0, /**< not decompose */
         ROWWISE_DCMP, /**< row-wise decompose */
         COLWISE_DCMP, /**< col-wise decompose */
         BLOCK_DCMP /**< block-wise decompose */

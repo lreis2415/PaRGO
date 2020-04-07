@@ -1,16 +1,16 @@
 /**
  * \file basicTypes
- * \author Zhan Lijun (zhanlj@lreis.ac.cn)
+ * \author Zhan Lijun (zhanlj@lreis.ac.cn), Wang Yujing
  * \brief Header file for class GPRO::RasterOperator
- * \version 1.0
+ * \version 2.0
  * 
- * \copyright Copyright (c) 2013
+ * \copyright Copyright (c) 2013-2020
  *  NOTE: this library can ONLY be used for EDUCATIONAL and SCIENTIFIC 
  *  purposes, NO COMMERCIAL usages are allowed unless the author is 
  *  contacted and a permission is granted
  * 
  * changelog:
- *  - 1. 2019-10 - Yujing Wang - Code reformat
+ *  - 1. 2020 - Wang Yujing - Code reformat
  */
 #ifndef RASTEROPERATOR_H
 #define RASTEROPERATOR_H
@@ -54,34 +54,57 @@ namespace GPRO
         virtual ~RasterOperator() {}
 
         /**
-         * \brief Basic function in which serial-style algorithm should be writen
+         * \brief Basic function in which serial-style algorithm should be writen.
          * \param[in] coord coordinate of the central cell(point)
          * \param[in] operFlag an unused controlling variable.
          */
         virtual bool Operator(const CellCoord& coord, bool operFlag) { return operFlag; }
 
+        /**
+         * \brief Implement to control the termination.
+         */
         virtual bool isTermination() { return false; }
 
+        /**
+         * \brief Operator is invoked here. Traverse throughout the workBR.
+         * \param[in] pWorkBR the Bounding Rectangle area to be traversed.
+         */
         bool Work(const CoordBR* const pWorkBR);
-        bool Run();
+
+        /**
+         * \brief Assign the workBR in pLayer to this Operator.
+         * \param[in] pWorkBR the rectangle area to be traversed.
+         * \param[in] pWorkBR the rectangle area to be traversed.
+         */
         bool Configure(RasterLayer<elemType>* pLayer, bool isCommunication);
+
+        /**
+         * \brief This entrance method is to be called in the main process.
+         */
+        bool Run();
         
+        /**
+         * \brief Mount the compute layer to this Operator.
+         *  
+         * It is designed for intensity evaluation strategy. The member comptLayer will be initialised.
+         * \param[in] layerD the rectangle area to be traversed.
+         * \param[in] pWorkBR the rectangle area to be traversed.
+         */        
         void comptLayer(RasterLayer<elemType>& layerD);
-        void comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath);
+    
+        //void comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath);
 
     private:
         DomDcmpType _domDcmpType;
 
     public:
-        RasterLayer<elemType>* _pComptLayer; ///capture
-        char* _computeLayerOutPath;
+        RasterLayer<elemType>* _pComptLayer; ///< compute layer, mounted to be filled
+        // char* _computeLayerOutPath;
 
-        vector<RasterLayer<elemType> *> CommVec;
-        //CellSpace<elemType>* _pCellSpace;
-        //Neighborhood<elemType>* _pNbrhood; //unused
-        CoordBR* _pWorkBR;
-        bool commFlag;
-        int Termination;
+        vector<RasterLayer<elemType> *> CommVec; ///< raster layers to communicate between processes
+        CoordBR* _pWorkBR; ///< work bounding rectangle of this process
+        bool commFlag; ///< true if involve communication
+        int Termination; ///< typically 1 implies terminate, 0 implies another traversion
     };
 };
 
@@ -94,17 +117,17 @@ comptLayer(RasterLayer<elemType>& layerD) {
 }
 
 
-template <class elemType>
-void GPRO::RasterOperator<elemType>::
-comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath) {
-    comptLayer(layerD);
-    _computeLayerOutPath=computeLayerOutPath;
-}
+// template <class elemType>
+// void GPRO::RasterOperator<elemType>::
+// comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath) {
+//     comptLayer(layerD);
+//     _computeLayerOutPath=computeLayerOutPath;
+// }
 
 template <class elemType>
 bool GPRO::RasterOperator<elemType>::
 Configure(RasterLayer<elemType>* pLayer, bool isCommunication) {
-    //wyj: why not overwrite workBR?
+    //wyj: why not overwrite workBR? It's OK tentatively.
     _pWorkBR = &pLayer->_pMetaData->_localworkBR;
     _domDcmpType = pLayer->_pMetaData->_domDcmpType;
     
@@ -112,10 +135,8 @@ Configure(RasterLayer<elemType>* pLayer, bool isCommunication) {
     //    _pWorkBR = &pLayer->_pMetaData->_localworkBR;
     //    _domDcmpType = pLayer->_pMetaData->_domDcmpType;
     //}
-    //cout<<_pWorkBR->minIRow()<<" "<<_pWorkBR->minICol()<<" "<<_pWorkBR->maxIRow()<<" "<<_pWorkBR->maxICol()<<endl;
     if (isCommunication) {
         CommVec.push_back(pLayer);
-        //cout<<"_pCommVec->size is "<<endl;
         if (commFlag == false) {
             commFlag = true;
         }
@@ -127,7 +148,7 @@ Configure(RasterLayer<elemType>* pLayer, bool isCommunication) {
 template <class elemType>
 bool GPRO::RasterOperator<elemType>::
 Work(const CoordBR* const pWBR) {
-    bool flag = true; //标识本函数是否得以正确执行，会返回给run函数
+    bool flag = true; //if this method finishes normally
 
     //cout<<"pWBR->minIRow() "<<pWBR->minIRow()<<"  pWBR->maxIRow()"<<pWBR->maxIRow()<<endl;
     //cout<<"_pCommVec->size() "<<CommVec.size()<<endl;
@@ -135,8 +156,8 @@ Work(const CoordBR* const pWBR) {
     if (commFlag) {
         COMNI.setBuffer();
     }
-    int noterm = 1; //是否继续迭代，考虑换别的变量
-    int itera = 0; //迭代次数
+    int noterm = 1; // if iteration continues. "may change to other vars." (?)
+    int itera = 0; // iteration nums
     int myRank;
     int nRow=pWBR->maxIRow()-pWBR->minIRow();
     int delim=20;
@@ -181,7 +202,6 @@ Work(const CoordBR* const pWBR) {
             cout<<"rank"<<myRank<<" iter time "<<endTime-iterStartTime<<"s"<<endl;
             startTime=MPI_Wtime();
             if (commFlag) {
-                //这里应该是统一调用函数，在函数内部，根据元数据获取的划分方式再确定调用哪一个通信
                 if (_domDcmpType == ROWWISE_DCMP) {
                     COMNI.rowComm();
                 }
@@ -197,7 +217,6 @@ Work(const CoordBR* const pWBR) {
         }
         while (!noterm);
         MPI_Barrier(MPI_COMM_WORLD);
-        //cout<<"iterative number is "<<itera<<endl;
     }
     else if (Application::_programType == MPI_OpenMP_Type) {
         MPI_Barrier(MPI_COMM_WORLD);
