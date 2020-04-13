@@ -254,10 +254,14 @@ initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int compt
 
     _comptGrain=comptGrain;
     pMetaData->cellSize = rhs.cellSize * comptGrain;
-    pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
-    pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
-    pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
-    pMetaData->column += ( rhs._localworkBR.nCols() % comptGrain ) ? 1 : 0;
+    //pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
+    //pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
+    //pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
+    //pMetaData->column += ( rhs._localworkBR.nCols() % comptGrain ) ? 1 : 0;
+    pMetaData->row = rhs._glbDims.nRows() / comptGrain;
+    pMetaData->row += ( rhs._glbDims.nRows() % comptGrain ) ? 1 : 0;
+    pMetaData->column = rhs._glbDims.nCols() / comptGrain;
+    pMetaData->column += ( rhs._glbDims.nCols() % comptGrain ) ? 1 : 0;
     pMetaData->format = rhs.format;
     pMetaData->projection = rhs.projection;
     pMetaData->noData = rhs.noData;
@@ -364,7 +368,7 @@ template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
 readComputeLoadFile(const char *loadFile) {
     if(GetRank()!=0){
-        MPI_Barrier( MPI_COMM_WORLD );
+        //MPI_Barrier( MPI_COMM_WORLD );
         return true;
     }
     

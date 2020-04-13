@@ -295,9 +295,9 @@ int main(int argc, char *argv[])
 	//以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
 	RasterLayer<double> idwLayer("idwLayer");
 	idwLayer.readNeighborhood(dataNeighbor);
-	idwOper.idwLayer(idwLayer, &spatialrefWkt);
 
 	if(decomposeBySapce){
+	    idwOper.idwLayer(idwLayer, &spatialrefWkt);
 		ComputeLayer<double> comptLayer("computeLayer");
         if(writeLoadPath) {
             comptLayer.initSerial(&idwLayer,compuNeighbor,10);
@@ -309,6 +309,7 @@ int main(int argc, char *argv[])
 			comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
 	}
 	else{
+	    idwOper.idwLayerSerial(idwLayer, &spatialrefWkt);
         const int compuSize = 10;	//ComputeLayerGrain=10*DataLayerGrain (10 temporarily)
 		CoordBR subWorkBR;
         if(readLoadPath) {

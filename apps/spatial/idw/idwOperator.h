@@ -72,7 +72,7 @@ public:
 
     int getBlockCols(){return _blockCols;}
     int getBlockRows(){return _blockRows;}
-
+    inline double getMinDistanceToBlockBound(double x,double y);
     int getNbrPoints(){return _nbrPoints;}
     void initIdwLayerGlobalInfo(RasterLayer<double>& layerD, char** pSpatialRefWkt);
 private:

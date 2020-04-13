@@ -3,6 +3,7 @@
 //#include <gdal_priv.h>
 
 #include "idwOperator.h"
+#include "time.h"
 
 int IDWOperator::getBlockColIndex(double x) {
     return (x - _glb_extent.minX) / _cellSize / _blockGrain;
@@ -10,6 +11,24 @@ int IDWOperator::getBlockColIndex(double x) {
 
 int IDWOperator::getBlockRowIndex(double y) {
     return (_glb_extent.maxY - y) / _cellSize / _blockGrain;
+}
+
+inline double IDWOperator::getMinDistanceToBlockBound(double x,double y) {
+    double boundXY[]={
+        getBlockColIndex(x)*_cellSize*_blockGrain+_sub_extent.minX, //left, block min x
+        (getBlockColIndex(x)+1)*_cellSize*_blockGrain+_sub_extent.minX, //right, block max x
+        getBlockRowIndex(x)*_cellSize*_blockGrain+_sub_extent.minY, //down, block min y
+        (getBlockRowIndex(x)+1)*_cellSize*_blockGrain+_sub_extent.minY //up, block max y
+    };
+
+
+    double distances[]={
+        abs(x-boundXY[0]),
+        abs(x-boundXY[1]),
+        abs(y-boundXY[2]),
+        abs(y-boundXY[3])
+    };
+    return min(min(distances[0],distances[1]),min(distances[2],distances[3]));
 }
 
 IDWOperator::~IDWOperator() {
@@ -342,6 +361,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
     //int searchRadLeast = 0;	//在此层上，搜索够了_nbrPoints个样点
     bool isSearch = true;
     int searchTime = 0;
+    double minDistToBound=getMinDistanceToBlockBound(cellX,cellY);
     do {
         //收集本层搜索的候选block idx
         int* block2search;
@@ -413,17 +433,12 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
             }
         }
         if (tailIdx >= _nbrPoints - 1) {
-            //if( _myRank==0 ){
-            //	cout<<cellRow<<" "<<cellCol<<" "<<(searchRad+0.5)*_cellSize*_blockGrain<<" "<<maxDist<<endl;
-            //}
-            //if ((searchRad + 0.5) * _cellSize * _blockGrain >= maxDist) {
-            if (searchTime>=2) {
+            if (searchRad * _cellSize * _blockGrain + minDistToBound >= maxDist) {
                 //maxDist会越来越小，searchRad会越来越大
                 isSearch=false;
             }
             else {
                 ++searchRad;
-                ++searchTime;
                 continue;
             }
         }
@@ -443,7 +458,10 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
-    //cout<<"rank"<<myRank<<" ["<<iRow<<","<<iCol<<"] - "<<minRow<<endl;
+    if(myRank==0) {
+        return true;
+    }
+    //cout<<"start: rank"<<myRank<<" ["<<iRow<<","<<iCol<<"] - "<<minRow<<endl;
     double startTime, endTime;
     startTime = MPI_Wtime();
     //每个点都是待插值点，只是搜索范围不同而已
@@ -461,16 +479,17 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     idwL[iRow][iCol] = 0;
     for (int i = 0; i < _nbrPoints; ++i) {
         idwL[iRow][iCol] += pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
-        
-        //idwL[iRow][iCol] = minRow;
-        
-        //int blockRow = (iRow + minRow) / _blockGrain; //确定当前栅格所在块
-        //int blockCol = iCol / _blockGrain;
-        //int blockCols = _nCols / _blockGrain;
-        //blockCols += (_nCols % _blockGrain) ? 1 : 0;
-        //idwL[iRow][iCol] = blockRow*blockCols+blockCol;
     }
-    double value=idwL[iRow][iCol];
+
+    // for test.
+    //idwL[iRow][iCol] = minRow;
+    //int blockRow = (iRow + minRow) / _blockGrain;
+    //int blockCol = iCol / _blockGrain;
+    //int blockCols = _nCols / _blockGrain;
+    //blockCols += (_nCols % _blockGrain) ? 1 : 0;
+    //idwL[iRow][iCol] = blockRow*blockCols+blockCol;
+    //double value=idwL[iRow][iCol];
+    
     endTime = MPI_Wtime();
     double time = (endTime - startTime) * 1000;
     if(_pComptLayer) {
@@ -478,6 +497,7 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     }
     delete pNbrSamples;
     delete pWeight;
-
+    
+    //cout<<"end: rank"<<myRank<<" ["<<iRow<<","<<iCol<<"] - "<<minRow<<endl;
     return true;
 }
