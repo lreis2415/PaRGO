@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
 	double starttime;
 	double endtime;
 
-	int blockGrain = 5;	//granularity,样点以块存放的粗网格粒度，以栅格分辨率为基本单位；用户根据数据指定
+	int blockGrain = 10;	//granularity,样点以块存放的粗网格粒度，以栅格分辨率为基本单位；用户根据数据指定
 	IDWOperator idwOper(cellSize, idw_nbrPoints, idw_power, idw_buffer, blockGrain);
 	char* spatialrefWkt;	//投影信息
 	int sample_nums;
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 	idwOper.readSamples( inputFileName, fldIdx, &spatialrefWkt, pAllSamples );	//读取样点，并更新了idwOper.glb_extent
 	//可获取idwLayer的坐标范围,放入idwOper.sample_extent
 	idwOper.creatSampleBlocks(pAllSamples);	//遍历pAllSamples，分块存入idwOper._pSampleBlocks成员
-
+    delete []pAllSamples;
 	//以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
 	RasterLayer<double> idwLayer("idwLayer");
 	idwLayer.readNeighborhood(dataNeighbor);
