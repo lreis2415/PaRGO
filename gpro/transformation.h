@@ -70,7 +70,7 @@ namespace GPRO
 		int _myRank;  ///< rank of this process
 
 		double _noData;	///< empty value in data domain
-		int _computGrain;  ///< granularity for compute layer. 1 compute layer grid contains _computGrain^2 raster layer grids.
+		double _computGrain;  ///< granularity for compute layer. 1 compute layer grid contains _computGrain^2 raster layer grids.
 		CoordBR _dataMBR;	///< MBR of data domain
 		CoordBR _dataWorkBR;	///< workBR of this process
 
@@ -153,7 +153,8 @@ paramInit()
 		return false;
 	}
 	_noData = _pComptLayer->_vDataLayers[0]->_pMetaData->noData;
-	_computGrain = (int)(_pComptLayer->_pMetaData->cellSize / _pComptLayer->_vDataLayers[0]->_pMetaData->cellSize);
+	_computGrain = _pComptLayer->getComputeGrain();
+	//_computGrain = (double)(_pComptLayer->_pMetaData->cellSize / _pComptLayer->_vDataLayers[0]->_pMetaData->cellSize);
 	_dataMBR = _pComptLayer->_vDataLayers[0]->_pMetaData->_MBR;
 	_dataWorkBR = _pComptLayer->_vDataLayers[0]->_pMetaData->_localworkBR;
 
@@ -213,7 +214,7 @@ run()
 		cerr<<"not supported yet."<<endl;
 	}
 	bool flag = true;
-	if( _myRank == 0 ){	//It's serial for the moment.
+	if( GetRank() == 0 ){	//It's serial for the moment.
         int termSum = 1;
 		do
 		{
@@ -235,7 +236,7 @@ run()
 			termSum = Termination;	//It's serial for the moment.
 		} while (!termSum);
 	}
-
+    
 	return flag;
 }
 

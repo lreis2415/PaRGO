@@ -36,8 +36,8 @@ void Usage(const string& error_msg = "") {
     if (!error_msg.empty()) {
         cout << "FAILURE: " << error_msg << endl << endl;
     }
-
-    cout << " Usage: fcm -elev <elevation grid file> " << endl
+    
+    cout << " Usage: fcm -srcData <elevation grid file> " << endl
         << "-dataNbr <data layer neighbor file> " << endl
         << "-computeNbr <compute layer neighbor file>" << endl
         << "-out <output raster file>" << endl
@@ -47,7 +47,9 @@ void Usage(const string& error_msg = "") {
         << "-weight <fuzzyness exponent>" << endl
         << "-dcmp <domain decomposition method>" << endl
         << "-writeLoad <path to write load file>" << endl
-        << "-readLoad <path to read load file>" << endl << endl;
+        << "-readLoad <path to read load file>" << endl
+        << "-nodataLoad <load of NoData cells>" << endl
+        << "-validLoad <load of nonempty cells>" << endl << endl;
 
     cout << "'dcmp' available options:" << endl;
     cout << "\t space: (default) compute layer is decomposed equally by space, so it needs no evaluation." << endl;
@@ -59,17 +61,8 @@ void Usage(const string& error_msg = "") {
 
     cout << "(optional)'readLoad' is the path to load file to guide decomposition. Only needed when decompose set to 'compute'"<< endl;
 
-    cout << " Or use the Simple Usage (full-text usage is recommended): slope <elevation grid file> "
-        "<data layer neighbor file> "
-        "<compute layer neighbor file> "
-        "<output raster file> "
-        "<number of clusters> "
-        "<max iteration number> "
-        "<tolerance in iteration> "
-        "<fuzzyness exponent> "
-        "[<domain decomposition method>] "
-        "[<path to write load file>] "
-        "[<path to read load file>] " << endl << endl;
+    cout << "(optional)'nodataLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of NoData raster cells."<< endl;
+    cout << "(optional)'validLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of nonempty raster cells."<< endl;
 
     //cout << "Example.1. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif" << endl;
     //cout << "Example.2. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif -mtd SD" << endl;
@@ -80,19 +73,6 @@ void Usage(const string& error_msg = "") {
 }
 
 int main(int argc, char* argv[]) {
-    /*  enum ProgramType{MPI_Type = 0,
-                   MPI_OpenMP_Type,
-                   CUDA_Type,
-                   Serial_Type};*/
-    /*  enum DomDcmpType{NON_DCMP = 0,
-        ROWWISE_DCMP,
-        COLWISE_DCMP,
-        BLOCK_DCMP};*/
-    /*  enum DomDcmpObj{SPACE_DIM = 0,
-                   DATA_LOAD,
-                   COMPT_LOAD};*/
-
-    //...
     char* inputFileName;
     char* dataNeighbor;
     char* compuNeighbor;
@@ -101,13 +81,15 @@ int main(int argc, char* argv[]) {
     int maxIteration; //最大迭代次数
     double tolerance; //迭代阈值
     int weight; //加权指数
+    int nodataLoad; //
+    int validLoad; //
     bool decomposeBySapce; /// decomp by compute load if false
     char* writeLoadPath=nullptr;
     char* readLoadPath=nullptr;
     int i = 1;
     bool simpleusage = true;
     while (argc > i) {
-        if (strcmp(argv[i], "-elev") == 0) {
+        if (strcmp(argv[i], "-srcData") == 0) {
             simpleusage = false;
             i++;
             if (argc > i) {
@@ -115,7 +97,7 @@ int main(int argc, char* argv[]) {
                 i++;
             }
             else {
-                Usage("No argument followed '-elev'!");
+                Usage("No argument followed '-srcData'!");
             }
         }
         else if (strcmp(argv[i], "-dataNbr") == 0) {
@@ -195,6 +177,28 @@ int main(int argc, char* argv[]) {
                 Usage("No argument followed '-weight'!");
             }
         }
+        else if (strcmp(argv[i], "-nodataLoad") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                nodataLoad = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-nodataLoad'!");
+            }
+        }
+        else if (strcmp(argv[i], "-validLoad") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                validLoad = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-validLoad'!");
+            }
+        }
         else if (strcmp(argv[i], "-dcmp") == 0) {
             simpleusage = false;
             i++;
@@ -229,24 +233,8 @@ int main(int argc, char* argv[]) {
             }
         }
         else {
-            // Simple Usage
-            if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
-            inputFileName = argv[1];
-            dataNeighbor = argv[2];
-            compuNeighbor = argv[3];
-            outputFileName = argv[4];
-            clusterNum = atoi(argv[5]);
-            maxIteration = atoi(argv[6]);
-            tolerance = atof(argv[7]);
-            weight = atof(argv[8]);
-            if (argc >= 10) {
-                decomposeBySapce = ifDecomposeBySpace(argv[9]);
-            }
-            if(argc>=11){
-                writeLoadPath = argv[10];
-                readLoadPath = argv[10];
-            }
-            break;
+            // Simple Usage is not supported.
+            if (!simpleusage) Usage();
         }
     }
     Application::START(MPI_Type, argc, argv); //init
@@ -257,9 +245,18 @@ int main(int argc, char* argv[]) {
     int name_len = MPI_MAX_PROCESSOR_NAME;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(processor_name,&name_len);
-    if(myRank==0)
-        cout<<"pargo-fcm. decompose by space: "<<decomposeBySapce<<". "<<process_nums<<" core(s)."<<endl;
-    cout << "process " << myRank << " on " << processor_name << endl;
+    if (myRank == 0) {
+        cout<<"PaRGO-FCM. "<<process_nums<<" core(s)"<<endl;
+        for (int i = 0; i < argc; ++i) {
+            cout<<argv[i];
+            if(argv[i][0]=='-') 
+                cout<<" ";
+            else
+                cout<<endl;
+        }
+        cout<<endl;
+    }
+    //cout << "process " << myRank << " on " << processor_name << endl;
 
     double starttime;
     double endtime;
@@ -329,12 +326,12 @@ int main(int argc, char* argv[]) {
         else {
             ComputeLayer<double> comptLayer("computLayer");
             comptLayer.initSerial(vInputLayers[0],compuNeighbor,comptGrain);
-            Transformation<double> transOper(1, 15, &comptLayer); 
+            Transformation<double> transOper(nodataLoad, validLoad, &comptLayer); 
             transOper.run();
-            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
             if (writeLoadPath) {
                 comptLayer.writeComputeIntensityFileSerial(writeLoadPath);               
             }
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
         }
         cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()
             << endl;

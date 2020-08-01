@@ -194,7 +194,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
     }
 
-    if (!((iRow == 1) && (iCol == 1)) && (fabs((*_vInputLayer[0]->cellSpace())[iRow][iCol] + 9999) <= Eps ||
+    if (!(iRow == 1 && iCol == 1) && (fabs((*_vInputLayer[0]->cellSpace())[iRow][iCol] + 9999) <= Eps ||
         fabs((*(_vInputLayer[0]->cellSpace()))[iRow][iCol] - _noData) <= Eps) && !((iRow == _xSize - 2) && (iCol == _ySize - 2))) {
         endTime = MPI_Wtime();
         if (_pComptLayer)
@@ -247,6 +247,8 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
     }
 
+
+    startTime = MPI_Wtime();
     if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
         //空值不做处理，最后一并赋空值
     }
@@ -254,6 +256,9 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         fnDistance(iRow, iCol, pInputVal); //非nodata的cell到各类中心的距离值计算
         InitDegree(iRow, iCol); //隶属度计算
     }
+    endTime = MPI_Wtime();
+    if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
+
 
     if ((iRow == _xSize - 2) && (iCol == _ySize - 2)) {
         //MPI_Barrier(MPI_COMM_WORLD);
@@ -314,7 +319,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
 
     delete pInputVal;
 
-    endTime = MPI_Wtime();
+
     if (_pComptLayer && 
         !(iRow == _xSize - 2 && iCol == _ySize - 2) &&
         !(iRow == 1 && iCol == 1)) {

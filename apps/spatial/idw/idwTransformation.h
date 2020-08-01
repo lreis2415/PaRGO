@@ -30,10 +30,10 @@ class IdwTransformation: public Transformation<double>
 {
 public:
     IdwTransformation(ComputeLayer<double> *comptLayer,IDWOperator *idwOperator):
-    _idwOperrator(idwOperator),Transformation(comptLayer) {}
+    _idwOperator(idwOperator),Transformation(comptLayer) {}
     bool Operator(const CellCoord &coord);
 private:
-    IDWOperator *_idwOperrator;
+    IDWOperator *_idwOperator;
 };
 
 #endif

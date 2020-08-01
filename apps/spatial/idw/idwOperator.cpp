@@ -1,23 +1,13 @@
 #include <ogrsf_frmts.h>
 #include "utility.h"
-//#include <gdal_priv.h>
-
 #include "idwOperator.h"
-
-int IDWOperator::getBlockColIndex(double x) {
-    return (x - _glb_extent.minX) / _cellSize / _blockGrain;
-}
-
-int IDWOperator::getBlockRowIndex(double y) {
-    return (_glb_extent.maxY - y) / _cellSize / _blockGrain;
-}
 
 inline double IDWOperator::getMinDistanceToBlockBound(double x,double y) {
     double boundXY[]={
-        getBlockColIndex(x)*_cellSize*_blockGrain+_sub_extent.minX, //left, block min x
-        (getBlockColIndex(x)+1)*_cellSize*_blockGrain+_sub_extent.minX, //right, block max x
-        getBlockRowIndex(x)*_cellSize*_blockGrain+_sub_extent.minY, //down, block min y
-        (getBlockRowIndex(x)+1)*_cellSize*_blockGrain+_sub_extent.minY //up, block max y
+        getBlockColIndexByCoord(x)*_blockSize+_sub_extent.minX, //left, block min x
+        (getBlockColIndexByCoord(x)+1)*_blockSize+_sub_extent.minX, //right, block max x
+        _sub_extent.maxY- getBlockRowIndexByCoord(y)*_blockSize, //down, block min y
+        _sub_extent.maxY-(getBlockRowIndexByCoord(y)+1)*_blockSize //up, block max y
     };
 
 
@@ -166,17 +156,15 @@ void IDWOperator::creatSampleBlocks(double** pSamples) {
     //思路：对idwLayer按行逐个分块，1D存储,获取该块的范围,暂时不需要范围
     //注意样点坐标范围和栅格有偏移；先求总行列号；
     //每个已知样点的xy都可推出所在块;(x-minX)/cellSize/blockGrain就可以求出行号,同理求列号；
-    _blockRows = _nRows / _blockGrain;
-    _blockCols = _nCols / _blockGrain;
-    _blockRows += (_nRows % _blockGrain) ? 1 : 0;
-    _blockCols += (_nCols % _blockGrain) ? 1 : 0;
+    _blockRows = ceil((_glb_extent.maxY - _glb_extent.minY) / _blockSize);
+    _blockCols = ceil((_glb_extent.maxX - _glb_extent.minX) / _blockSize);
     _pSampleBlocks = new Sample_block[_blockRows * _blockCols];
     for (int i = 0; i < _sample_nums; ++i) {
         double x = pSamples[i][0];
         double y = pSamples[i][1];
         double z = pSamples[i][2];
-        int iCol = getBlockColIndex(x);
-        int iRow = getBlockRowIndex(y);
+        int iCol = getBlockColIndexByCoord(x);
+        int iRow = getBlockRowIndexByCoord(y);
         Sample_Point tmpPoint = {x, y, z};
         _pSampleBlocks[iRow * _blockCols + iCol].sample_Points.push_back(tmpPoint);
     }
@@ -345,33 +333,33 @@ bool IDWOperator::isTermination() {
 }
 
 int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol, double* nbrSamples) {
-    int blockRow = (cellRow + subMinRow) / _blockGrain; //确定当前栅格所在块
-    int blockCol = cellCol / _blockGrain;
-    int blockRows = _nRows / _blockGrain;
-    blockRows += (_nRows % _blockGrain) ? 1 : 0;
-    int blockCols = _nCols / _blockGrain;
-    blockCols += (_nCols % _blockGrain) ? 1 : 0;
-    double cellX = (cellCol + 0.5) * _cellSize + _sub_extent.minX; //当前待插值栅格坐标
-    double cellY = _sub_extent.maxY - (cellRow + 0.5) * _cellSize;
+    double cellX = getXByCellIndex(cellCol); //当前待插值栅格坐标
+    double cellY = getYByCellIndex(cellRow+subMinRow);
+    int blockRow = getBlockRowIndexByCoord(cellY); //确定当前栅格所在块
+    int blockRow1 = getBlockRowIndexByCellIndex(cellRow+subMinRow); //确定当前栅格所在块
+    int blockCol = getBlockColIndexByCoord(cellX);
+    int blockRows = _blockRows;
+    int blockCols = _blockCols;
+
     double maxDist = 0.0; //目前搜索到的最大距离值;也许会受缓冲区限制
     int maxDistIdx = -1; //目前搜索到的最大距离样点所在位置
     int tailIdx = -1; //目前搜索到的样点尾部序列，即已搜索到的样点个数-1
     int searchRad = 0; //环形向外搜索半径;1代表3*3邻域
-    //int searchRadLeast = 0;	//在此层上，搜索够了_nbrPoints个样点
     bool isSearch = true;
-    int searchTime = 0;
     double minDistToBound=getMinDistanceToBlockBound(cellX,cellY);
-    do {
+    while (isSearch){
+        double searchRange=(double)(searchRad-1) * _blockSize + minDistToBound;
+        if(_idw_buffer>0 && searchRange >= _idw_buffer) {
+            break;
+        }
+
         //收集本层搜索的候选block idx
         vector<int> block2search;
-        //int* block2search;
         if (searchRad == 0) {
             block2search.resize(1);
-            //block2search = new int[1];
         }
         else {
             block2search.resize(2 * searchRad * 4);
-            //block2search = new int[2 * searchRad * 4];
         }
         int blockCount = 0;
         for (int tRow = blockRow - searchRad; tRow <= blockRow + searchRad; ++tRow) {
@@ -404,7 +392,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
             int blockIdx = block2search[i];
             //cout<<blockIdx<<" "<<_pSampleBlocks[blockIdx].sample_Points.size()<<endl;
             for (vector<Sample_Point>::iterator iter = _pSampleBlocks[blockIdx].sample_Points.begin(); iter != _pSampleBlocks[blockIdx].sample_Points.end(); ++iter) {
-                double tmpDist = sqrt((iter->x - cellX) * (iter->x - cellX) + (iter->y - cellY) * (iter->y - cellY));
+                double tmpDist = sqrt(pow(iter->x - cellX,2) + pow(iter->y - cellY,2));
                 if (tailIdx < _nbrPoints - 1) {
                     //搜索到的点还不足指定的个数，则直接放入尾部
                     tailIdx++;
@@ -435,7 +423,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
             }
         }
         if (tailIdx >= _nbrPoints - 1) {
-            if ((double)searchRad * _cellSize * _blockGrain + minDistToBound >= maxDist) {
+            if (searchRange >= maxDist) {
                 isSearch=false;
             }
             else {
@@ -448,8 +436,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
         //delete []block2search;
         //block2search=nullptr;
     }
-    while (isSearch);
-    return tailIdx;
+    return min(tailIdx+1,_nbrPoints);
 }
 
 bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
@@ -459,43 +446,41 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
-    //if(myRank==0 && iRow<5) {
-    //    sleep(10);
-    //}
-    //cout<<"start: rank"<<myRank<<" ["<<iRow<<","<<iCol<<"] - "<<minRow<<endl;
     double startTime = MPI_Wtime();
     //每个点都是待插值点，只是搜索范围不同而已
     double* pNbrSamples = new double [_nbrPoints * 2]; //依次存放距离和属性值对
-    searchNbrSamples(minRow, iRow, iCol, pNbrSamples); //搜索当前栅格的样点值，在nbrSamples中返回
+    int sampleNum=searchNbrSamples(minRow, iRow, iCol, pNbrSamples); //搜索当前栅格的样点值，在nbrSamples中返回
     
     //计算插值结果
     double weightSum = 0.0;
     double* pWeight = new double[_nbrPoints];
-    for (int i = 0; i < _nbrPoints; ++i) {
+    idwL[iRow][iCol]=0;
+    for (int i = 0; i < sampleNum; ++i) {
         pWeight[i] = 1 / pow(pNbrSamples[i * 2], _idw_power);
         weightSum += pWeight[i];
     }
 
-    idwL[iRow][iCol] = 0;
-    for (int i = 0; i < _nbrPoints; ++i) {
-        idwL[iRow][iCol] += pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
+    for (int i = 0; i < sampleNum; ++i) {
+        double value=pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
+        //idwL[iRow][iCol] += pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
+        idwL[iRow][iCol] += value;
     }
 
-    // for test.
+//for test.
     //idwL[iRow][iCol] = minRow;
-    //int blockRow = (iRow + minRow) / _blockGrain;
-    //int blockCol = iCol / _blockGrain;
-    //int blockCols = _nCols / _blockGrain;
-    //blockCols += (_nCols % _blockGrain) ? 1 : 0;
+    //int blockRow = getBlockRowIndexByCellIndex(iRow+minRow);
+    //int blockCol = getBlockColIndexByCellIndex(iCol);
+    //int blockCols = _blockCols;
     //idwL[iRow][iCol] = blockRow*blockCols+blockCol;
-    //double value=idwL[iRow][iCol];
-    
-    double endTime = MPI_Wtime();
+    double value=idwL[iRow][iCol];
+
+
+    double endTime = MPI_Wtime();   
     double time = (endTime - startTime) * 1000;
     if(_pComptLayer) {
-        (*_pComptLayer->cellSpace())[iRow][iCol] += time;        
+        (*_pComptLayer->cellSpace())[iRow][iCol] += time;
     }
-    delete []pNbrSamples;
+        delete []pNbrSamples;
     pNbrSamples=nullptr;
     delete []pWeight;
     pWeight=nullptr;

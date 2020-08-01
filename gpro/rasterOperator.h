@@ -113,7 +113,7 @@ void GPRO::RasterOperator<elemType>::
 comptLayer(RasterLayer<elemType>& layerD) {
     _pComptLayer = &layerD;
     _pComptLayer->cellSpace()->initVals(0); //wyj 2019-12-7 init for fcm idw Operator
-    Configure(_pComptLayer, false);
+    //Configure(_pComptLayer, false); // wyj 2020-7-29 the overwriting of workBR from different layer size (data layer greater and compute layer smaller) causes error
 }
 
 
@@ -158,14 +158,14 @@ Work(const CoordBR* const pWBR) {
     }
     int noterm = 1; // if iteration continues. "may change to other vars." (?)
     int itera = 0; // iteration nums
-    int myRank;
+    int myRank=0;
     int nRow=pWBR->maxIRow()-pWBR->minIRow();
     int delim=20;
     int lastRowInterval=0;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     double startTime=MPI_Wtime();
-    double endTime;
-    double iterStartTime;
+    double endTime=0;
+    double iterStartTime=0;
     double rowStartTime=MPI_Wtime();
     if (Application::_programType == MPI_Type) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -183,20 +183,20 @@ Work(const CoordBR* const pWBR) {
                     }
                 }
                 
-                int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
-                if(rowInterval != lastRowInterval) {
-                    lastRowInterval=rowInterval;
-                    cout<<"rank"<<myRank<<"\t[";
-                    for (int i = 0; i < lastRowInterval; ++i) {
-                        cout<<".";
-                    }
-                    for (int i = 0; i < delim-lastRowInterval; ++i) {
-                        cout<<" ";
-                    }
-                    endTime=MPI_Wtime();
-                    cout<<"]"<<endTime-rowStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
-                    rowStartTime=MPI_Wtime();
-                }
+                //int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
+                //if(rowInterval != lastRowInterval) {
+                //    lastRowInterval=rowInterval;
+                //    cout<<"rank"<<myRank<<"\t[";
+                //    for (int i = 0; i < lastRowInterval; ++i) {
+                //        cout<<".";
+                //    }
+                //    for (int i = 0; i < delim-lastRowInterval; ++i) {
+                //        cout<<" ";
+                //    }
+                //    endTime=MPI_Wtime();
+                //    cout<<"]"<<endTime-rowStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
+                //    rowStartTime=MPI_Wtime();
+                //}
             }
             endTime=MPI_Wtime();
             cout<<"rank"<<myRank<<" iter time "<<endTime-iterStartTime<<"s"<<endl;
@@ -212,8 +212,8 @@ Work(const CoordBR* const pWBR) {
             MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
             itera++;
             
-            endTime=MPI_Wtime();
-            cout<<"rank"<<myRank<<" commu time "<<endTime-startTime<<"s"<<endl;
+            //endTime=MPI_Wtime();
+            //cout<<"rank"<<myRank<<" commu time "<<endTime-startTime<<"s"<<endl;
         }
         while (!noterm);
         MPI_Barrier(MPI_COMM_WORLD);

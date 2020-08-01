@@ -890,7 +890,6 @@ rowWriteFile( const char *outputfile ) {
        exit( 1 );
    }
 
-   CellSpace<elemType> &computL = *cellSpace();
    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
    if ( poBanddest == NULL ) {
        cout << "poBanddest is NULL" << endl;

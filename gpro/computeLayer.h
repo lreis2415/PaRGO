@@ -56,7 +56,7 @@ namespace GPRO {
         /*
         * getters and setters
         */
-        int getGrain() { return _comptGrain; }
+        int getComputeGrain() { return _comptGrain; }
         void setComputGrain(int comptGrain) { _comptGrain = comptGrain;}
         
         /**
@@ -87,6 +87,14 @@ namespace GPRO {
 
         /**
          * \brief Get the workBR of this process.
+         * \param[in] inBR Decomposition strategy.
+         * \param[in] computeGrain How many parcels to divide into.
+         * \param[out] outBR result BR of this process.
+         */ 
+        bool scaleUpBR(CoordBR inBR, int computeGrain, CoordBR &outBR );
+
+        /**
+         * \brief Get the workBR of this process.
          * \param[in] dcmpType Decomposition strategy.
          * \param[in] nSubSpcs How many parcels to divide into.
          * \param[out] subWorkBR result BR of this process.
@@ -114,12 +122,12 @@ namespace GPRO {
 template<class elemType>
 inline GPRO::ComputeLayer<elemType>::
 ComputeLayer()
-    :RasterLayer<elemType>() {}
+    :RasterLayer<elemType>(),_comptGrain(0){}
 
 template<class elemType>
 inline GPRO::ComputeLayer<elemType>::
 ComputeLayer( const string RasterLayerName )
-    :RasterLayer<elemType>( RasterLayerName ) {}
+    :RasterLayer<elemType>( RasterLayerName ),_comptGrain(0) {}
 
 template<class elemType>
 inline GPRO::ComputeLayer<elemType>::
@@ -236,7 +244,7 @@ bool GPRO::ComputeLayer<elemType>::
 initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
-
+    
     if(GetRank()!=0) {
         return true;
     }
@@ -254,10 +262,6 @@ initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int compt
 
     _comptGrain=comptGrain;
     pMetaData->cellSize = rhs.cellSize * comptGrain;
-    //pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
-    //pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
-    //pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
-    //pMetaData->column += ( rhs._localworkBR.nCols() % comptGrain ) ? 1 : 0;
     pMetaData->row = rhs._glbDims.nRows() / comptGrain;
     pMetaData->row += ( rhs._glbDims.nRows() % comptGrain ) ? 1 : 0;
     pMetaData->column = rhs._glbDims.nCols() / comptGrain;
@@ -302,11 +306,12 @@ initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int compt
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
 getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
-    int myRank, process_nums;
+    int myRank=0, process_nums=0;
     MPI_Comm_rank( MPI_COMM_WORLD, &myRank );
     MPI_Comm_size( MPI_COMM_WORLD, &process_nums );
-
+    
     int *pDcmpIdx = new int[nSubSpcs * 4];    //the decomposition result, to be broadcast
+
     if ( myRank == 0 ) {    //serial, done by the master process, later broadcast to work processes
         vector<CoordBR> vDcmpBR;    //nSubSpcs parcels; MPI doesn't support custom data type, so it's useless
         
@@ -317,20 +322,20 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         if ( dcmpType == ROWWISE_DCMP ) {
             deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs );    //divide this layer by its intensity values. output to vComptDcmpBR.
         } else {
-            cerr << "computLayer L388: not support until now." << endl;
+            cerr << "compute layer decomposition: "<<dcmpType<<" not support until now." << endl;
         }
         //map the result to virtual BR of data domain
         CoordBR glbWorkBR;
         const Neighborhood<elemType> *pDataNbrhood = _vDataLayers[0]->nbrhood();
         pDataNbrhood->calcWorkBR( glbWorkBR, _vDataLayers[0]->_pMetaData->_glbDims );    //global workBR of data domain
         int subBegin = glbWorkBR.minIRow(), subEnd = glbWorkBR.minIRow() - 1;
-        int outputRows=_vDataLayers[0]->_pMetaData->_glbDims.nRows();
-        int loadFileRows=this->metaData()->_glbDims.nRows();
-        _comptGrain=outputRows/double(loadFileRows);//wyj 2019-12-6 this line is added to self-adapt grain
+        const int outputRows=_vDataLayers[0]->_pMetaData->_glbDims.nRows();
+        const int loadFileRows=this->metaData()->_glbDims.nRows();
+        const double convertGrain=outputRows/double(loadFileRows);//wyj 2019-12-6 this line is added to self-adapt grain
         int i = 0;
         for ( ; i < nSubSpcs - 1; ++i ) {
-            subBegin = vComptDcmpBR[i].minIRow() * _comptGrain + glbWorkBR.minIRow();
-            subEnd = ( vComptDcmpBR[i + 1].minIRow()) * _comptGrain + glbWorkBR.minIRow() - 1;
+            subBegin = vComptDcmpBR[i].minIRow() * convertGrain + glbWorkBR.minIRow();
+            subEnd = ( vComptDcmpBR[i + 1].minIRow()) * convertGrain + glbWorkBR.minIRow() - 1;
             //cout<<i<<" "<<subBegin<<" , "<<subEnd<<endl;
             CellCoord nwCorner( subBegin, glbWorkBR.minICol());
             CellCoord seCorner( subEnd, glbWorkBR.maxICol());
@@ -351,17 +356,16 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         pDcmpIdx[4 * i + 2] = glbWorkBR.maxIRow();
         pDcmpIdx[4 * i + 3] = glbWorkBR.maxICol();
     }
-
-    MPI_Barrier( MPI_COMM_WORLD );    //work processes wait here to get their BRs.
+    
+    //MPI_Barrier( MPI_COMM_WORLD );    //work processes wait here to get their BRs.
     MPI_Bcast( pDcmpIdx, process_nums * 4, MPI_INT, 0, MPI_COMM_WORLD );
     CellCoord nwCorner2( pDcmpIdx[4 * myRank], pDcmpIdx[4 * myRank + 1] );
     CellCoord seCorner2( pDcmpIdx[4 * myRank + 2], pDcmpIdx[4 * myRank + 3] );
     CoordBR tmpWorkBR( nwCorner2, seCorner2 );
-    subWorkBR = tmpWorkBR;    //this line is tested, OK.
-    //cout<<"tmpWorkBR "<<tmpWorkBR<<" subWorkBR "<<subWorkBR<<" shoule be the same"<<endl;
-    MPI_Barrier( MPI_COMM_WORLD );
+    subWorkBR = tmpWorkBR;
+    //MPI_Barrier( MPI_COMM_WORLD ); // wyj 2020-7-30 if needed?
     delete[]pDcmpIdx;
-
+    
     return true;
 }
 template<class elemType>
