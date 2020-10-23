@@ -53,6 +53,7 @@ namespace GPRO
 
         virtual ~RasterOperator() {}
 
+
         /**
          * \brief Basic function in which serial-style algorithm should be writen.
          * \param[in] coord coordinate of the central cell(point)
@@ -91,8 +92,6 @@ namespace GPRO
          * \param[in] pWorkBR the rectangle area to be traversed.
          */        
         void comptLayer(RasterLayer<elemType>& layerD);
-    
-        //void comptLayer(RasterLayer<elemType>& layerD,char *computeLayerOutPath);
 
     private:
         DomDcmpType _domDcmpType;
@@ -183,20 +182,22 @@ Work(const CoordBR* const pWBR) {
                     }
                 }
                 
-                //int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
-                //if(rowInterval != lastRowInterval) {
-                //    lastRowInterval=rowInterval;
-                //    cout<<"rank"<<myRank<<"\t[";
-                //    for (int i = 0; i < lastRowInterval; ++i) {
-                //        cout<<".";
-                //    }
-                //    for (int i = 0; i < delim-lastRowInterval; ++i) {
-                //        cout<<" ";
-                //    }
-                //    endTime=MPI_Wtime();
-                //    cout<<"]"<<endTime-rowStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
-                //    rowStartTime=MPI_Wtime();
-                //}
+#ifdef _DEBUG
+                int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
+                if(rowInterval != lastRowInterval) {
+                    lastRowInterval=rowInterval;
+                    cout<<"rank"<<myRank<<"\t[";
+                    for (int i = 0; i < lastRowInterval; ++i) {
+                        cout<<".";
+                    }
+                    for (int i = 0; i < delim-lastRowInterval; ++i) {
+                        cout<<" ";
+                    }
+                    endTime=MPI_Wtime();
+                    cout<<"]"<<endTime-rowStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
+                    rowStartTime=MPI_Wtime();
+                }
+#endif
             }
             endTime=MPI_Wtime();
             cout<<"rank"<<myRank<<" iter time "<<endTime-iterStartTime<<"s"<<endl;

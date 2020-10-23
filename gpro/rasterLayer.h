@@ -108,7 +108,11 @@ namespace GPRO {
          * \param[in] ASCII file
          */
         bool readNeighborhood( const char *neighborfile );
-
+		/**
+         * \brief Initialize the Neighborhood object by loading the neighbors stored in a ASCII file
+         * \param[in] ASCII file
+         */
+        bool readNeighborhoodSerial( const char *neighborfile );
         /**
          * \brief read raster layer.
          *  
@@ -592,15 +596,29 @@ readNeighborhood( const char *neighborfile ) {
     return true;
 }
 
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+readNeighborhoodSerial( const char *neighborfile ) {
+    if(GetRank()!=0) {
+        return true;
+    }
+    newNbrhood();
+    fstream nbrFile( neighborfile, ios::in );
+    nbrFile >> ( *_pNbrhood );
+    nbrFile.close();
+
+    return true;
+}
 
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
 readGlobalFileSerial(const char* inputfile)
 {
     if(GetRank()!=0) {
-        MPI_Barrier( MPI_COMM_WORLD );
+        //MPI_Barrier( MPI_COMM_WORLD );
         return true;
     }
+    GDALAllRegister();
 	GDALDataset* poDatasetsrc = (GDALDataset *) GDALOpen(inputfile, GA_ReadOnly );
 
     GDALRasterBand *poBandsrc=readFileInfo(poDatasetsrc, NON_DCMP);
@@ -889,7 +907,7 @@ rowWriteFile( const char *outputfile ) {
        cout << "data file is not open correct" << endl;
        exit( 1 );
    }
-
+   
    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
    if ( poBanddest == NULL ) {
        cout << "poBanddest is NULL" << endl;
@@ -917,6 +935,7 @@ rowWriteFile( const char *outputfile ) {
                                  _pMetaData->dataType, 0, 0 );
        }
    }
+
    MPI_Barrier( MPI_COMM_WORLD ); //if needed?
    if ( poDataset != NULL ) {
        GDALClose((GDALDatasetH) poDataset );

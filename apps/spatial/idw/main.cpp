@@ -23,7 +23,6 @@
 #include "idwOperator.h"
 #include "transformation.h"
 #include "idwTransformation.h"
-
 using namespace std;
 using namespace GPRO;
 
@@ -67,6 +66,7 @@ void Usage(const string& error_msg = "") {
 
 int main(int argc, char* argv[]) {
     char* inputFileName;
+    char* maskFileName;
     char* outputFileName;
     char* dataNeighbor;
     char* compuNeighbor;
@@ -92,6 +92,17 @@ int main(int argc, char* argv[]) {
             }
             else {
                 Usage("No argument followed '-sample'!");
+            }
+        }
+        if (strcmp(argv[i], "-mask") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                maskFileName = argv[i];
+                i++;
+            }
+            else {
+                Usage("No argument followed '-mask'!");
             }
         }
         else if (strcmp(argv[i], "-dataNbr") == 0) {
@@ -258,28 +269,29 @@ int main(int argc, char* argv[]) {
 
     IDWOperator idwOper(cellSize, idw_nbrPoints, idw_power, idw_buffer, blockSize);
     char* spatialrefWkt; //投影信息
-    int sample_nums;
-    sample_nums = idwOper.readSampleNums(inputFileName, &spatialrefWkt); //获取样点数目，idwOper.sample_nums
-    double** pAllSamples = (double **)malloc(sample_nums * sizeof(double *)); //为采样点数组申请存储空间，存入子块后就释放
-    for (int k = 0; k < sample_nums; k++)
-        pAllSamples[k] = (double *)malloc(3 * sizeof(double));
-    if (pAllSamples == NULL) {
-        cout << "Faliure memory request!" << endl;
-        return 0;
-    }
-    idwOper.readSamples(inputFileName, fldIdx, &spatialrefWkt, pAllSamples); //读取样点，并更新了idwOper.glb_extent
+	
+	idwOper.readSampleNums(inputFileName, &spatialrefWkt); //获取样点数目，idwOper.sample_nums
+	vector<Sample_Point> samples;
+    idwOper.readSamples(inputFileName, fldIdx, &spatialrefWkt, samples); //读取样点，并更新了idwOper.glb_extent
     //可获取idwLayer的坐标范围,放入idwOper.sample_extent
-    idwOper.creatSampleBlocks(pAllSamples); //遍历pAllSamples，分块存入idwOper._pSampleBlocks成员
-    delete []pAllSamples;
+    idwOper.creatSampleBlocks(samples); //遍历pAllSamples，分块存入idwOper._pSampleBlocks成员
+    vector<Sample_Point> vTemp;
+    vTemp.swap( samples );
+
+	RasterLayer<double> maskLayer("maskLayer");
+    maskLayer.readNeighborhood(dataNeighbor);
     //以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
     RasterLayer<double> idwLayer("idwLayer");
     idwLayer.readNeighborhood(dataNeighbor);
     
     if (decomposeBySapce) {
         idwOper.idwLayer(idwLayer, &spatialrefWkt);
+        maskLayer.readFile(maskFileName,ROWWISE_DCMP);
+        idwOper.maskLayer(maskLayer);
         ComputeLayer<double> comptLayer("computeLayer");
         if (writeLoadPath) {
-            comptLayer.initSerial(&idwLayer, compuNeighbor, 1);
+            comptLayer.addRasterLayerSerial(&idwLayer);
+            comptLayer.initSerial(compuNeighbor, 1);
             idwOper.comptLayer(comptLayer);
         }
         starttime = MPI_Wtime();
@@ -291,38 +303,38 @@ int main(int argc, char* argv[]) {
         idwOper.idwLayerSerial(idwLayer, &spatialrefWkt);
         const int compuSize = 10; //ComputeLayerGrain=10*DataLayerGrain (10 temporarily)
         CoordBR subWorkBR;
+        starttime = MPI_Wtime();
         if (readLoadPath) {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(&idwLayer, compuNeighbor, compuSize);
+            comptLayer.addRasterLayerSerial(&idwLayer);
+            comptLayer.initSerial(compuNeighbor, compuSize);
             comptLayer.readComputeLoadFile(readLoadPath);
             comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
         }
         else {
             ComputeLayer<double> comptLayer("computLayer");
-            starttime = MPI_Wtime();
-
-            comptLayer.initSerial(&idwLayer, compuNeighbor, compuSize);
+            comptLayer.addRasterLayerSerial(&idwLayer);
+            comptLayer.initSerial(compuNeighbor, compuSize);
             IdwTransformation idwTrans(&comptLayer, &idwOper);
             idwTrans.run();
             comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
-
-            endtime = MPI_Wtime();
-            cout << myRank << " dcmp time is " << endtime - starttime << endl;
-
             if (writeLoadPath) {
                 comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
             }
         }
-
+        if (myRank == 0)
+            cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
         cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
         idwOper.idwLayer(idwLayer, &spatialrefWkt, subWorkBR);
+        maskLayer.readFile(maskFileName,subWorkBR,ROWWISE_DCMP);
+        idwOper.maskLayer(maskLayer);
+
         starttime = MPI_Wtime();
         
         idwOper.Run();
     }
-    endtime = MPI_Wtime();
     if (myRank == 0)
-        cout << "compute time is " << endtime - starttime << endl << endl;
+        cout << "compute time is " << MPI_Wtime() - starttime << endl << endl;
     idwLayer.writeFile(outputFileName);
 
     MPI_Barrier(MPI_COMM_WORLD);

@@ -21,7 +21,7 @@ inline double IDWOperator::getMinDistanceToBlockBound(double x,double y) {
 }
 
 IDWOperator::~IDWOperator() {
-    //delete _pSampleBlocks
+    delete []_pSampleBlocks;
 }
 
 int IDWOperator::readSampleNums(const char* filename, char** pSpatialRefWkt) {
@@ -63,7 +63,7 @@ int IDWOperator::readSampleNums(const char* filename, char** pSpatialRefWkt) {
     return _sample_nums;
 }
 
-bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatialRefWkt, double** Sample_Array) {
+bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<Sample_Point> &samples) {
 
     //将位置信息和属性信息存放在数组Sample_Array中
 #if GDAL_VERSION_MAJOR >= 2
@@ -90,7 +90,6 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
     double y = 0.0;
     OGRFeature* poFeature;
     while ((poFeature = poLayer->GetNextFeature()) != NULL) {
-        Sample_Array[idx][2] = poFeature->GetFieldAsDouble(fieldIdx); //读取属性值
         //cout<<"value:"<<showpoint<<Sample_Array[idx][2]<<endl;	//这里没问题，是小数
         OGRGeometry* poGeometry;
         poGeometry = poFeature->GetGeometryRef();
@@ -100,8 +99,11 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
             x = poPoint->getX();
             y = poPoint->getY();
             //存储位置信息
-            Sample_Array[idx][0] = x;
-            Sample_Array[idx][1] = y;
+        	Sample_Point point;
+        	point.x=x;
+        	point.y=y;
+        	point.value=poFeature->GetFieldAsDouble(fieldIdx);
+        	samples.push_back(point);
             if (idx == 0) {
                 _glb_extent.minX = x;
                 _glb_extent.maxX = x;
@@ -152,7 +154,8 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
     return true;
 }
 
-void IDWOperator::creatSampleBlocks(double** pSamples) {
+
+void IDWOperator::creatSampleBlocks(vector<Sample_Point> &samples) {
     //思路：对idwLayer按行逐个分块，1D存储,获取该块的范围,暂时不需要范围
     //注意样点坐标范围和栅格有偏移；先求总行列号；
     //每个已知样点的xy都可推出所在块;(x-minX)/cellSize/blockGrain就可以求出行号,同理求列号；
@@ -160,16 +163,15 @@ void IDWOperator::creatSampleBlocks(double** pSamples) {
     _blockCols = ceil((_glb_extent.maxX - _glb_extent.minX) / _blockSize);
     _pSampleBlocks = new Sample_block[_blockRows * _blockCols];
     for (int i = 0; i < _sample_nums; ++i) {
-        double x = pSamples[i][0];
-        double y = pSamples[i][1];
-        double z = pSamples[i][2];
+        double x = samples[i].x;
+        double y = samples[i].y;
+        double z = samples[i].value;
         int iCol = getBlockColIndexByCoord(x);
         int iRow = getBlockRowIndexByCoord(y);
         Sample_Point tmpPoint = {x, y, z};
         _pSampleBlocks[iRow * _blockCols + iCol].sample_Points.push_back(tmpPoint);
     }
 }
-
 void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt) {
     //更新_pIDWLayer/layerD的基本元数据;即根据extent和_cellSize信息，创建栅格图层
     //MetaData **pMetaData = &(layerD._pMetaData);	//可以考虑用指针的指针简写
@@ -220,7 +222,9 @@ void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt) {
     _pIDWLayer = &layerD;
     Configure(_pIDWLayer, false);
 }
-
+void IDWOperator::maskLayer(RasterLayer<double>& layerD) {
+    _pMaskLayer = &layerD;
+}
 void IDWOperator::initIdwLayerGlobalInfo(RasterLayer<double>& layerD, char** pSpatialRefWkt) {
     //更新_pIDWLayer/layerD的基本元数据;即根据extent和_cellSize信息，创建栅格图层
     //MetaData **pMetaData = &(layerD._pMetaData);	//可以考虑用指针的指针简写
@@ -440,18 +444,26 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
 }
 
 bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
-    int myRank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-    CellSpace<double>& idwL = *(_pIDWLayer->cellSpace());
-    const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
+    double data = (*_pMaskLayer->cellSpace())[iRow][iCol];
+    double nodata=_pMaskLayer->metaData()->noData;
+    if(fabs((*_pMaskLayer->cellSpace())[iRow][iCol]-_pMaskLayer->metaData()->noData)<EPS) {
+        (*_pIDWLayer->cellSpace())[iRow][iCol]=_noData;
+        return true;
+    }
+
     double startTime = MPI_Wtime();
+    int myRank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    CellSpace<double>& idwL = *_pIDWLayer->cellSpace();
+    const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
+
     //每个点都是待插值点，只是搜索范围不同而已
     double* pNbrSamples = new double [_nbrPoints * 2]; //依次存放距离和属性值对
     int sampleNum=searchNbrSamples(minRow, iRow, iCol, pNbrSamples); //搜索当前栅格的样点值，在nbrSamples中返回
-    
-    //计算插值结果
+    //
+    ////计算插值结果
     double weightSum = 0.0;
     double* pWeight = new double[_nbrPoints];
     idwL[iRow][iCol]=0;
@@ -459,28 +471,26 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
         pWeight[i] = 1 / pow(pNbrSamples[i * 2], _idw_power);
         weightSum += pWeight[i];
     }
-
     for (int i = 0; i < sampleNum; ++i) {
         double value=pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
         //idwL[iRow][iCol] += pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
         idwL[iRow][iCol] += value;
     }
-
+	
 //for test.
     //idwL[iRow][iCol] = minRow;
     //int blockRow = getBlockRowIndexByCellIndex(iRow+minRow);
     //int blockCol = getBlockColIndexByCellIndex(iCol);
     //int blockCols = _blockCols;
-    //idwL[iRow][iCol] = blockRow*blockCols+blockCol;
-    double value=idwL[iRow][iCol];
-
+    ////idwL[iRow][iCol] = blockRow*blockCols+blockCol;
+    //idwL[iRow][iCol] = 100;
 
     double endTime = MPI_Wtime();   
     double time = (endTime - startTime) * 1000;
     if(_pComptLayer) {
         (*_pComptLayer->cellSpace())[iRow][iCol] += time;
     }
-        delete []pNbrSamples;
+    delete []pNbrSamples;
     pNbrSamples=nullptr;
     delete []pWeight;
     pWeight=nullptr;

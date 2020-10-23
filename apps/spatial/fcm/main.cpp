@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
     int i = 1;
     bool simpleusage = true;
     while (argc > i) {
-        if (strcmp(argv[i], "-srcData") == 0) {
+        if (strcmp(argv[i], "-inputs") == 0) {
             simpleusage = false;
             i++;
             if (argc > i) {
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
                 i++;
             }
             else {
-                Usage("No argument followed '-srcData'!");
+                Usage("No argument followed '-inputs'!");
             }
         }
         else if (strcmp(argv[i], "-dataNbr") == 0) {
@@ -267,7 +267,8 @@ int main(int argc, char* argv[]) {
     vector<string> tokens = SplitString(inputFileName,',');
     for(int i=0;i<tokens.size();i++) {
         vInputnames.push_back(tokens[i].c_str());
-        RasterLayer<double>* pLayer = new RasterLayer<double>("none");
+    	vector<string> fileNameFrags=SplitString(tokens[i].c_str(),'\\');
+        RasterLayer<double>* pLayer = new RasterLayer<double>(fileNameFrags[fileNameFrags.size()-1]);
         vInputLayers.push_back(pLayer);
     }
     if (vInputnames.empty() || clusterNum == 0 || maxIteration == 0) {
@@ -283,9 +284,9 @@ int main(int argc, char* argv[]) {
         RasterLayer<double>* pLayer = new RasterLayer<double>(pDegLayerName[i]);
         vDegreeLayer.push_back(pLayer);
     }
+
     int comptGrain=10;
     if (decomposeBySapce) {
-        //equal row dcmp based on region
         for (int i = 0; i < vInputnames.size(); i++) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
             vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
@@ -303,7 +304,7 @@ int main(int argc, char* argv[]) {
 
         ComputeLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
         if(writeLoadPath) {
-            comptLayer.initSerial(vInputLayers[0],compuNeighbor);
+            comptLayer.initSerial(vInputLayers,compuNeighbor);
             fcmOper.comptLayer(comptLayer);
         }
         starttime = MPI_Wtime();
@@ -312,32 +313,36 @@ int main(int argc, char* argv[]) {
             comptLayer.writeComputeIntensityFileSerial(writeLoadPath); //测试用，写出捕捉到的计算时间
     }
     else{
-        ////balanced row dcmp based on compute burden
-        starttime = MPI_Wtime();
-        vInputLayers[0]->readNeighborhood(dataNeighbor);
+    	for (int i = 0; i < vInputnames.size(); i++) {
+            vInputLayers[i]->readNeighborhoodSerial(dataNeighbor);
+            vInputLayers[i]->readGlobalFileSerial(vInputnames[i]);
+		}
         CoordBR subWorkBR;
-        vInputLayers[0]->readFile(vInputnames[0]);
+        starttime = MPI_Wtime();
         if(readLoadPath) {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(vInputLayers[0],compuNeighbor,comptGrain);
+            comptLayer.initSerial(vInputLayers,compuNeighbor,comptGrain);
             comptLayer.readComputeLoadFile(readLoadPath);
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
+            if (myRank == 0)
+                cout << "compute-read-dcmp time is " << MPI_Wtime() - starttime << endl;
         }
         else {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(vInputLayers[0],compuNeighbor,comptGrain);
+            comptLayer.initSerial(vInputLayers,compuNeighbor,comptGrain);
             Transformation<double> transOper(nodataLoad, validLoad, &comptLayer); 
             transOper.run();
             if (writeLoadPath) {
                 comptLayer.writeComputeIntensityFileSerial(writeLoadPath);               
             }
             comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+            if (myRank == 0)
+                cout << "compute-write-dcmp time is " << MPI_Wtime() - starttime << endl;
         }
         cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()
             << endl;
-        endtime = MPI_Wtime();
         if (myRank == 0)
-            cout << "dcmp time is " << endtime - starttime << endl;
+            cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
 
         for (int i = 0; i < vInputnames.size(); i++) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
@@ -361,10 +366,10 @@ int main(int argc, char* argv[]) {
     if (myRank == 0)
         cout << "compute time is " << endtime - starttime << endl<<endl;
     fcmLayer.writeFile(outputFileName);
-    //for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
-    //	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
-    //}
-    //cout << "write done." << endl;
+    for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
+    	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
+    }
+    cout << "write done." << endl;
 
     Application::END();
     return 0;

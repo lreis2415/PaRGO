@@ -1,4 +1,4 @@
-/**
+ï»¿/**
  * \file computLayer
  * \author Ai Beibei, Wang Yujing
  * \brief Header file for class GPRO::ComputeLayer
@@ -63,11 +63,11 @@ namespace GPRO {
          * \brief Init this compute layer. It should be called before solving the compute layer.
          *  
          * Methods with suffix 'Serial' is safe to be called by all processes. It immediately returns when called by the work processes. Only the master process executes it.
-         * \param[in] pDataLayer init the compute layer by the metadata of the dataLayer.By the way add this dataLayer as a source to solve the compute layer.
+         * \param[in] dataLayers init the compute layer by the metadata of the dataLayer.By the way add this dataLayer as a source to solve the compute layer.
          * \param[in] neighborFile path of the neighborhood file (text file).
          * \param[in] comptGrain 1 computeLayer cell contains comptGrain^2 dataLayer cells.
          */
-        bool initSerial( RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain=1);
+        bool initSerial(vector<RasterLayer<elemType>* > dataLayers, const char* neighborFile,int comptGrain=1);
 
         /**
          * \brief Init this compute layer. It should be called before solving the compute layer.
@@ -84,6 +84,8 @@ namespace GPRO {
         const vector<RasterLayer<elemType> *> *dataLayers() const;
         void addRasterLayer( RasterLayer<elemType> *dataLayer);
         void addRasterLayers(vector<RasterLayer<elemType> *> dataLayers);
+        void addRasterLayerSerial( RasterLayer<elemType> *dataLayer);
+        void addRasterLayersSerial(vector<RasterLayer<elemType> *> dataLayers);
 
         /**
          * \brief Get the workBR of this process.
@@ -177,7 +179,23 @@ inline void GPRO::ComputeLayer<elemType>::
 addRasterLayers(vector<RasterLayer<elemType> *> dataLayers) {
     _vDataLayers=dataLayers;
 }
+template<class elemType>
+inline void GPRO::ComputeLayer<elemType>::
+addRasterLayerSerial(RasterLayer<elemType> *dataLayer) {
+    if(GetRank()!=0) {
+        return;
+    }
+    _vDataLayers.push_back(dataLayer);
+}
 
+template<class elemType>
+inline void GPRO::ComputeLayer<elemType>::
+addRasterLayersSerial(vector<RasterLayer<elemType> *> dataLayers) {
+    if(GetRank()!=0) {
+        return;
+    }
+    _vDataLayers=dataLayers;
+}
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
 initSerial(const char* neighborFile,int comptGrain) {
@@ -198,6 +216,7 @@ initSerial(const char* neighborFile,int comptGrain) {
     RasterLayer<elemType>::_pMetaData = new MetaData();
     MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
 
+    _comptGrain=comptGrain;
     pMetaData->cellSize = rhs.cellSize * comptGrain;
     pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
     pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
@@ -241,7 +260,7 @@ initSerial(const char* neighborFile,int comptGrain) {
 }
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
-initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int comptGrain) {
+initSerial(vector<RasterLayer<elemType>* > dataLayers, const char* neighborFile,int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
     
@@ -249,13 +268,13 @@ initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int compt
         return true;
     }
 
-    if ( pDataLayer == nullptr ) {
+    if (dataLayers.empty() ) {
         return false;
     }
-    addRasterLayer(pDataLayer);
+    addRasterLayers(dataLayers);
     RasterLayer<elemType>::readNeighborhood(neighborFile);
 
-    MetaData &rhs = *( pDataLayer->_pMetaData );
+    MetaData &rhs = *( dataLayers[0]->_pMetaData );
 
     RasterLayer<elemType>::_pMetaData = new MetaData();
     MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
@@ -302,7 +321,6 @@ initSerial(RasterLayer<elemType>* pDataLayer, const char* neighborFile,int compt
 
     return true;
 }
-
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
 getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
@@ -346,7 +364,7 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
             pDcmpIdx[4 * i + 2] = subEnd;
             pDcmpIdx[4 * i + 3] = glbWorkBR.maxICol();
         }
-        //´æ´¢×ª»»£¬·µ»Ø
+        //ï¿½æ´¢×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         CellCoord nwCorner( subEnd + 1, glbWorkBR.minICol());
         CellCoord seCorner( glbWorkBR.maxIRow(), glbWorkBR.maxICol());
         CoordBR subMBR( nwCorner, seCorner );

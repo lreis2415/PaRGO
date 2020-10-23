@@ -185,24 +185,23 @@ Operator(const CellCoord &coord)
 		}
 	}
 	computL[cRow][cCol] = 0.0;
+	
 	for( typename vector<RasterLayer<elemType>* >::iterator iter = _pComptLayer->_vDataLayers.begin(); iter!=_pComptLayer->_vDataLayers.end(); ++iter ){
 		//iterates each layer, add up to the computeLayer
-		const CellSpace<elemType> &dataL = *((*iter)->cellSpace());
+		const CellSpace<elemType> &dataL = *(*iter)->cellSpace();
 		for( int dRow = cRow*_computGrain+_dataWorkBR.minIRow(); dRow<(cRow+1)*_computGrain+_dataWorkBR.minIRow(); ++dRow ){
 			for( int dCol = cCol*_computGrain+_dataWorkBR.minICol(); dCol<(cCol+1)*_computGrain+_dataWorkBR.minICol(); ++dCol ){
 				if( dRow > _dataMBR.maxIRow()||dRow>=dataL.nRows() || dCol > _dataMBR.maxICol() ||dCol>=dataL.nCols()){
 					continue;
+				}
+				if( fabs(dataL[dRow][dCol] - (*iter)->metaData()->noData)>Eps){
+					computL[cRow][cCol] += _validLoad;
 				}else{
-					if( fabs(dataL[dRow][dCol] - _noData)>Eps && fabs(dataL[dRow][dCol] + 9999)>Eps){ //9999 is for our test data set, but not for robustness. So it's not necessary. (? confusing)
-						computL[cRow][cCol] += _validLoad;
-					}else{
-						computL[cRow][cCol] += _nodataLoad;
-					}
+					computL[cRow][cCol] += _nodataLoad;
 				}
 			}
 		}
 	}
-
 	return true;
 }
 
@@ -235,6 +234,17 @@ run()
 			//MPI_Allreduce(&Termination, &termSum, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 			termSum = Termination;	//It's serial for the moment.
 		} while (!termSum);
+	}
+	else
+	{
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
+		//MPI_Barrier( MPI_COMM_WORLD );
 	}
     
 	return flag;

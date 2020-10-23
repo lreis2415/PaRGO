@@ -31,14 +31,15 @@ public:
 	void degLayer(vector<RasterLayer<double> *> layerD);
 	
 	virtual bool isTermination();
-
+    
+    bool isNoData(double value, int rasterLayerIndex);
+    bool allNoDataAt(int row, int col);
 	void createRandomIdx( int nums, int range, int* randomIdx );	///<在range范围内产生nums个随机数，randomIdx返回
 	void fnDistance(int curRow, int curCol, double* pInputVal); ///<计算距离
 	void InitDegree(int curRow, int curCol);///<计算隶属度
 	void initRandomClusterCenters(double *clusterCenters);
 	void assignMaxMembershipDegrees();
 	virtual bool Operator(const CellCoord &coord, bool operFlag);
-
 
 private:
 	int _cellSize;

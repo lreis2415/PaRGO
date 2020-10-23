@@ -58,6 +58,20 @@ bool FCMOperator::isTermination() {
     return flag;
 }
 
+
+bool FCMOperator::isNoData(double value, int rasterLayerIndex){
+    return fabs(value - _vInputLayer[rasterLayerIndex]->metaData()->noData) <Eps;
+}
+
+bool FCMOperator::allNoDataAt(int row, int col) {
+    for (int i=0;i<_vInputLayer.size();i++) {
+        if(!isNoData((*_vInputLayer[i]->cellSpace())[row][col],i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void FCMOperator::createRandomIdx(int nums, int range, int* randomIdx) {
     //在range范围内产生nums个随机数，randomIdx返回
     srand((unsigned int)time(NULL)); //初始化随机种子
@@ -87,11 +101,15 @@ void FCMOperator::createRandomIdx(int nums, int range, int* randomIdx) {
 void FCMOperator::fnDistance(int curRow, int curCol, double* pInputVal) {
     for (int i = 0; i < clusterNum; i++) {
         dist[i][curRow][curCol] = 0.0;
+        int count = 0;
         for (int j = 0; j < imageNum; j++) {
-            dist[i][curRow][curCol] += (pInputVal[j] - centerVal[i * imageNum + j]) * (pInputVal[j] - centerVal[i *
-                imageNum + j]);
+            if (isNoData(pInputVal[j], j)) {
+                continue;
+            }
+            dist[i][curRow][curCol] += (pInputVal[j] - centerVal[i * imageNum + j]) * (pInputVal[j] - centerVal[i *imageNum + j]);
+            count++;//2020-10-21更新，多层时计算平均值
         }
-        dist[i][curRow][curCol] = sqrt(dist[i][curRow][curCol]);
+        dist[i][curRow][curCol] = sqrt(dist[i][curRow][curCol]/count);
     }
 }
 
@@ -103,9 +121,9 @@ void FCMOperator::InitDegree(int curRow, int curCol) {
             if (dist[q][curRow][curCol] == 0) {
                 dist[q][curRow][curCol] = Eps;
             }
-            sumDistance += pow((dist[p][curRow][curCol] / dist[q][curRow][curCol]), (2 / (weight - 1)));
+            sumDistance += pow(dist[p][curRow][curCol] / dist[q][curRow][curCol], 2 / (weight - 1));
         }
-        degree[p][curRow][curCol] = (sumDistance == 0.0) ? 1.0 : 1.0 / sumDistance;
+        degree[p][curRow][curCol] = sumDistance == 0.0 ? 1.0 : 1.0 / sumDistance;
         //用于阈值判断,先叠加到val中
         subval += pow(degree[p][curRow][curCol], weight) * pow(dist[p][curRow][curCol], 2);
     }
@@ -117,7 +135,8 @@ void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
     vector<int> tmpIdx;
     for (int i = 1; i < _xSize - 1; ++i) {
         for (int j = 1; j < _ySize - 1; ++j) {
-            if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
+            const double value = (*_vInputLayer[0]->cellSpace())[i][j];
+            if (!isNoData(value,0)) {
                 tmpIdx.push_back(i * _ySize + j);
             }
         }
@@ -148,7 +167,7 @@ void FCMOperator::assignMaxMembershipDegrees() {
     for (int i = 1; i < _xSize - 1; i++) {
         for (int j = 1; j < _ySize - 1; j++) {
             startTime = MPI_Wtime();
-            if ((_vInputLayer[0]->cellSpace()[0])[i][j] != _noData) {
+            if (!allNoDataAt(i,j)) {
                 int cNum = -1; //所属类号
                 double degreeMax = 0.0; //最大隶属度值
                 for (int p = 0; p < clusterNum; p++) {
@@ -159,7 +178,7 @@ void FCMOperator::assignMaxMembershipDegrees() {
                     //赋值对各类的隶属度给degreeLayer
                     (*_vDegLayer[p]->cellSpace())[i][j] = degree[p][i][j];
                     //目前测试中还是输出了熵信息，如果不输出，不知道影响有多大
-                    if ((degree[p][i][j] - _noData) > Eps) {
+                    if ((degree[p][i][j] - _vDegLayer[p]->metaData()->noData) > Eps) {
                         //这判断应该是冗余的
                         int nRows = _vInputLayer[0]->_pMetaData->row;
                         int nCols = _vInputLayer[0]->_pMetaData->column;
@@ -171,8 +190,7 @@ void FCMOperator::assignMaxMembershipDegrees() {
                     }
                 }
                 fcmL[i][j] = cNum;
-            }
-            else {
+            }else {
                 fcmL[i][j] = _noData;
                 for (int p = 0; p < clusterNum; p++) {
                     (*_vDegLayer[p]->cellSpace())[i][j] = _noData;
@@ -185,21 +203,12 @@ void FCMOperator::assignMaxMembershipDegrees() {
 bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //cout<<"rank"<<_rank<<" ("<<coord.iRow()<<","<<coord.iCol()<<")"<<endl;
     double startTime, endTime;
-    startTime = MPI_Wtime();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
     if (_pComptLayer) {
         if (_iterNum == 0) {
             (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0; //引入了额外代价，影响估计的准确程度;但不这样对-9999会计算有误，对空值和非空值都没影响
         }
-    }
-
-    if (!(iRow == 1 && iCol == 1) && (fabs((*_vInputLayer[0]->cellSpace())[iRow][iCol] + 9999) <= Eps ||
-        fabs((*(_vInputLayer[0]->cellSpace()))[iRow][iCol] - _noData) <= Eps) && !((iRow == _xSize - 2) && (iCol == _ySize - 2))) {
-        endTime = MPI_Wtime();
-        if (_pComptLayer)
-            (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
-        return true; //空值栅格没必要做后续操作，直接跳过
     }
 
     double* pInputVal = new double[imageNum];
@@ -246,16 +255,25 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //进程0负责广播聚类中心
         }
     }
-
-
+    
     startTime = MPI_Wtime();
-    if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
-        //空值不做处理，最后一并赋空值
-    }
-    else {
-        fnDistance(iRow, iCol, pInputVal); //非nodata的cell到各类中心的距离值计算
+
+    //if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
+    //    //空值不做处理，最后一并赋空值
+    //}
+    //else {
+    //    fnDistance(iRow, iCol, pInputVal); //非nodata的cell到各类中心的距离值计算
+    //    InitDegree(iRow, iCol); //隶属度计算
+    //}
+    if(allNoDataAt(iRow,iCol)) {
+        for (int i = 0; i < clusterNum; i++) {
+            dist[i][iRow][iCol] = -1;
+        }
+    }else{
+        fnDistance(iRow, iCol, pInputVal); //cell到各类中心的距离值计算
         InitDegree(iRow, iCol); //隶属度计算
     }
+
     endTime = MPI_Wtime();
     if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
 
@@ -295,11 +313,26 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 for (int i = 1; i < _xSize - 1; i++) {
                     //一定要注意这里只计算有效空间
                     for (int j = 1; j < _ySize - 1; j++) {
-                        if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
-                            sumDenominator[p] += pow(degree[p][i][j], weight);
-                            for (int q = 0; q < imageNum; q++) {
-                                sumNumerator[p * imageNum + q] += (pow(degree[p][i][j], weight) * (*_vInputLayer[q]->cellSpace())[i][j]);
+                        //if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
+                        //    sumDenominator[p] += pow(degree[p][i][j], weight);
+                        //    for (int q = 0; q < imageNum; q++) {
+                        //        sumNumerator[p * imageNum + q] += (pow(degree[p][i][j], weight) * (*_vInputLayer[q]->cellSpace())[i][j]);
+                        //    }
+                        //    ++valCount;
+                        //}
+
+                        //如果也计算含nodata的多图层呢
+                        if(allNoDataAt(i,j)) {
+                            continue;
+                        }
+                        sumDenominator[p] += pow(degree[p][i][j], weight);
+                        for (int q = 0; q < imageNum; q++)
+                        {
+                            const double value = (*_vInputLayer[q]->cellSpace())[i][j];
+                            if (isNoData(value,q)) {
+                                continue;
                             }
+                            sumNumerator[p * imageNum + q] += pow(degree[p][i][j], weight) * value;
                             ++valCount;
                         }
                     }
@@ -320,11 +353,11 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     delete pInputVal;
 
 
-    if (_pComptLayer && 
-        !(iRow == _xSize - 2 && iCol == _ySize - 2) &&
-        !(iRow == 1 && iCol == 1)) {
-        (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
-    }
+    //if (_pComptLayer && 
+    //    !(iRow == _xSize - 2 && iCol == _ySize - 2) &&
+    //    !(iRow == 1 && iCol == 1)) {
+    //    (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
+    //}
     //*_pComptLayer->cellSpace()[iRow][iCol] += (endTime - startTime) * 1000;
     // if (comptL[iRow][iCol] > 30)
     // {

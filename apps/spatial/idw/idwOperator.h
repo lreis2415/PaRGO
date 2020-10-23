@@ -10,7 +10,7 @@
 
 using namespace GPRO;
 
-#define Eps 0.0000001
+#define EPS 0.0000001
 #define  NODATA_DEFINE -9999
 
 struct Sample_Point{
@@ -51,12 +51,16 @@ public:
     double getBlockSize(){return _blockSize;}
 
 	int readSampleNums( const char* filename, char** pSpatialRefWkt );
-	bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array );
-	void creatSampleBlocks( double **pSamples );
+	//bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array );
+	//void creatSampleBlocks( double **pSamples );
+	bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<Sample_Point> &samples );
+	void creatSampleBlocks(vector<Sample_Point> &samples);
     Sample_block* getSampleBlocks(){return _pSampleBlocks;}
 
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt);
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt,CoordBR& subWorkBR);
+	void maskLayer(RasterLayer<double> &layerD);
+	void maskLayer(RasterLayer<double> &layerD, CoordBR& subWorkBR);
 	void idwLayerSerial(RasterLayer<double> &layerD, char** pSpatialRefWkt);
 	virtual bool isTermination();
 
@@ -108,6 +112,7 @@ protected:
     int _blockRows;
     int _blockCols;
 	RasterLayer<double> *_pIDWLayer;
+	RasterLayer<double> *_pMaskLayer;
 
 
 };
