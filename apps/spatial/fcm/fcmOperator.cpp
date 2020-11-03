@@ -258,21 +258,21 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     
     startTime = MPI_Wtime();
 
-    //if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
-    //    //空值不做处理，最后一并赋空值
-    //}
-    //else {
-    //    fnDistance(iRow, iCol, pInputVal); //非nodata的cell到各类中心的距离值计算
-    //    InitDegree(iRow, iCol); //隶属度计算
-    //}
-    if(allNoDataAt(iRow,iCol)) {
-        for (int i = 0; i < clusterNum; i++) {
-            dist[i][iRow][iCol] = -1;
-        }
-    }else{
-        fnDistance(iRow, iCol, pInputVal); //cell到各类中心的距离值计算
+    if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
+        //空值不做处理，最后一并赋空值
+    }
+    else {
+        fnDistance(iRow, iCol, pInputVal); //非nodata的cell到各类中心的距离值计算
         InitDegree(iRow, iCol); //隶属度计算
     }
+    // if(allNoDataAt(iRow,iCol)) {
+    //     for (int i = 0; i < clusterNum; i++) {
+    //         dist[i][iRow][iCol] = -1;
+    //     }
+    // }else{
+    //     fnDistance(iRow, iCol, pInputVal); //cell到各类中心的距离值计算
+    //     InitDegree(iRow, iCol); //隶属度计算
+    // }
 
     endTime = MPI_Wtime();
     if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;

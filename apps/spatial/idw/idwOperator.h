@@ -13,10 +13,13 @@ using namespace GPRO;
 #define EPS 0.0000001
 #define  NODATA_DEFINE -9999
 
-struct Sample_Point{
-	int x;
-	int y;
+struct SamplePoint{
+	double x;
+	double y;
 	double value;
+    SamplePoint() {
+        // cout<<"I'm inited!"<<endl;
+    }
 };
 
 struct extent_info {
@@ -26,10 +29,10 @@ struct extent_info {
 	double maxY;
 };
 
-struct Sample_block{
+struct SampleBlock{
 	//CoordBR _MBR;	//是否需要待定
 	//extent_info blockExtent;
-	vector<Sample_Point> sample_Points;
+	vector<SamplePoint> samplePoints;
 };
 
 class IDWOperator : public RasterOperator<double> 
@@ -53,14 +56,14 @@ public:
 	int readSampleNums( const char* filename, char** pSpatialRefWkt );
 	//bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array );
 	//void creatSampleBlocks( double **pSamples );
-	bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<Sample_Point> &samples );
-	void creatSampleBlocks(vector<Sample_Point> &samples);
-    Sample_block* getSampleBlocks(){return _pSampleBlocks;}
+	bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<SamplePoint> &samples );
+	void creatSampleBlocks(vector<SamplePoint> &samples);
+    const vector<SampleBlock>* getSampleBlocks(){return &_pSampleBlocks;}
 
-	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt);
+	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt, DomDcmpType dcmpType=ROWWISE_DCMP);
 	void idwLayer(RasterLayer<double> &layerD, char** pSpatialRefWkt,CoordBR& subWorkBR);
-	void maskLayer(RasterLayer<double> &layerD);
-	void maskLayer(RasterLayer<double> &layerD, CoordBR& subWorkBR);
+	void maskLayer(RasterLayer<int> &layerD);
+	void maskLayer(RasterLayer<int> &layerD, CoordBR& subWorkBR);
 	void idwLayerSerial(RasterLayer<double> &layerD, char** pSpatialRefWkt);
 	virtual bool isTermination();
 
@@ -70,8 +73,8 @@ public:
 
     int getBlockRowIndexByCoord(double y){  return (_glb_extent.maxY - y) / _blockSize; }
     int getBlockColIndexByCoord(double x){return (x - _glb_extent.minX) / _blockSize;}
-    int getBlockRowIndexByCellIndex(int iRow,double cellSize){return (iRow+0.5)*cellSize/_blockSize;}
-    int getBlockColIndexByCellIndex(int iCol,double cellSize){ return (iCol+0.5)*cellSize/_blockSize;}
+    int getBlockRowIndexByCellIndex(int iRow,double cellSize){return min(int((iRow+0.5)*cellSize/_blockSize),_blockRows-1);}
+    int getBlockColIndexByCellIndex(int iCol,double cellSize){ return min(int((iCol+0.5)*cellSize/_blockSize),_blockCols-1);}
     double getYByCellIndex(int iRow,double cellSize){return double(_glb_extent.maxY - (iRow + 0.5) * cellSize);}
     double getXByCellIndex(int iCol,double cellSize){return double((iCol + 0.5) * cellSize + _glb_extent.minX);}
 
@@ -82,6 +85,7 @@ public:
     double getGlobalMaxX(){return _glb_extent.maxX;}
     double getGlobalMinY(){return _glb_extent.minY;}
     double getGlobalMaxY(){return _glb_extent.maxY;}
+    RasterLayer<int>* getMaskLayer(){return _pMaskLayer;}
 
     inline double getMinDistanceToBlockBound(double x,double y);
     int getNbrPoints(){return _nbrPoints;}
@@ -108,11 +112,11 @@ protected:
 	extent_info _sub_extent;	//本进程栅格范围
 	int _sample_nums;	//全区总样点数量
 	double _blockSize;
-	Sample_block* _pSampleBlocks;	//以粗网格块,按行组织的样点;每个进程都存了全部块，析构函数中要释放；
+	vector<SampleBlock> _pSampleBlocks;	//以粗网格块,按行组织的样点;每个进程都存了全部块，析构函数中要释放；
     int _blockRows;
     int _blockCols;
 	RasterLayer<double> *_pIDWLayer;
-	RasterLayer<double> *_pMaskLayer;
+	RasterLayer<int> *_pMaskLayer;
 
 
 };

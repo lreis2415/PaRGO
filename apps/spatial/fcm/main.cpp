@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
     int weight; //加权指数
     int nodataLoad; //
     int validLoad; //
+    int granularity=10;
     bool decomposeBySapce; /// decomp by compute load if false
     char* writeLoadPath=nullptr;
     char* readLoadPath=nullptr;
@@ -199,6 +200,17 @@ int main(int argc, char* argv[]) {
                 Usage("No argument followed '-validLoad'!");
             }
         }
+        else if (strcmp(argv[i], "-granularity") == 0) {
+            simpleusage = false;
+            i++;
+            if (argc > i) {
+                granularity = atoi(argv[i]);
+                i++;
+            }
+            else {
+                Usage("No argument followed '-granularity'!");
+            }
+        }
         else if (strcmp(argv[i], "-dcmp") == 0) {
             simpleusage = false;
             i++;
@@ -285,7 +297,6 @@ int main(int argc, char* argv[]) {
         vDegreeLayer.push_back(pLayer);
     }
 
-    int comptGrain=10;
     if (decomposeBySapce) {
         for (int i = 0; i < vInputnames.size(); i++) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
@@ -311,6 +322,7 @@ int main(int argc, char* argv[]) {
         fcmOper.Run();
         if(writeLoadPath)
             comptLayer.writeComputeIntensityFileSerial(writeLoadPath); //测试用，写出捕捉到的计算时间
+        cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
     }
     else{
     	for (int i = 0; i < vInputnames.size(); i++) {
@@ -321,7 +333,7 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         if(readLoadPath) {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(vInputLayers,compuNeighbor,comptGrain);
+            comptLayer.initSerial(vInputLayers,compuNeighbor,granularity);
             comptLayer.readComputeLoadFile(readLoadPath);
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
             if (myRank == 0)
@@ -329,7 +341,7 @@ int main(int argc, char* argv[]) {
         }
         else {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(vInputLayers,compuNeighbor,comptGrain);
+            comptLayer.initSerial(vInputLayers,compuNeighbor,granularity);
             Transformation<double> transOper(nodataLoad, validLoad, &comptLayer); 
             transOper.run();
             if (writeLoadPath) {
@@ -360,15 +372,17 @@ int main(int argc, char* argv[]) {
         fcmOper.degLayer(vDegreeLayer);
         starttime = MPI_Wtime();
         fcmOper.Run();
+        cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
     endtime = MPI_Wtime();
     if (myRank == 0)
         cout << "compute time is " << endtime - starttime << endl<<endl;
+
     fcmLayer.writeFile(outputFileName);
-    for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
-    	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
-    }
+    // for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
+    // 	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
+    // }
     cout << "write done." << endl;
 
     Application::END();

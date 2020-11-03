@@ -64,8 +64,8 @@ namespace GPRO
          */		
 		bool run();
 
-	private:
-		elemType _nodataLoad; ///< intensity value for NoData grid
+	protected:
+        elemType _nodataLoad; ///< intensity value for NoData grid
 		elemType _validLoad; ///< intensity value for valid grid
 		int _myRank;  ///< rank of this process
 
@@ -74,7 +74,6 @@ namespace GPRO
 		CoordBR _dataMBR;	///< MBR of data domain
 		CoordBR _dataWorkBR;	///< workBR of this process
 
-	protected:
 		//vector<RasterLayer<elemType>* > CommVec;	// to be decided. It's needed for parallel transformation
 		ComputeLayer<elemType>* _pComptLayer; ///< the output
 		//vector<RasterLayer<elemType>* > _pDataLayersV;	// to implement some default versions
@@ -171,10 +170,10 @@ Operator(const CellCoord &coord)
 
 	if( cRow == _pWorkBR->minIRow() && cCol == _pWorkBR->minICol() ){
 		cout<<"Transformation operator() function called."<<endl;
-		if( _nodataLoad == _validLoad ){
-			cerr<<"The load is balanced. No need to use compute layer."<<endl;
-			return false;
-		}
+		// if( _nodataLoad == _validLoad ){
+		// 	cerr<<"The load is balanced. No need to use compute layer."<<endl;
+		// 	return false;
+		// }
 		if( _nodataLoad<0 || _validLoad<0 ){
 			cerr<<"The load specified cannot be negative."<<endl;
 			return false;
@@ -229,6 +228,7 @@ run()
 						flag = false;
 						break;
 					}
+				    // printf("[%i,%i]",iRow,iCol);
 				}
 			}
 			//MPI_Allreduce(&Termination, &termSum, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);

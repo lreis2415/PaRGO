@@ -201,7 +201,6 @@ bool GPRO::ComputeLayer<elemType>::
 initSerial(const char* neighborFile,int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
-    
     if(GetRank()!=0) {
         return true;
     }
@@ -210,9 +209,7 @@ initSerial(const char* neighborFile,int comptGrain) {
     }
     
     RasterLayer<elemType>::readNeighborhood(neighborFile);
-
     const MetaData &rhs = *( _vDataLayers[0]->_pMetaData );
-
     RasterLayer<elemType>::_pMetaData = new MetaData();
     MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
 
@@ -227,7 +224,7 @@ initSerial(const char* neighborFile,int comptGrain) {
     pMetaData->noData = rhs.noData;
     pMetaData->myrank = rhs.myrank;
     pMetaData->processor_number = GetRank();
-    pMetaData->_domDcmpType = rhs._domDcmpType; //ought to be NON_DCMP
+    pMetaData->_domDcmpType = NON_DCMP;
     SpaceDims sdim( pMetaData->row, pMetaData->column );
     pMetaData->_glbDims = sdim;
     if ( pMetaData->_domDcmpType == NON_DCMP ) {
@@ -263,19 +260,16 @@ bool GPRO::ComputeLayer<elemType>::
 initSerial(vector<RasterLayer<elemType>* > dataLayers, const char* neighborFile,int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
-    
     if(GetRank()!=0) {
         return true;
     }
-
     if (dataLayers.empty() ) {
         return false;
     }
+
     addRasterLayers(dataLayers);
     RasterLayer<elemType>::readNeighborhood(neighborFile);
-
     MetaData &rhs = *( dataLayers[0]->_pMetaData );
-
     RasterLayer<elemType>::_pMetaData = new MetaData();
     MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
 
@@ -335,7 +329,7 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
         
         //it should have been invisible
         vector<CoordBR> vComptDcmpBR;
-        cout << "hold " << RasterLayer<elemType>::_pMetaData->_glbDims << endl;
+        cout << "compute layer size: " << RasterLayer<elemType>::_pMetaData->_glbDims << endl;
         DeComposition<elemType> deComp( RasterLayer<elemType>::_pMetaData->_glbDims, *( RasterLayer<elemType>::_pNbrhood ));
         if ( dcmpType == ROWWISE_DCMP ) {
             deComp.valRowDcmp( vComptDcmpBR, *this, nSubSpcs );    //divide this layer by its intensity values. output to vComptDcmpBR.
@@ -364,7 +358,6 @@ getCompuLoad( DomDcmpType dcmpType, const int nSubSpcs, CoordBR &subWorkBR ) {
             pDcmpIdx[4 * i + 2] = subEnd;
             pDcmpIdx[4 * i + 3] = glbWorkBR.maxICol();
         }
-        //�洢ת��������
         CellCoord nwCorner( subEnd + 1, glbWorkBR.minICol());
         CellCoord seCorner( glbWorkBR.maxIRow(), glbWorkBR.maxICol());
         CoordBR subMBR( nwCorner, seCorner );

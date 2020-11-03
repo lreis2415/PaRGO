@@ -189,10 +189,11 @@ namespace GPRO {
          */
 		bool writeFile( const char *outputfile );
 
-        /**
-         *not in use.
-         */
-        //bool updateMetadata( const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
+
+        int rowAtOtherLayer(RasterLayer<double>* layer, int row);
+        int rowAtOtherLayer(RasterLayer<int>* layer, int row);
+        int colAtOtherLayer(RasterLayer<double>* layer, int col);
+        int colAtOtherLayer(RasterLayer<int>* layer, int col);
     protected:
 
         /**
@@ -756,6 +757,7 @@ layerDcmp(const CoordBR &subWorkBR){
 
     int glbBegin = subWorkBR.nwCorner().iRow();
     int glbEnd = subWorkBR.seCorner().iRow();
+    glbEnd = min(glbEnd,_pMetaData->_glbDims.nRows()-1);
     CellCoord nwCorner( glbBegin + _pNbrhood->minIRow(), 0 );
     CellCoord seCorner( glbEnd + _pNbrhood->maxIRow(), _pMetaData->_glbDims.nCols() - 1 );
     CoordBR subMBR( nwCorner, seCorner );
@@ -1131,10 +1133,29 @@ colWriteFile( const char *outputfile ) {
     return true;
 }
 
-// //not in use.
-// template<class elemType>
-// bool GPRO::RasterLayer<elemType>::
-// updateMetadata( const CoordBR &subWorkBR, DomDcmpType dcmpType ) {
-// }
+template<class elemType>
+int GPRO::RasterLayer<elemType>::
+rowAtOtherLayer(RasterLayer<double>* layer, int row) {
+    double scale = (double)layer->metaData()->_glbDims.nRows()/_pMetaData->_glbDims.nRows();
+    return scale*row;
+}
+template<class elemType>
+int GPRO::RasterLayer<elemType>::
+rowAtOtherLayer(RasterLayer<int>* layer, int row) {
+    double scale = (double)layer->metaData()->_glbDims.nRows()/_pMetaData->_glbDims.nRows();
+    return scale*row;
+}
+template<class elemType>
+int GPRO::RasterLayer<elemType>::
+colAtOtherLayer(RasterLayer<double>* layer, int col) {
+    double scale = (double)layer->metaData()->_glbDims.nCols()/_pMetaData->_glbDims.nCols();
+    return scale*col;
+}
+template<class elemType>
+int GPRO::RasterLayer<elemType>::
+colAtOtherLayer(RasterLayer<int>* layer, int col) {
+    double scale = (double)layer->metaData()->_glbDims.nCols()/_pMetaData->_glbDims.nCols();
+    return scale*col;
+}
 
 #endif

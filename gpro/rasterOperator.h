@@ -44,12 +44,12 @@ namespace GPRO
     public:
         RasterOperator()
             : _domDcmpType(NON_DCMP),
-              //_pCellSpace(NULL),
-              //_pNbrhood(NULL),
               _pWorkBR(NULL),
               _pComptLayer(NULL),
               commFlag(false),
-              Termination(true) {}
+              Termination(true),
+              computeTimeExceptLastCell(0)
+              {}
 
         virtual ~RasterOperator() {}
 
@@ -104,6 +104,7 @@ namespace GPRO
         CoordBR* _pWorkBR; ///< work bounding rectangle of this process
         bool commFlag; ///< true if involve communication
         int Termination; ///< typically 1 implies terminate, 0 implies another traversion
+        double computeTimeExceptLastCell;
     };
 };
 
@@ -165,23 +166,24 @@ Work(const CoordBR* const pWBR) {
     double startTime=MPI_Wtime();
     double endTime=0;
     double iterStartTime=0;
-    double rowStartTime=MPI_Wtime();
+    double intervalStartTime=MPI_Wtime();
     if (Application::_programType == MPI_Type) {
         MPI_Barrier(MPI_COMM_WORLD);
         do {
             iterStartTime=MPI_Wtime();
             Termination = 1;
             for (int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) {
-                
                 for (int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++) {
                     CellCoord coord(iRow, iCol);
+                    if(iRow==pWBR->maxIRow()&&iCol== pWBR->maxICol()) {
+                        computeTimeExceptLastCell+=MPI_Wtime()-iterStartTime;
+                    }
                     if (!Operator(coord, true)) {
                         cout << "Operator is not successes!" << endl;
                         flag = false;
                         break;
                     }
                 }
-                
 #ifdef _DEBUG
                 int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
                 if(rowInterval != lastRowInterval) {
@@ -194,14 +196,12 @@ Work(const CoordBR* const pWBR) {
                         cout<<" ";
                     }
                     endTime=MPI_Wtime();
-                    cout<<"]"<<endTime-rowStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
-                    rowStartTime=MPI_Wtime();
+                    cout<<"]"<<endTime-intervalStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
+                    intervalStartTime=MPI_Wtime();
                 }
 #endif
             }
-            endTime=MPI_Wtime();
-            cout<<"rank"<<myRank<<" iter time "<<endTime-iterStartTime<<"s"<<endl;
-            startTime=MPI_Wtime();
+            cout<<"rank"<<myRank<<" iter time "<<MPI_Wtime()-iterStartTime<<"s"<<endl;
             if (commFlag) {
                 if (_domDcmpType == ROWWISE_DCMP) {
                     COMNI.rowComm();
@@ -212,9 +212,6 @@ Work(const CoordBR* const pWBR) {
             }
             MPI_Allreduce(&Termination, &noterm, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
             itera++;
-            
-            //endTime=MPI_Wtime();
-            //cout<<"rank"<<myRank<<" commu time "<<endTime-startTime<<"s"<<endl;
         }
         while (!noterm);
         MPI_Barrier(MPI_COMM_WORLD);
