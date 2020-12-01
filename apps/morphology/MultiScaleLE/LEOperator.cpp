@@ -9,7 +9,7 @@
 #include <iostream>
 #include <fstream>
 
-//ä¸ºäº†æ§åˆ¶DPçš„é€’å½’æ¬¡æ•°
+//ÎªÁË¿ØÖÆDPµÄµİ¹é´ÎÊı
 /*directions
  * 3|2|1
  * 4|0|8
@@ -47,14 +47,14 @@ bool LEOperator::isTermination()
     return true;
 }
 
-//è®¡ç®—è·ç¦»
+//¼ÆËã¾àÀë
 double caldist(int row1,int col1,int row2,int col2,double cell_res)
 {
 	double dist;
 	dist = cell_res * sqrt((double)((col1-col2)*(col1-col2) +(row1-row2)*(row1-row2)));
 	return dist;
 }
-//è®¡ç®—çº¿å‚æ•°
+//¼ÆËãÏß²ÎÊı
 void ParaCalcu(vector<GeoPoint> Points,int firstpoint, int lastpoint,double *k,double *b)
 {
 	//LineParameters thisLine = new LineParameters();
@@ -64,7 +64,7 @@ void ParaCalcu(vector<GeoPoint> Points,int firstpoint, int lastpoint,double *k,d
 	//cout<<"step1.1.1"<<" "<<Points[lastpoint].elevation<<" "<<Points[lastpoint].distance<<" "<<Points[firstpoint].elevation<<" "<<Points[firstpoint].distance<<endl;
 	//cout<<"step1.1"<<" "<<k<<" "<<b<<endl;
 }
-//è®¡ç®—æ¯ä¸€ç‚¹ç¦»ç›´çº¿çš„é«˜å·®
+//¼ÆËãÃ¿Ò»µãÀëÖ±ÏßµÄ¸ß²î
 double DisCalcu(vector<GeoPoint> Points, int thispoint, double k,double b)
 {
 	//GeoPoint temPoint = new GeoPoint(0,0,0);
@@ -79,14 +79,14 @@ double DisCalcu(vector<GeoPoint> Points, int thispoint, double k,double b)
 	//cout<<"distance="<<distance<<endl;
 	return distance;
 }
-//è¿›è¡ŒDPä¸€æ¬¡è®¡ç®—
+//½øĞĞDPÒ»´Î¼ÆËã
 void DPCalcu(vector<GeoPoint> Points, int firstpoint, int lastpoint, double Tolerance, vector<int> &PointToKeep)
 {
 	double maxDistance = 0;
 	int FarthestPoint = 0;
 	double k,b;
 
-	//è®¡ç®—æ¯ä¸€ç‚¹ç¦»ç›´çº¿çš„é«˜å·®
+	//¼ÆËãÃ¿Ò»µãÀëÖ±ÏßµÄ¸ß²î
 	ParaCalcu(Points, firstpoint, lastpoint,&k,&b);
 	//cout<<"step1"<<k<<" "<<b<<endl;
 	for (int thispoint = firstpoint;thispoint<lastpoint;thispoint++)
@@ -101,9 +101,9 @@ void DPCalcu(vector<GeoPoint> Points, int firstpoint, int lastpoint, double Tole
 		//cout<<"step3"<<maxDistance<<" "<<FarthestPoint<<endl;
 	}
 
-		//å°†æœ€å¤§è·ç¦»ç‚¹ä¿ç•™
+		//½«×î´ó¾àÀëµã±£Áô
 		PointToKeep.push_back(FarthestPoint);
-		//é€’å½’è®¡ç®—
+		//µİ¹é¼ÆËã
 		//if (times == 0)
 		//{
 			//times = times + 1;
@@ -114,7 +114,7 @@ void DPCalcu(vector<GeoPoint> Points, int firstpoint, int lastpoint, double Tole
 		return;
 }
 
-//åŒ–ç®€pattenç±»å‹
+//»¯¼òpattenÀàĞÍ
 int determine_form(int num_minus, int num_plus)
 {
 /* determine form according number of positives and negatives
@@ -185,12 +185,12 @@ int determine_form_num(int num_minus, int num_plus)
  return forms_num[num_minus][num_plus];
 }
 
-//ä¸‰çª—å£è®¡ç®—form
+//Èı´°¿Ú¼ÆËãform
 int extern multidetermin_form_num(int cur_Row, int cur_Col, vector<Pattern> patterns,int RowNum)
 {
     vector<int> forms(RowNum-2);
 	
-	//å°†æ‰€æœ‰çª—å£çš„ç»“æœå†™å…¥txt
+	//½«ËùÓĞ´°¿ÚµÄ½á¹ûĞ´Èëtxt
 	ofstream TXTout;
 	TXTout.open("AllScalesLE.txt", ios::ate|ios::out|ios::app);
 	if(TXTout.is_open())
@@ -201,21 +201,21 @@ int extern multidetermin_form_num(int cur_Row, int cur_Col, vector<Pattern> patt
 	for (int i=0;i<RowNum-2;i++)
 	{
 		forms[i] = determine_form_num(patterns[i].num_negatives,patterns[i].num_positives);	
-		//è®¡ç®—ä¸€ä¸ªformå†™ä¸€ä¸ªform
+		//¼ÆËãÒ»¸öformĞ´Ò»¸öform
 		if(TXTout.is_open())
 		{
 			TXTout<<forms[i]<<",";
 		}		
 	}
-	//è¿™ä¸ªæ …æ ¼å†™å®Œäº†ï¼Œè¦å†™ä¸ªæ¢è¡Œç¬¦
+	//Õâ¸öÕ¤¸ñĞ´ÍêÁË£¬ÒªĞ´¸ö»»ĞĞ·û
 	if(TXTout.is_open())
 	{
 		TXTout<<"\n";
 	}
 
-	//è®°å½•å„ç§formå‡ºç°æ¬¡æ•°,ç®—ä¸Šé”™è¯¯ç±»å‹ä¸€å…±11ç§ç±»å‹
+	//¼ÇÂ¼¸÷ÖÖform³öÏÖ´ÎÊı,ËãÉÏ´íÎóÀàĞÍÒ»¹²11ÖÖÀàĞÍ
 	int curform[11] = {0,0,0,0,0,0,0,0,0,0,0};
-	//å¯¹ä¸‰ä¸ªçª—å£çš„formè¿›è¡Œè®¡ç®—
+	//¶ÔÈı¸ö´°¿ÚµÄform½øĞĞ¼ÆËã
 	
 	for (int i = 0;i<RowNum-2;i++)
 	{
@@ -253,18 +253,18 @@ bool LEOperator::Operator(const CellCoord &coord, bool operFlag)
 	//int rank;
 	//MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 	//cout<<"rank"<<rank<<" ("<<coord.iRow()<<","<<coord.iCol()<<")"<<endl;
-    CellSpace<double> &dem = *(_pDEMLayer->cellSpace());//è¾“å…¥å›¾å±‚çš„æ …æ ¼æ•°æ®
+    CellSpace<double> &dem = *(_pDEMLayer->cellSpace());//ÊäÈëÍ¼²ãµÄÕ¤¸ñÊı¾İ
 
-    CellSpace<double> &LE = *(_pLELayer->cellSpace());//è¾“å‡ºå›¾å±‚çš„æ …æ ¼æ•°æ®
+    CellSpace<double> &LE = *(_pLELayer->cellSpace());//Êä³öÍ¼²ãµÄÕ¤¸ñÊı¾İ
 
-    Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);//åˆ†æçª—å£æ–‡ä»¶
+    Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);//·ÖÎö´°¿ÚÎÄ¼ş
 
     int nextr[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
     int nextc[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
 
-    //coordæ˜¯åˆ†æçª—å£çš„åæ ‡åŸç‚¹ï¼Œä¹Ÿå°±æ˜¯éœ€è¦è®¡ç®—å¡åº¦çš„ç‚¹
-    int cur_Row = coord.iRow();//å½“å‰çš„row
-    int cur_Col = coord.iCol();//å½“å‰çš„cols
+    //coordÊÇ·ÖÎö´°¿ÚµÄ×ø±êÔ­µã£¬Ò²¾ÍÊÇĞèÒª¼ÆËãÆÂ¶ÈµÄµã
+    int cur_Row = coord.iRow();//µ±Ç°µÄrow
+    int cur_Col = coord.iCol();//µ±Ç°µÄcols
 
     double cell_res = 30;
     Pattern pattern;
@@ -273,21 +273,21 @@ bool LEOperator::Operator(const CellCoord &coord, bool operFlag)
     pattern.num_positives = 0;
     pattern.negatives = 0;
     pattern.positives = 0;
-    //è®¾ç½®è§’åº¦é˜ˆå€¼
-    double flat_distance = cell_res * 3;//ä¸ºäº†é¿å…çª—å£å†…èµ·ä¼çš„è¯¯å·®ï¼Œæ‰€æœ‰ç‚¹å°†ä»3æ ¼ä¹‹å¤–å¼€å§‹è®¡ç®—
-    double flat_threshold = 0.017;//éšä¾¿è®¾ç½®ä¸€ä¸ªæ•°
-    double flat_threshold_height = flat_distance*tan(flat_threshold);//éšä¾¿è®¾ç½®ä¸€ä¸ªæ•°
+    //ÉèÖÃ½Ç¶ÈãĞÖµ
+    double flat_distance = cell_res * 3;//ÎªÁË±ÜÃâ´°¿ÚÄÚÆğ·üµÄÎó²î£¬ËùÓĞµã½«´Ó3¸ñÖ®Íâ¿ªÊ¼¼ÆËã
+    double flat_threshold = 0.017;//Ëæ±ãÉèÖÃÒ»¸öÊı
+    double flat_threshold_height = flat_distance*tan(flat_threshold);//Ëæ±ãÉèÖÃÒ»¸öÊı
 
-    vector<GeoPoint> Points;//åˆ›é€ ç‚¹é›†
-    vector<int> PointToKeep;//åˆ›é€ ä¿ç•™ç‚¹é›†
+    vector<GeoPoint> Points;//´´Ôìµã¼¯
+    vector<int> PointToKeep;//´´Ôì±£Áôµã¼¯
 
     for (int i = 0; i<8; i++)
     {
-        //å¤šçª—å£è®¡ç®—ï¼Œå› æ­¤éœ€è¦ä»ç¬¬3ä¸ªç‚¹è®¡ç®—åˆ°ç¬¬RowNumä¸ªç‚¹
+        //¶à´°¿Ú¼ÆËã£¬Òò´ËĞèÒª´ÓµÚ3¸öµã¼ÆËãµ½µÚRowNum¸öµã
         int j = _icurrentScale;
         pattern.pattern[i] = 0;
 
-        //åˆå§‹åŒ–Points
+        //³õÊ¼»¯Points
         GeoPoint curPoint;
         curPoint.i = i;
         for (int k = 0; k < j + 3; k++)
@@ -301,7 +301,7 @@ bool LEOperator::Operator(const CellCoord &coord, bool operFlag)
             Points.push_back(curPoint);
         }
 
-        //åˆå§‹åŒ–è®¡ç®—æ‰€éœ€ç‚¹
+        //³õÊ¼»¯¼ÆËãËùĞèµã
         double Tolerance = 0;
         int firstpoint = 0;
         int lastpoint = Points.size() - 1;
@@ -328,7 +328,7 @@ bool LEOperator::Operator(const CellCoord &coord, bool operFlag)
             pattern.pattern[i] = 0;
             pattern.feature[i] = curPoint;
         }
-        //æ¸…é™¤åŸæ¥çš„æ•°æ®
+        //Çå³ıÔ­À´µÄÊı¾İ
         Points.clear();
         PointToKeep.clear();
     }

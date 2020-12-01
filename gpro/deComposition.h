@@ -47,7 +47,7 @@ namespace GPRO {
         /*bool blockDcmp(MetaData &metaData,
                        int nRowSubSpcs,
                        int nColSubSpcs) const;*/
-		//这个应该改成_val1DDcmp这样的形式，提高通用性
+		//TODO: extend to _val1DDcmp
         bool valRowDcmp( vector<CoordBR> &vDcmpIdx, ComputeLayer<elemType> &computLayer, int nSubSpcs ) const;
 
     private:
@@ -193,7 +193,7 @@ colDcmp( MetaData &metaData, int nSubSpcs ) const {
         return false;
     }
 
-	//DomDcmpType dcmpType = COLWISE_DCMP;	//同上，是否需要
+	//DomDcmpType dcmpType = COLWISE_DCMP;	//if needed?
     //metaData._domDcmpType = dcmpType;
 
     int glbBegin = _glbWorkBR.nwCorner().iCol();
@@ -304,8 +304,8 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-    //目前仅主进程会访问这个函数，串行对全区划分；划分的对象是layer的全区范围
-    //若设计并行策略,则划分边界等都有待更新
+    //only accessed by the main process, divide the whole layer.
+    //bound dividing should be updated if parallized.
     if ( nSubSpcs < 1 || nSubSpcs > _glbWorkBR.nRows()) {
         cerr << __FILE__ << " " << __FUNCTION__ \
 			 << " Error: invalid number of SubSpaces (" << nSubSpcs << ")" \
@@ -314,15 +314,14 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
         return false;
     }
 
-    //根据计算域图层值，按行均匀划分，范围索引返回到vDcmpBR;基于负载的划分是针对glbdims来分，而不是localWorkBR
     CellSpace<elemType> &comptL = *( layer.cellSpace());
     double *rowComptLoad = new double[layer._pMetaData->_glbDims.nRows()];
     double totalComptLoad = 0.0;
-    //这里目前只针对串行
+
     for ( int cRow = 0; cRow < layer._pMetaData->_glbDims.nRows(); cRow++ ) { //wyj 2019-12-23 ...
         rowComptLoad[cRow] = 0.0;
         for ( int cCol = 0; cCol < layer._pMetaData->_glbDims.nCols(); cCol++ ) {
-			//这里为什么对-9999需要单独写出来，nodata会无效？
+			//why judge -9999 specifically
             if (( comptL[cRow][cCol] + 9999 ) > Eps && ( comptL[cRow][cCol] - layer._pMetaData->noData ) > Eps ) {
                 rowComptLoad[cRow] += comptL[cRow][cCol];
             }
@@ -338,12 +337,12 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
     cout<<"rank "<<myRank<<". avg compt load: "<<averComptLoad<<endl;
     double accuComptLoad = 0;
     int subBegin = 0;
-    int subEnd = subBegin;    //至少分配一行；是计算域的一行
-    for ( int i = 0; i < nSubSpcs - 1; ++i ) {    ////共寻找nSubSpcs-1个划分位置,每个划分位置都在剩下的局部最优
+    int subEnd = subBegin;    //at least assign 1 row in the spatial computational domain
+    for ( int i = 0; i < nSubSpcs - 1; ++i ) {    //find nSubSpcs-1 positions
         double subComptLoad = 0.0;
         double minComptDiff = 0.0;
         //for ( int cRow = subBegin; cRow <= layer._pMetaData->_MBR.maxIRow(); cRow++ ) {
-        for ( int cRow = subBegin; cRow < _glbDims.nRows(); cRow++ ) { //wyj 目前是串行的，就改成这样了
+        for ( int cRow = subBegin; cRow < _glbDims.nRows(); cRow++ ) { //wyj NOTE: serial yet.
             int rowGap = cRow - 0;
             subComptLoad += rowComptLoad[rowGap];
             accuComptLoad += rowComptLoad[rowGap];
@@ -375,15 +374,12 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
             }
         }
     }
-    //最后一块，从subBegin到最后一行，都是剩下的
+    //from subBegin to the end
     CellCoord nwCorner( subBegin, 0 );
     CellCoord seCorner( layer._pMetaData->_MBR.maxIRow(), layer._pMetaData->_MBR.maxICol());
     CoordBR subMBR( nwCorner, seCorner );
     vDcmpBR.push_back( subMBR );
     delete[]rowComptLoad;
-    //for( vector<CoordBR>::iterator iter = vDcmpBR.begin(); iter!=vDcmpBR.end(); ++iter ){
-    //	cout<<*iter<<endl;
-    //}
     return true;
 }
 

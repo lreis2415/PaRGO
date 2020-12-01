@@ -74,9 +74,9 @@ int main(int argc, char* argv[]) {
     int fldIdx;
     int idw_nbrPoints;
     int idw_power;
-    double idw_buffer; //暂时都定义为int可改为浮点型
-    double blockSize; //样点以块存放的粗网格粒度，以米为单位
-    int granularity=10;//计算域分辨率=granularity*数据与分辨率 (10 temporarily)
+    double idw_buffer;
+    double blockSize; //unit: meter
+    int granularity=10;//resolution of the computational domain = granularity * resolution of the data domain (10 by default)
     bool decomposeBySapce; /// decomp by compute load if false
     char* writeLoadPath = nullptr;
     char* readLoadPath = nullptr;
@@ -279,19 +279,17 @@ int main(int argc, char* argv[]) {
 
 
     IDWOperator idwOper(cellSize, idw_nbrPoints, idw_power, idw_buffer, blockSize);
-    char* spatialrefWkt; //投影信息
+    char* spatialrefWkt; 
 	
-	idwOper.readSampleNums(inputFileName, &spatialrefWkt); //获取样点数目，idwOper.sample_nums
+	idwOper.readSampleNums(inputFileName, &spatialrefWkt);
 	vector<SamplePoint> samples;
-    idwOper.readSamples(inputFileName, fldIdx, &spatialrefWkt, samples); //读取样点，并更新了idwOper.glb_extent
-    //可获取idwLayer的坐标范围,放入idwOper.sample_extent
-    idwOper.creatSampleBlocks(samples); //遍历pAllSamples，分块存入idwOper._pSampleBlocks成员
+    idwOper.readSamples(inputFileName, fldIdx, &spatialrefWkt, samples);
+    idwOper.creatSampleBlocks(samples);
     vector<SamplePoint> vTemp(0);
     vTemp.swap( samples );
 
 	RasterLayer<int> maskLayer("maskLayer");
     maskLayer.readNeighborhood(dataNeighbor);
-    //以粗网格形式组织样点，数据成员行列数，每个栅格上是一系列样点
     RasterLayer<double> idwLayer("idwLayer");
     idwLayer.readNeighborhood(dataNeighbor);
     

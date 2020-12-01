@@ -64,10 +64,6 @@ void Usage(const string& error_msg = "") {
     cout << "(optional)'nodataLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of NoData raster cells."<< endl;
     cout << "(optional)'validLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of nonempty raster cells."<< endl;
 
-    //cout << "Example.1. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif" << endl;
-    //cout << "Example.2. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif -mtd SD" << endl;
-    //cout << "Example.3. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif" << endl;
-    //cout << "Example.4. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif TFD" << endl;
 
     exit(1);
 }
@@ -77,12 +73,12 @@ int main(int argc, char* argv[]) {
     char* dataNeighbor;
     char* compuNeighbor;
     char* outputFileName;
-    int clusterNum; //分类数目
-    int maxIteration; //最大迭代次数
-    double tolerance; //迭代阈值
-    int weight; //加权指数
-    int nodataLoad; //
-    int validLoad; //
+    int clusterNum;
+    int maxIteration;
+    double tolerance;
+    int weight;
+    int nodataLoad;
+    int validLoad;
     int granularity=10;
     bool decomposeBySapce; /// decomp by compute load if false
     char* writeLoadPath=nullptr;
@@ -268,13 +264,11 @@ int main(int argc, char* argv[]) {
         }
         cout<<endl;
     }
-    //cout << "process " << myRank << " on " << processor_name << endl;
 
     double starttime;
     double endtime;
 
-    //字符串解析输入文件名
-    vector<const char *> vInputnames; //输入文件名，待解析
+    vector<const char *> vInputnames;
     vector<RasterLayer<double> *> vInputLayers;
     vector<string> tokens = SplitString(inputFileName,',');
     for(int i=0;i<tokens.size();i++) {
@@ -286,13 +280,12 @@ int main(int argc, char* argv[]) {
     if (vInputnames.empty() || clusterNum == 0 || maxIteration == 0) {
         return 1;
     }
-    RasterLayer<double> fcmLayer("fcmLayer"); //创建分类输出图层fcmLayer
-    //预定义分类图层
+    RasterLayer<double> fcmLayer("fcmLayer");
     char** pDegLayerName = new char*[clusterNum];
     vector<RasterLayer<double> *> vDegreeLayer;
     for (int i = 0; i < clusterNum; i++) {
         pDegLayerName[i] = new char[50];
-        sprintf(pDegLayerName[i], "degreeLayer%d.tif", i); //输出用名字
+        sprintf(pDegLayerName[i], "degreeLayer%d.tif", i);
         RasterLayer<double>* pLayer = new RasterLayer<double>(pDegLayerName[i]);
         vDegreeLayer.push_back(pLayer);
     }
@@ -302,7 +295,7 @@ int main(int argc, char* argv[]) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
             vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
         }
-        fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
+        fcmLayer.copyLayerInfo(*vInputLayers[0]);
         for (int i = 0; i < clusterNum; i++) {
             vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
         }
@@ -313,7 +306,7 @@ int main(int argc, char* argv[]) {
         fcmOper.fcmLayer(fcmLayer);
         fcmOper.degLayer(vDegreeLayer);
 
-        ComputeLayer<double> comptLayer("copmtLayer"); //暂时测试用，捕捉真实计算强度；以后改封装透明
+        ComputeLayer<double> comptLayer("copmtLayer");
         if(writeLoadPath) {
             comptLayer.initSerial(vInputLayers,compuNeighbor);
             fcmOper.comptLayer(comptLayer);
@@ -321,7 +314,7 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         fcmOper.Run();
         if(writeLoadPath)
-            comptLayer.writeComputeIntensityFileSerial(writeLoadPath); //测试用，写出捕捉到的计算时间
+            comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
     }
     else{
@@ -360,11 +353,10 @@ int main(int argc, char* argv[]) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
             vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
         }
-        fcmLayer.copyLayerInfo(*vInputLayers[0]); //创建输出图层
+        fcmLayer.copyLayerInfo(*vInputLayers[0]);
         for (int i = 0; i < clusterNum; i++) {
             vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
         }
-        //执行计算
         FCMOperator fcmOper;
         fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, weight);
         fcmOper.inputLayer(vInputLayers);
@@ -380,9 +372,6 @@ int main(int argc, char* argv[]) {
         cout << "compute time is " << endtime - starttime << endl<<endl;
 
     fcmLayer.writeFile(outputFileName);
-    // for( size_t i = 0; i < vDegreeLayer.size(); ++i ){
-    // 	vDegreeLayer[i]->writeFile(pDegLayerName[i]);
-    // }
     cout << "write done." << endl;
 
     Application::END();

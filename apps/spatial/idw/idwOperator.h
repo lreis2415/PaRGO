@@ -18,7 +18,6 @@ struct SamplePoint{
 	double y;
 	double value;
     SamplePoint() {
-        // cout<<"I'm inited!"<<endl;
     }
 };
 
@@ -30,8 +29,6 @@ struct extent_info {
 };
 
 struct SampleBlock{
-	//CoordBR _MBR;	//是否需要待定
-	//extent_info blockExtent;
 	vector<SamplePoint> samplePoints;
 };
 
@@ -43,7 +40,6 @@ public:
 		 _iterNum(0), flag(true), _sample_nums(0)
 		{}
 
-	//变量的初始化
 	IDWOperator( float cellsize, int nbrPoints, int idw_power, double bufferSize, double blockSize )
 		:RasterOperator<double>(),
 		_iterNum(0), flag(true), _sample_nums(0), _cellSize(cellsize), _nbrPoints(nbrPoints), _idw_power(idw_power), _idw_buffer(bufferSize), _blockSize(blockSize), _noData(NODATA_DEFINE)
@@ -54,8 +50,6 @@ public:
     double getBlockSize(){return _blockSize;}
 
 	int readSampleNums( const char* filename, char** pSpatialRefWkt );
-	//bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, double **Sample_Array );
-	//void creatSampleBlocks( double **pSamples );
 	bool readSamples( const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<SamplePoint> &samples );
 	void creatSampleBlocks(vector<SamplePoint> &samples);
     const vector<SampleBlock>* getSampleBlocks(){return &_pSampleBlocks;}
@@ -98,21 +92,21 @@ private:
     double getXByCellIndex(int iCol){return double((iCol + 0.5) * _cellSize + _glb_extent.minX);}
 
 	float _cellSize;
-	int _xSize, _ySize;	//当前进程中DEM块的行数
-	int _nRows, _nCols; //输入图层总行数和总列数
+	int _xSize, _ySize;
+	int _nRows, _nCols;
 	double _noData;
 	int _myRank;
-	int _iterNum;//迭代次数
+	int _iterNum;
 	bool flag;
 protected:
-	int _nbrPoints;	//插值邻域样点数
+	int _nbrPoints;
 	int _idw_power;
 	double _idw_buffer;
-	extent_info _glb_extent;	//所构建的插值栅格图层全区范围，根据样点数据范围外扩确定
-	extent_info _sub_extent;	//本进程栅格范围
-	int _sample_nums;	//全区总样点数量
+	extent_info _glb_extent;
+	extent_info _sub_extent;
+	int _sample_nums;
 	double _blockSize;
-	vector<SampleBlock> _pSampleBlocks;	//以粗网格块,按行组织的样点;每个进程都存了全部块，析构函数中要释放；
+	vector<SampleBlock> _pSampleBlocks;
     int _blockRows;
     int _blockCols;
 	RasterLayer<double> *_pIDWLayer;

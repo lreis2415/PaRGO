@@ -55,14 +55,14 @@ int main(int argc, char *argv[])
 		outputfilename = argv[3];
 		steplength = argv[4];
 	}
-	RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
-	demLayer.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
-	demLayer.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
+	RasterLayer<double> demLayer("demLayer"); //创建图层
+	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
+	demLayer.readFile(inputfilename);  //读取栅格数据
 
 
-    RasterLayer<double> demLayer2("demLayer2"); //鍒涘缓鍥惧眰
-    demLayer2.readNeighborhood(neighborfile);  //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
-    demLayer2.readFile(inputfilename);  //璇诲彇鏍呮牸鏁版嵁
+    RasterLayer<double> demLayer2("demLayer2"); //创建图层
+    demLayer2.readNeighborhood(neighborfile);  //读取分析窗口文件
+    demLayer2.readFile(inputfilename);  //读取栅格数据
 
 	RasterLayer<double> LELayer("LELayer");
 

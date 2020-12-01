@@ -62,11 +62,11 @@ bool MFDOperator::Operator(const CellCoord &coord,bool operFlag)
         for( int i=0; i<8; ++i ){
             (*weightLs[i])[iRow][iCol] = 0.0;
         }
-        //cout<<rowNum<<colNum<<endl;
-        //double d[9];//ï¿½ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½ß³ï¿½
-        int dir = 0;             //ï¿½ï¿½ï¿½ï¿½Õ¤ï¿½ï¿½ï¿½ï¿½
-        double maxDiffVal = 0.0; //ï¿½ï¿½ï¿½ï¿½Â½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
-        double pe = 0.0;         //ï¿½ï¿½Ê½ï¿½Ðµï¿½ï¿½Â¶ï¿½Ö¸ï¿½ï¿½p
+		//cout<<rowNum<<colNum<<endl;
+		//double d[9];//ÁÚÓòÕ¤¸ñ¸ß³Ì
+		int dir = 0;//ÁÚÓòÕ¤¸ñ±àºÅ
+		double maxDiffVal = 0.0;//×î´óÆÂ½µÕýÇÐÖµ
+		double pe = 0.0;//¹«Ê½ÖÐµÄÆÂ¶ÈÖ¸Êýp
         double l[9];             //weighted factor of contour line; parameter in equation
         double diffVal[9];
 
