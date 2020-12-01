@@ -104,6 +104,7 @@ void FCMOperator::fnDistance(int curRow, int curCol, double* pInputVal) {
         int count = 0;
         for (int j = 0; j < imageNum; j++) {
             if (isNoData(pInputVal[j], j)) {
+                cout<<"found a nodata! ("<< curRow<<","<<curCol<<")"<<endl;
                 continue;
             }
             dist[i][curRow][curCol] += (pInputVal[j] - centerVal[i * imageNum + j]) * (pInputVal[j] - centerVal[i *imageNum + j]);
@@ -202,7 +203,7 @@ void FCMOperator::assignMaxMembershipDegrees() {
 
 bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //cout<<"rank"<<_rank<<" ("<<coord.iRow()<<","<<coord.iCol()<<")"<<endl;
-    double startTime, endTime;
+    double time;
     int iRow = coord.iRow();
     int iCol = coord.iCol();
     if (_pComptLayer) {
@@ -254,9 +255,10 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             MPI_Barrier(MPI_COMM_WORLD);
             MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //进程0负责广播聚类中心
         }
+        starttime=MPI_Wtime();
     }
     
-    startTime = MPI_Wtime();
+    time = MPI_Wtime();
 
     if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
         //空值不做处理，最后一并赋空值
@@ -274,13 +276,15 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //     InitDegree(iRow, iCol); //隶属度计算
     // }
 
-    endTime = MPI_Wtime();
-    if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (endTime - startTime) * 1000;
+    if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;
 
 
     if ((iRow == _xSize - 2) && (iCol == _ySize - 2)) {
         //MPI_Barrier(MPI_COMM_WORLD);
+        cout<<"rank"<<_rank<<" compute time before reduce is "<<MPI_Wtime()-starttime<<"s"<<endl;
+        time = MPI_Wtime();
         MPI_Allreduce(&subval, &totval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        cout<<"rank"<<_rank<<" reduce1 time is "<<MPI_Wtime()-time<<"s"<<endl;
         _iterNum++;
         subval = 0.0;
         if (_rank == 0) {
@@ -291,6 +295,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             
             double tmpStart = MPI_Wtime();
             assignMaxMembershipDegrees();
+            time=MPI_Wtime();
             MPI_Allreduce(&partitionCoef, &totpartitionCoef, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(&entropy, &totentropy, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             if (_rank == 0) {
@@ -298,9 +303,11 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 cout << "totpartitionCoef " << totpartitionCoef << " totentropy " << totentropy << " nodataNums " << nodataNums << endl;
                 cout << _rank << " time is " << tmpEnd-tmpStart << endl;
             }
+            cout<<"rank"<<_rank<<" reduce2 time is "<<MPI_Wtime()-time<<"s"<<endl;
 
         }
         else {
+            time=MPI_Wtime();
             oldtval = totval;
             for (int p = 0; p < clusterNum; p++) {
                 //归零分子分母
@@ -338,8 +345,12 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                     }
                 }
             }
+            cout<<"rank"<<_rank<<" disp time is "<<MPI_Wtime()-time<<"s"<<endl;
+            
+            time=MPI_Wtime();
             MPI_Allreduce(sumDenominator, totDenominator, clusterNum, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(sumNumerator, totNumerator, clusterNum * imageNum, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            cout<<"rank"<<_rank<<" reduce3 time is "<<MPI_Wtime()-time<<"s"<<endl;
             //更新聚类中心center
             for (int p = 0; p < clusterNum; p++) {
                 for (int q = 0; q < imageNum; q++) {
