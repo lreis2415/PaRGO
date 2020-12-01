@@ -51,12 +51,12 @@ typedef enum
 
 /*typedef struct 
 {
-	int i; //ÄÄ¸ö·½Ïò
+	int i; //å“ªä¸ªæ–¹å‘
 	int col; //x
 	int row;//y
-	float elevation;//ÔİÊ±´æ´¢¸ß
-	float height;//ÔİÊ±´æ´¢¸ß²î
-	float cur_distance; //¼ÆËãµã¾àÀëÖĞĞÄµã¾àÀë//  [1/17/2015 k]
+	float elevation;//æš‚æ—¶å­˜å‚¨é«˜
+	float height;//æš‚æ—¶å­˜å‚¨é«˜å·®
+	float cur_distance; //è®¡ç®—ç‚¹è·ç¦»ä¸­å¿ƒç‚¹è·ç¦»//  [1/17/2015 k]
 } FeaturePoint;*/
 
 typedef struct 
@@ -77,12 +77,12 @@ typedef struct
 	int num_negatives;
 	unsigned char positives;
 	unsigned char negatives;
-	int pattern[8];// Êµ¼ÊÊÇÃ¿¸ö·½ÏòµÄ Öµ 1 -1 0 Ó¦µ±Ö»ÓĞ8¸öÖµ
-	//float elevation[8];//Í¬ÉÏ
-	//double distance[8];//Í¬ÉÏ
+	int pattern[8];// å®é™…æ˜¯æ¯ä¸ªæ–¹å‘çš„ å€¼ 1 -1 0 åº”å½“åªæœ‰8ä¸ªå€¼
+	//float elevation[8];//åŒä¸Š
+	//double distance[8];//åŒä¸Š
 	//double x[8],y[8]; /* cartesian coordinates of geomorphon */
 	// [11/20/2014 k] add by kangx
-	GeoPoint feature[8]; //8¸ö·½ÏòµÄfeature 
+	GeoPoint feature[8]; //8ä¸ªæ–¹å‘çš„feature 
 } Pattern;
 
 int extern determine_form(int num_minus, int num_plus);

@@ -47,7 +47,7 @@ namespace GPRO {
         /*bool blockDcmp(MetaData &metaData,
                        int nRowSubSpcs,
                        int nColSubSpcs) const;*/
-		//Õâ¸öÓ¦¸Ã¸Ä³É_val1DDcmpÕâÑùµÄĞÎÊ½£¬Ìá¸ßÍ¨ÓÃĞÔ
+		//è¿™ä¸ªåº”è¯¥æ”¹æˆ_val1DDcmpè¿™æ ·çš„å½¢å¼ï¼Œæé«˜é€šç”¨æ€§
         bool valRowDcmp( vector<CoordBR> &vDcmpIdx, ComputeLayer<elemType> &computLayer, int nSubSpcs ) const;
 
     private:
@@ -193,7 +193,7 @@ colDcmp( MetaData &metaData, int nSubSpcs ) const {
         return false;
     }
 
-	//DomDcmpType dcmpType = COLWISE_DCMP;	//Í¬ÉÏ£¬ÊÇ·ñĞèÒª
+	//DomDcmpType dcmpType = COLWISE_DCMP;	//åŒä¸Šï¼Œæ˜¯å¦éœ€è¦
     //metaData._domDcmpType = dcmpType;
 
     int glbBegin = _glbWorkBR.nwCorner().iCol();
@@ -304,8 +304,8 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-    //Ä¿Ç°½öÖ÷½ø³Ì»á·ÃÎÊÕâ¸öº¯Êı£¬´®ĞĞ¶ÔÈ«Çø»®·Ö£»»®·ÖµÄ¶ÔÏóÊÇlayerµÄÈ«Çø·¶Î§
-    //ÈôÉè¼Æ²¢ĞĞ²ßÂÔ,Ôò»®·Ö±ß½çµÈ¶¼ÓĞ´ı¸üĞÂ
+    //ç›®å‰ä»…ä¸»è¿›ç¨‹ä¼šè®¿é—®è¿™ä¸ªå‡½æ•°ï¼Œä¸²è¡Œå¯¹å…¨åŒºåˆ’åˆ†ï¼›åˆ’åˆ†çš„å¯¹è±¡æ˜¯layerçš„å…¨åŒºèŒƒå›´
+    //è‹¥è®¾è®¡å¹¶è¡Œç­–ç•¥,åˆ™åˆ’åˆ†è¾¹ç•Œç­‰éƒ½æœ‰å¾…æ›´æ–°
     if ( nSubSpcs < 1 || nSubSpcs > _glbWorkBR.nRows()) {
         cerr << __FILE__ << " " << __FUNCTION__ \
 			 << " Error: invalid number of SubSpaces (" << nSubSpcs << ")" \
@@ -314,15 +314,15 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
         return false;
     }
 
-    //¸ù¾İ¼ÆËãÓòÍ¼²ãÖµ£¬°´ĞĞ¾ùÔÈ»®·Ö£¬·¶Î§Ë÷Òı·µ»Øµ½vDcmpBR;»ùÓÚ¸ºÔØµÄ»®·ÖÊÇÕë¶ÔglbdimsÀ´·Ö£¬¶ø²»ÊÇlocalWorkBR
+    //æ ¹æ®è®¡ç®—åŸŸå›¾å±‚å€¼ï¼ŒæŒ‰è¡Œå‡åŒ€åˆ’åˆ†ï¼ŒèŒƒå›´ç´¢å¼•è¿”å›åˆ°vDcmpBR;åŸºäºè´Ÿè½½çš„åˆ’åˆ†æ˜¯é’ˆå¯¹glbdimsæ¥åˆ†ï¼Œè€Œä¸æ˜¯localWorkBR
     CellSpace<elemType> &comptL = *( layer.cellSpace());
     double *rowComptLoad = new double[layer._pMetaData->_glbDims.nRows()];
     double totalComptLoad = 0.0;
-    //ÕâÀïÄ¿Ç°Ö»Õë¶Ô´®ĞĞ
+    //è¿™é‡Œç›®å‰åªé’ˆå¯¹ä¸²è¡Œ
     for ( int cRow = 0; cRow < layer._pMetaData->_glbDims.nRows(); cRow++ ) { //wyj 2019-12-23 ...
         rowComptLoad[cRow] = 0.0;
         for ( int cCol = 0; cCol < layer._pMetaData->_glbDims.nCols(); cCol++ ) {
-			//ÕâÀïÎªÊ²Ã´¶Ô-9999ĞèÒªµ¥¶ÀĞ´³öÀ´£¬nodata»áÎŞĞ§£¿
+			//è¿™é‡Œä¸ºä»€ä¹ˆå¯¹-9999éœ€è¦å•ç‹¬å†™å‡ºæ¥ï¼Œnodataä¼šæ— æ•ˆï¼Ÿ
             if (( comptL[cRow][cCol] + 9999 ) > Eps && ( comptL[cRow][cCol] - layer._pMetaData->noData ) > Eps ) {
                 rowComptLoad[cRow] += comptL[cRow][cCol];
             }
@@ -338,12 +338,12 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
     cout<<"rank "<<myRank<<". avg compt load: "<<averComptLoad<<endl;
     double accuComptLoad = 0;
     int subBegin = 0;
-    int subEnd = subBegin;    //ÖÁÉÙ·ÖÅäÒ»ĞĞ£»ÊÇ¼ÆËãÓòµÄÒ»ĞĞ
-    for ( int i = 0; i < nSubSpcs - 1; ++i ) {    ////¹²Ñ°ÕÒnSubSpcs-1¸ö»®·ÖÎ»ÖÃ,Ã¿¸ö»®·ÖÎ»ÖÃ¶¼ÔÚÊ£ÏÂµÄ¾Ö²¿×îÓÅ
+    int subEnd = subBegin;    //è‡³å°‘åˆ†é…ä¸€è¡Œï¼›æ˜¯è®¡ç®—åŸŸçš„ä¸€è¡Œ
+    for ( int i = 0; i < nSubSpcs - 1; ++i ) {    ////å…±å¯»æ‰¾nSubSpcs-1ä¸ªåˆ’åˆ†ä½ç½®,æ¯ä¸ªåˆ’åˆ†ä½ç½®éƒ½åœ¨å‰©ä¸‹çš„å±€éƒ¨æœ€ä¼˜
         double subComptLoad = 0.0;
         double minComptDiff = 0.0;
         //for ( int cRow = subBegin; cRow <= layer._pMetaData->_MBR.maxIRow(); cRow++ ) {
-        for ( int cRow = subBegin; cRow < _glbDims.nRows(); cRow++ ) { //wyj Ä¿Ç°ÊÇ´®ĞĞµÄ£¬¾Í¸Ä³ÉÕâÑùÁË
+        for ( int cRow = subBegin; cRow < _glbDims.nRows(); cRow++ ) { //wyj ç›®å‰æ˜¯ä¸²è¡Œçš„ï¼Œå°±æ”¹æˆè¿™æ ·äº†
             int rowGap = cRow - 0;
             subComptLoad += rowComptLoad[rowGap];
             accuComptLoad += rowComptLoad[rowGap];
@@ -375,7 +375,7 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
             }
         }
     }
-    //×îºóÒ»¿é£¬´ÓsubBeginµ½×îºóÒ»ĞĞ£¬¶¼ÊÇÊ£ÏÂµÄ
+    //æœ€åä¸€å—ï¼Œä»subBeginåˆ°æœ€åä¸€è¡Œï¼Œéƒ½æ˜¯å‰©ä¸‹çš„
     CellCoord nwCorner( subBegin, 0 );
     CellCoord seCorner( layer._pMetaData->_MBR.maxIRow(), layer._pMetaData->_MBR.maxICol());
     CoordBR subMBR( nwCorner, seCorner );

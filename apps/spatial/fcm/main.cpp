@@ -77,10 +77,10 @@ int main(int argc, char* argv[]) {
     char* dataNeighbor;
     char* compuNeighbor;
     char* outputFileName;
-    int clusterNum; //·ÖÀàÊıÄ¿
-    int maxIteration; //×î´óµü´ú´ÎÊı
-    double tolerance; //µü´úãĞÖµ
-    int weight; //¼ÓÈ¨Ö¸Êı
+    int clusterNum; //åˆ†ç±»æ•°ç›®
+    int maxIteration; //æœ€å¤§è¿­ä»£æ¬¡æ•°
+    double tolerance; //è¿­ä»£é˜ˆå€¼
+    int weight; //åŠ æƒæŒ‡æ•°
     int nodataLoad; //
     int validLoad; //
     int granularity=10;
@@ -273,8 +273,8 @@ int main(int argc, char* argv[]) {
     double starttime;
     double endtime;
 
-    //×Ö·û´®½âÎöÊäÈëÎÄ¼şÃû
-    vector<const char *> vInputnames; //ÊäÈëÎÄ¼şÃû£¬´ı½âÎö
+    //å­—ç¬¦ä¸²è§£æè¾“å…¥æ–‡ä»¶å
+    vector<const char *> vInputnames; //è¾“å…¥æ–‡ä»¶åï¼Œå¾…è§£æ
     vector<RasterLayer<double> *> vInputLayers;
     vector<string> tokens = SplitString(inputFileName,',');
     for(int i=0;i<tokens.size();i++) {
@@ -286,13 +286,13 @@ int main(int argc, char* argv[]) {
     if (vInputnames.empty() || clusterNum == 0 || maxIteration == 0) {
         return 1;
     }
-    RasterLayer<double> fcmLayer("fcmLayer"); //´´½¨·ÖÀàÊä³öÍ¼²ãfcmLayer
-    //Ô¤¶¨Òå·ÖÀàÍ¼²ã
+    RasterLayer<double> fcmLayer("fcmLayer"); //åˆ›å»ºåˆ†ç±»è¾“å‡ºå›¾å±‚fcmLayer
+    //é¢„å®šä¹‰åˆ†ç±»å›¾å±‚
     char** pDegLayerName = new char*[clusterNum];
     vector<RasterLayer<double> *> vDegreeLayer;
     for (int i = 0; i < clusterNum; i++) {
         pDegLayerName[i] = new char[50];
-        sprintf(pDegLayerName[i], "degreeLayer%d.tif", i); //Êä³öÓÃÃû×Ö
+        sprintf(pDegLayerName[i], "degreeLayer%d.tif", i); //è¾“å‡ºç”¨åå­—
         RasterLayer<double>* pLayer = new RasterLayer<double>(pDegLayerName[i]);
         vDegreeLayer.push_back(pLayer);
     }
@@ -302,7 +302,7 @@ int main(int argc, char* argv[]) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
             vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
         }
-        fcmLayer.copyLayerInfo(*vInputLayers[0]); //´´½¨Êä³öÍ¼²ã
+        fcmLayer.copyLayerInfo(*vInputLayers[0]); //åˆ›å»ºè¾“å‡ºå›¾å±‚
         for (int i = 0; i < clusterNum; i++) {
             vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
         }
@@ -313,7 +313,7 @@ int main(int argc, char* argv[]) {
         fcmOper.fcmLayer(fcmLayer);
         fcmOper.degLayer(vDegreeLayer);
 
-        ComputeLayer<double> comptLayer("copmtLayer"); //ÔİÊ±²âÊÔÓÃ£¬²¶×½ÕæÊµ¼ÆËãÇ¿¶È£»ÒÔºó¸Ä·â×°Í¸Ã÷
+        ComputeLayer<double> comptLayer("copmtLayer"); //æš‚æ—¶æµ‹è¯•ç”¨ï¼Œæ•æ‰çœŸå®è®¡ç®—å¼ºåº¦ï¼›ä»¥åæ”¹å°è£…é€æ˜
         if(writeLoadPath) {
             comptLayer.initSerial(vInputLayers,compuNeighbor);
             fcmOper.comptLayer(comptLayer);
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         fcmOper.Run();
         if(writeLoadPath)
-            comptLayer.writeComputeIntensityFileSerial(writeLoadPath); //²âÊÔÓÃ£¬Ğ´³ö²¶×½µ½µÄ¼ÆËãÊ±¼ä
+            comptLayer.writeComputeIntensityFileSerial(writeLoadPath); //æµ‹è¯•ç”¨ï¼Œå†™å‡ºæ•æ‰åˆ°çš„è®¡ç®—æ—¶é—´
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
     }
     else{
@@ -360,11 +360,11 @@ int main(int argc, char* argv[]) {
             vInputLayers[i]->readNeighborhood(dataNeighbor);
             vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
         }
-        fcmLayer.copyLayerInfo(*vInputLayers[0]); //´´½¨Êä³öÍ¼²ã
+        fcmLayer.copyLayerInfo(*vInputLayers[0]); //åˆ›å»ºè¾“å‡ºå›¾å±‚
         for (int i = 0; i < clusterNum; i++) {
             vDegreeLayer[i]->copyLayerInfo(*vInputLayers[0]);
         }
-        //Ö´ĞĞ¼ÆËã
+        //æ‰§è¡Œè®¡ç®—
         FCMOperator fcmOper;
         fcmOper.initialization(vInputLayers.size(), clusterNum, maxIteration, tolerance, weight);
         fcmOper.inputLayer(vInputLayers);

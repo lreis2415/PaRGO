@@ -765,7 +765,7 @@ layerDcmp(const CoordBR &subWorkBR){
     SpaceDims dims( subMBR.nRows(), subMBR.nCols());
     _pMetaData->_localdims = dims;
 
-    //subWorkBRÊÇÈ«¾ÖÐÐÁÐºÅ£¬¼ÆËã¾Ö²¿ÐÐÁÐºÅ±í´ïµÄ_localworkBR
+    //subWorkBRæ˜¯å…¨å±€è¡Œåˆ—å·ï¼Œè®¡ç®—å±€éƒ¨è¡Œåˆ—å·è¡¨è¾¾çš„_localworkBR
     CoordBR workBR;
     if ( !_pNbrhood->calcWorkBR( workBR, dims )) {
         return false;
@@ -805,7 +805,7 @@ readFile( const char *inputfile, DomDcmpType dcmpType ) {
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType ) {
-    //why cleanMetaData crashes£¿
+    //why cleanMetaData crashesï¼Ÿ
     if ( _pMetaData ) {
         cleanMetaData();
     }    // to overwrite instead of clean is ok ?
@@ -883,7 +883,7 @@ writeFile( const char *outputfile ){
     }else if( BLOCK_DCMP == _pMetaData->_domDcmpType ){
         cout << __FILE__ << " " << __FUNCTION__ \
             << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType \
-            << " right now" << endl;	//´ýÍê³É
+            << " right now" << endl;	//å¾…å®Œæˆ
         return false;
     }else if( NON_DCMP == _pMetaData->_domDcmpType ){
         //done by master or not to support?

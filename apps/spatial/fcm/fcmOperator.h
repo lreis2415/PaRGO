@@ -14,74 +14,73 @@ using namespace GPRO;
 
 #define Eps 0.0000001
 
-class FCMOperator : public RasterOperator<double> 
-{
+class FCMOperator : public RasterOperator<double> {
 public:
-	FCMOperator()
-		:RasterOperator<double>(),
-		 _iterNum(0), flag(true),
-		block(0),nodataNums(0), dFlag(true),subval(0.0),totval(0.0),oldtval(0.0),partitionCoef(0.0),entropy(0),totpartitionCoef(0),totentropy(0)
-		{}
+    FCMOperator()
+        : RasterOperator<double>(),
+          _iterNum(0), flag(true),
+          block(0), nodataNums(0), dFlag(true), subval(0.0), totval(0.0), oldtval(0.0), partitionCoef(0.0), entropy(0), totpartitionCoef(0), totentropy(0) {
+    }
 
-	~FCMOperator();
+    ~FCMOperator();
 
-	void initialization(int iNum, int cNum, int maxIter,double toler, double m);
-	void inputLayer(vector<RasterLayer<double> *> layerD);
-	void fcmLayer(RasterLayer<double> &layerD);
-	void degLayer(vector<RasterLayer<double> *> layerD);
-	
-	virtual bool isTermination();
-    
+    void initialization(int iNum, int cNum, int maxIter, double toler, double m);
+    void inputLayer(vector<RasterLayer<double>*> layerD);
+    void fcmLayer(RasterLayer<double>& layerD);
+    void degLayer(vector<RasterLayer<double>*> layerD);
+
+    virtual bool isTermination();
+
     bool isNoData(double value, int rasterLayerIndex);
     bool allNoDataAt(int row, int col);
-	void createRandomIdx( int nums, int range, int* randomIdx );	///<ÔÚrange·¶Î§ÄÚ²úÉúnums¸öËæ»úÊý£¬randomIdx·µ»Ø
-	void fnDistance(int curRow, int curCol, double* pInputVal); ///<¼ÆËã¾àÀë
-	void InitDegree(int curRow, int curCol);///<¼ÆËãÁ¥Êô¶È
-	void initRandomClusterCenters(double *clusterCenters);
-	void assignMaxMembershipDegrees();
-	virtual bool Operator(const CellCoord &coord, bool operFlag);
+    void createRandomIdx(int nums, int range, int* randomIdx); ///<åœ¨rangeèŒƒå›´å†…äº§ç”Ÿnumsä¸ªéšæœºæ•°ï¼ŒrandomIdxè¿”å›ž
+    void fnDistance(int curRow, int curCol, double* pInputVal); ///<è®¡ç®—è·ç¦»
+    void InitDegree(int curRow, int curCol); ///<è®¡ç®—éš¶å±žåº¦
+    void initRandomClusterCenters(double* clusterCenters);
+    void assignMaxMembershipDegrees();
+    virtual bool Operator(const CellCoord& coord, bool operFlag);
 
 private:
-	int _cellSize;
-	int _xSize, _ySize;	///<µ±Ç°½ø³ÌÖÐDEM¿éµÄÐÐÊý
-	int _nRows, _nCols; ///<ÊäÈëÍ¼²ã×ÜÐÐÊýºÍ×ÜÁÐÊý
-	double _noData;
-	int _rank;
-	int _iterNum;///<µü´ú´ÎÊý
-	bool flag;
-	double starttime, endtime;
-	double tmpSumTime1, tmpSumTime2;
+    int _cellSize;
+    int _xSize, _ySize; ///<å½“å‰è¿›ç¨‹ä¸­DEMå—çš„è¡Œæ•°
+    int _nRows, _nCols; ///<è¾“å…¥å›¾å±‚æ€»è¡Œæ•°å’Œæ€»åˆ—æ•°
+    double _noData;
+    int _rank;
+    int _iterNum; ///<è¿­ä»£æ¬¡æ•°
+    bool flag;
+    double starttime, endtime;
+    double tmpSumTime1, tmpSumTime2;
 protected:
-	int clusterNum; ///<·ÖÀàÊýÄ¿
-	int maxIteration; ///<×î´óµü´ú´ÎÊý
-	double tolerance;///<µü´úãÐÖµ
-	double weight;///<¼ÓÈ¨Ö¸Êý
-	int imageNum;///<ÊäÈëµÄÓ°ÏñÊýÄ¿
+    int clusterNum; ///<åˆ†ç±»æ•°ç›®
+    int maxIteration; ///<æœ€å¤§è¿­ä»£æ¬¡æ•°
+    double tolerance; ///<è¿­ä»£é˜ˆå€¼
+    double weight; ///<åŠ æƒæŒ‡æ•°
+    int imageNum; ///<è¾“å…¥çš„å½±åƒæ•°ç›®
 
-	int block;	///<¸÷½ø³Ì·Ö¿éÊý¾ÝÁ¿
-	int nodataNums;
-	bool dFlag;		///<ÓÃÀ´±ê¼ÇÊÇ·ñµÚÒ»´Îµü´ú
-	double* centerVal;	///<¾ÛÀàÖÐÐÄÊôÐÔÖµ£¬Ò»Î¬Êý×é
-	int* centerIndex;	///<¾ÛÀàÖÐÐÄÎ»ÖÃË÷Òý clusterNum * 1´óÐ¡Êý×é£¬xy×ø±êÓ³ÉäµÄÒ»Î¬
-	double*** degree;	///<Á¥Êô¶ÈÊý×é£¬ÈýÎ¬
-	double*** dist;	///<´æ·Å¸÷¸öµãÓë¸÷ÀàÖÐÐÄµÄ¾àÀë
-	double subval;	///<´æ·Å±¾´Îµü´úµÄÔ¼Êøº¯ÊýÖµ
-	double totval;	///<Ö÷½ø³Ì»ã×Ü¸÷½ø³Ì£¬µÃµ½ãÐÖµºÍ
-	double oldtval;	///<ÉÏ´Îµü´úµÄãÐÖµºÍ
-	double *sumNumerator;	///<·Ö×ÓÇóºÍ
-	double *sumDenominator;		///<·ÖÄ¸ÇóºÍ
-	double *totNumerator;	///<·Ö×Ó¹é²¢
-	double *totDenominator;		///<·ÖÄ¸¹é²¢
-	double partitionCoef;	///<·Ö¸îÏµÊý
-	double entropy;	///<ìØ
-	double totpartitionCoef;	///<¹æÔ¼ºóµÄ·Ö¸îÏµÊý
-	double totentropy;	///<¹æÔ¼ºóµÄìØ
+    int block; ///<å„è¿›ç¨‹åˆ†å—æ•°æ®é‡
+    int nodataNums;
+    bool dFlag; ///<ç”¨æ¥æ ‡è®°æ˜¯å¦ç¬¬ä¸€æ¬¡è¿­ä»£
+    double* centerVal; ///<èšç±»ä¸­å¿ƒå±žæ€§å€¼ï¼Œä¸€ç»´æ•°ç»„
+    int* centerIndex; ///<èšç±»ä¸­å¿ƒä½ç½®ç´¢å¼• clusterNum * 1å¤§å°æ•°ç»„ï¼Œxyåæ ‡æ˜ å°„çš„ä¸€ç»´
+    double*** degree; ///<éš¶å±žåº¦æ•°ç»„ï¼Œä¸‰ç»´
+    double*** dist; ///<å­˜æ”¾å„ä¸ªç‚¹ä¸Žå„ç±»ä¸­å¿ƒçš„è·ç¦»
+    double subval; ///<å­˜æ”¾æœ¬æ¬¡è¿­ä»£çš„çº¦æŸå‡½æ•°å€¼
+    double totval; ///<ä¸»è¿›ç¨‹æ±‡æ€»å„è¿›ç¨‹ï¼Œå¾—åˆ°é˜ˆå€¼å’Œ
+    double oldtval; ///<ä¸Šæ¬¡è¿­ä»£çš„é˜ˆå€¼å’Œ
+    double* sumNumerator; ///<åˆ†å­æ±‚å’Œ
+    double* sumDenominator; ///<åˆ†æ¯æ±‚å’Œ
+    double* totNumerator; ///<åˆ†å­å½’å¹¶
+    double* totDenominator; ///<åˆ†æ¯å½’å¹¶
+    double partitionCoef; ///<åˆ†å‰²ç³»æ•°
+    double entropy; ///<ç†µ
+    double totpartitionCoef; ///<è§„çº¦åŽçš„åˆ†å‰²ç³»æ•°
+    double totentropy; ///<è§„çº¦åŽçš„ç†µ
 
-	vector<RasterLayer<double> *> _vInputLayer;
-	RasterLayer<double> *_pFCMLayer;
-	vector<RasterLayer<double> *> _vDegLayer;
+    vector<RasterLayer<double>*> _vInputLayer;
+    RasterLayer<double>* _pFCMLayer;
+    vector<RasterLayer<double>*> _vDegLayer;
 
-	Neighborhood<double> *_pDEMNbrhood;
+    Neighborhood<double>* _pDEMNbrhood;
 
 };
 

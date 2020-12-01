@@ -1,4 +1,4 @@
-﻿/**
+/**
  * \file computLayer
  * \author Ai Beibei, Wang Yujing
  * \brief Header file for class GPRO::ComputeLayer

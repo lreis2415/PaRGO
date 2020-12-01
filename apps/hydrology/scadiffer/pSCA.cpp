@@ -25,136 +25,117 @@
 #include "mpi.h"
 
 
-
-
-
 using namespace std;
 
 using namespace GPRO;
 
 
+int main(int argc, char* argv[]) {
 
-int main(int argc, char *argv[])
+    /*  enum ProgramType{MPI_Type = 0,
 
-{
+    MPI_OpenMP_Type,
 
-	/*  enum ProgramType{MPI_Type = 0,
+    CUDA_Type};*/
 
-	MPI_OpenMP_Type,
+    Application::START(MPI_OpenMP_Type, argc, argv); //init
 
-	CUDA_Type};*/
 
-	Application::START(MPI_OpenMP_Type, argc, argv); //init
+    char* inputfilename;
 
+    //char* inputfilename2;
 
+    char* neighborfile;
 
-	char* inputfilename;
+    char* outputfilename;
 
-	//char* inputfilename2;
+    int kc_meth;
 
-	char* neighborfile;
+    float StepRatio; //step ratio
 
-	char* outputfilename;
+    int threadNUM; //thread number
 
-	int kc_meth;
+    //if (argc < 9)
 
-	float StepRatio;//step ratio
+    {
+        inputfilename = argv[1];
 
-	int threadNUM;//thread number
+        neighborfile = argv[2];
 
-	//if (argc < 9)
+        outputfilename = argv[3];
 
-	{
+        kc_meth = atoi(argv[4]);
 
-		inputfilename = argv[1];
+        StepRatio = atof(argv[5]);
 
-		neighborfile = argv[2];
+        threadNUM = atoi(argv[6]);
 
-		outputfilename = argv[3];
+        //inputfilename2 = argv[7];
+    }
 
-		kc_meth = atoi(argv[4]);
 
-		StepRatio = atof(argv[5]);
+    double starttime2; //for recording total runtime
 
-		threadNUM = atoi(argv[6]);
+    double endtime2;
 
-		//inputfilename2 = argv[7];
+    starttime2 = MPI_Wtime();
 
-	}
+    omp_set_num_threads(threadNUM);
 
+    RasterLayer<double> demLayer("demLayer"); //input layer
 
+    demLayer.readNeighborhood(neighborfile);
 
-	double starttime2;//for recording total runtime
+    demLayer.readFile(inputfilename);
 
-	double endtime2;
+    //RasterLayer<double> tmpLayer("tmpLayer");//input layer
 
-	starttime2 = MPI_Wtime();
+    //tmpLayer.readNeighborhood(neighborfile);
 
-	omp_set_num_threads(threadNUM);
+    //tmpLayer.readFile(inputfilename2);
 
-	RasterLayer<double> demLayer("demLayer");//input layer
 
-	demLayer.readNeighborhood(neighborfile);
+    RasterLayer<double> SCALayer("SCALayer"); //output layer
 
-	demLayer.readFile(inputfilename);
+    SCALayer.copyLayerInfo(demLayer);
 
-	//RasterLayer<double> tmpLayer("tmpLayer");//input layer
 
-	//tmpLayer.readNeighborhood(neighborfile);
+    double starttime1; //for recording computing time
 
-	//tmpLayer.readFile(inputfilename2);
+    double endtime1;
 
+    starttime1 = MPI_Wtime();
 
+    SCAOperator SCAOper;
 
-	RasterLayer<double> SCALayer("SCALayer");//output layer
 
-	SCALayer.copyLayerInfo(demLayer);
+    SCAOper.demLayer(demLayer, kc_meth, StepRatio, threadNUM);
 
+    SCAOper.SCALayer(SCALayer);
 
+    //SCAOper.tmpLayer(tmpLayer);
 
-	double starttime1;//for recording computing time
 
-	double endtime1;
+    SCAOper.Run();
 
-	starttime1 = MPI_Wtime();
 
-	SCAOperator SCAOper;
+    endtime1 = MPI_Wtime();
 
 
+    SCALayer.writeFile(outputfilename);
 
-	SCAOper.demLayer(demLayer, kc_meth, StepRatio, threadNUM);
+    endtime2 = MPI_Wtime();
 
-	SCAOper.SCALayer(SCALayer);
 
-	//SCAOper.tmpLayer(tmpLayer);
+    cout << "[DEBUG][TIMESPAN][IO]" << (endtime2 - starttime2) - (endtime1 - starttime1) << endl;
 
+    cout << "[DEBUG][TIMESPAN][COMPUTING]" << endtime1 - starttime1 << endl;
 
+    cout << "[DEBUG][TIMESPAN][TOTAL]" << endtime2 - starttime2 << endl;
 
-	SCAOper.Run();
 
+    Application::END();
 
-
-	endtime1 = MPI_Wtime();
-
-
-
-	SCALayer.writeFile(outputfilename);
-
-	endtime2 = MPI_Wtime();
-
-
-
-	cout << "[DEBUG][TIMESPAN][IO]" << (endtime2 - starttime2) - (endtime1 - starttime1) << endl;
-
-	cout << "[DEBUG][TIMESPAN][COMPUTING]" << endtime1 - starttime1 << endl;
-
-	cout << "[DEBUG][TIMESPAN][TOTAL]" << endtime2 - starttime2 << endl;
-
-
-
-	Application::END();
-
-	return 0;
+    return 0;
 
 }
-

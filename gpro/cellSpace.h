@@ -91,7 +91,7 @@ namespace GPRO {
 
         // The following are called but never implemented. 
         //virtual bool evaluate( vector<pair<int, elemType> > &vUpdtedCells,
-        //                       const CellCoord &coord ) {}	/*ºóÃæ±»µ÷ÓÃ£¬µ«²¢Ã»ÊµÏÖ¹ı£¬ÏÂÍ¬*/
+        //                       const CellCoord &coord ) {}	/*åé¢è¢«è°ƒç”¨ï¼Œä½†å¹¶æ²¡å®ç°è¿‡ï¼Œä¸‹åŒ*/
 
         //virtual bool finalize( const elemType &val,
         //                       const CellCoord &coord ) {}
@@ -636,7 +636,7 @@ find( IntVect &vFoundIdxs, const vector<elemType> &vVals ) const {
 template<class elemType>
 bool GPRO::CellSpace<elemType>::
 find( IntVect &vFoundIdxs, const vector<elemType> &vVals, const CoordBR &rectangle ) const {
-	/*ÔÚrectangle·¶Î§ÄÚËÑË÷ÖµÔÚvValsÖĞµÄÕ¤¸ñ£¬·µ»Ø1DÎ»ÖÃË÷Òı*/
+	/*åœ¨rectangleèŒƒå›´å†…æœç´¢å€¼åœ¨vValsä¸­çš„æ …æ ¼ï¼Œè¿”å›1Dä½ç½®ç´¢å¼•*/
     bool found = false;
     if ( empty()) {
         cerr << __FILE__ << " " << __FUNCTION__ \

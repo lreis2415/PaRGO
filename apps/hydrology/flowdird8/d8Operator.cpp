@@ -56,8 +56,8 @@ bool D8Operator::Operator(const CellCoord &coord,bool operFlag)
 	}
 	else
 	{
-		//iÂú×ãÌõ¼şmax{k*(Zc-Zi)};i=1,2¡¤¡¤¡¤8
-		//µ±iÎ»ÓÚ¶«Î÷ÄÏ±±Ê±£¬£¬k=1;µ±iÎª¶Ô½ÇÏß·½ÏòÊ±£¬k=1/1.414
+		//iæ»¡è¶³æ¡ä»¶max{k*(Zc-Zi)};i=1,2Â·Â·Â·8
+		//å½“iä½äºä¸œè¥¿å—åŒ—æ—¶ï¼Œï¼Œk=1;å½“iä¸ºå¯¹è§’çº¿æ–¹å‘æ—¶ï¼Œk=1/1.414
 		int valid[9] = {0};
 		double max = 0.0;
 		double diff[9];
@@ -74,9 +74,9 @@ bool D8Operator::Operator(const CellCoord &coord,bool operFlag)
 			d8L[iRow][iCol] = -1;
 			return true;
 		}
-		//¸ù¾İdirType·ÖÖ§Ñ¡Ëã·¨
+		//æ ¹æ®dirTypeåˆ†æ”¯é€‰ç®—æ³•
 		if( dirType == 8 ){
-			//½á¹ûÖ»ÓĞ0-7£¬ÓĞÍ¬µÈÏÂ½µ·½Ïò£¬ÆæÊı¸öÑ¡ÖĞ¼äµÄÒ»¸ö£¬Å¼Êı¸öÑ¡ÖĞ¼ä¿¿×óµÄÒ»¸ö
+			//ç»“æœåªæœ‰0-7ï¼Œæœ‰åŒç­‰ä¸‹é™æ–¹å‘ï¼Œå¥‡æ•°ä¸ªé€‰ä¸­é—´çš„ä¸€ä¸ªï¼Œå¶æ•°ä¸ªé€‰ä¸­é—´é å·¦çš„ä¸€ä¸ª
 			vector<int> validDir;
 			for(int i=0;i<9;i++)
 			{
@@ -87,7 +87,7 @@ bool D8Operator::Operator(const CellCoord &coord,bool operFlag)
 			int length = validDir.size();
 			d8L[iRow][iCol] = validDir[length>>1];
 		}else{
-			//ÓĞÍ¬µÈÏÂ½µ·½Ïò£¬ÀÛ¼Ó·½ÏòÖµ£»²ÉÓÃµÄÁ÷Ïò±àÂë·½Ê½Í¬arcgis10.0
+			//æœ‰åŒç­‰ä¸‹é™æ–¹å‘ï¼Œç´¯åŠ æ–¹å‘å€¼ï¼›é‡‡ç”¨çš„æµå‘ç¼–ç æ–¹å¼åŒarcgis10.0
 			for(int i=0;i<9;i++)
 			{
 				if( fabs(diff[i] - max)<Eps )

@@ -26,7 +26,7 @@ class LEOperator : public RasterOperator<double>
 
     bool Operator(const CellCoord &coord,bool operFlag);
 
-    int GetRowNum() { return sqrt((double)(_pDEMNbrhood->size() - 1) / 2); }//´°¿ÚrowÊı
+    int GetRowNum() { return sqrt((double)(_pDEMNbrhood->size() - 1) / 2); }//çª—å£rowæ•°
 
     int GetCurrentScale() { return _icurrentScale; };
     void SetCurrentScale(int scale) { _icurrentScale = scale; }

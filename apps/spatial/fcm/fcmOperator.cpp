@@ -73,24 +73,24 @@ bool FCMOperator::allNoDataAt(int row, int col) {
 }
 
 void FCMOperator::createRandomIdx(int nums, int range, int* randomIdx) {
-    //ÔÚrange·¶Î§ÄÚ²úÉúnums¸öËæ»úÊı£¬randomIdx·µ»Ø
-    srand((unsigned int)time(NULL)); //³õÊ¼»¯Ëæ»úÖÖ×Ó
+    //åœ¨rangeèŒƒå›´å†…äº§ç”Ÿnumsä¸ªéšæœºæ•°ï¼ŒrandomIdxè¿”å›
+    srand((unsigned int)time(NULL)); //åˆå§‹åŒ–éšæœºç§å­
     for (int i = 0; i < nums; i++) {
-        int tmp = rand() % range; //²úÉúËæ»úÊı0~n-1
+        int tmp = rand() % range; //äº§ç”Ÿéšæœºæ•°0~n-1
         int j;
         for (j = 0; j < i; j++) {
             if (randomIdx[j] == tmp)
                 break;
         }
         if (j >= i) {
-            //ĞÂ²úÉúµÄËæ»úÊıÓëÇ°Ãæ²úÉúµÄ²»ÖØ¸´
+            //æ–°äº§ç”Ÿçš„éšæœºæ•°ä¸å‰é¢äº§ç”Ÿçš„ä¸é‡å¤
             randomIdx[i] = tmp;
         }
         else {
-            i--; //Èç¹ûÓĞÖØ¸´£¬ÔòÖØĞÂ²úÉú£¬Ö±ÖÁ²»ÖØ¸´
+            i--; //å¦‚æœæœ‰é‡å¤ï¼Œåˆ™é‡æ–°äº§ç”Ÿï¼Œç›´è‡³ä¸é‡å¤
         }
     }
-    ////²âÊÔÊ±ÔİÓÃ¹Ì¶¨¾ÛÀàÖĞĞÄ,Õë¶Ô·Ö5Àà,ÒÑÈ·¶¨µ¥½ø³Ì²»»áÎª¿Õ£¬¶à½ø³ÌĞèÅĞ¶ÏÔÙµ÷Õû
+    ////æµ‹è¯•æ—¶æš‚ç”¨å›ºå®šèšç±»ä¸­å¿ƒ,é’ˆå¯¹åˆ†5ç±»,å·²ç¡®å®šå•è¿›ç¨‹ä¸ä¼šä¸ºç©ºï¼Œå¤šè¿›ç¨‹éœ€åˆ¤æ–­å†è°ƒæ•´
     //centerIndex[0] = (range/5)+(_ySize/3)*2;
     //centerIndex[1] = (range/3)+(_ySize/3);
     //centerIndex[2] = (range/3)+(_ySize/3)*2;
@@ -108,16 +108,16 @@ void FCMOperator::fnDistance(int curRow, int curCol, double* pInputVal) {
                 continue;
             }
             dist[i][curRow][curCol] += (pInputVal[j] - centerVal[i * imageNum + j]) * (pInputVal[j] - centerVal[i *imageNum + j]);
-            count++;//2020-10-21¸üĞÂ£¬¶à²ãÊ±¼ÆËãÆ½¾ùÖµ
+            count++;//2020-10-21æ›´æ–°ï¼Œå¤šå±‚æ—¶è®¡ç®—å¹³å‡å€¼
         }
         dist[i][curRow][curCol] = sqrt(dist[i][curRow][curCol]/count);
     }
 }
 
 void FCMOperator::InitDegree(int curRow, int curCol) {
-    //ÇóÈ¡¸Ãcellµ½¸÷ÀàÖĞĞÄµÄÁ¥Êô¶È
+    //æ±‚å–è¯¥cellåˆ°å„ç±»ä¸­å¿ƒçš„éš¶å±åº¦
     for (int p = 0; p < clusterNum; p++) {
-        double sumDistance = 0.0; //Ã¿Ò»¸öÑù±¾µ½¸÷¸ö¾ÛÀàÖĞĞÄµÄ¾àÀëÖ®ºÍ
+        double sumDistance = 0.0; //æ¯ä¸€ä¸ªæ ·æœ¬åˆ°å„ä¸ªèšç±»ä¸­å¿ƒçš„è·ç¦»ä¹‹å’Œ
         for (int q = 0; q < clusterNum; q++) {
             if (dist[q][curRow][curCol] == 0) {
                 dist[q][curRow][curCol] = Eps;
@@ -125,14 +125,14 @@ void FCMOperator::InitDegree(int curRow, int curCol) {
             sumDistance += pow(dist[p][curRow][curCol] / dist[q][curRow][curCol], 2 / (weight - 1));
         }
         degree[p][curRow][curCol] = sumDistance == 0.0 ? 1.0 : 1.0 / sumDistance;
-        //ÓÃÓÚãĞÖµÅĞ¶Ï,ÏÈµş¼Óµ½valÖĞ
+        //ç”¨äºé˜ˆå€¼åˆ¤æ–­,å…ˆå åŠ åˆ°valä¸­
         subval += pow(degree[p][curRow][curCol], weight) * pow(dist[p][curRow][curCol], 2);
     }
 }
 
 void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
     cout << "initialization " << _noData << " is ok" << endl;
-    //ÏÈÕÒ³ö±¾½ø³ÌËùÓĞ·Ç¿ÕÕ¤¸ñ£¬ÔÙÔÚÕâĞ©Õ¤¸ñÀïËæ»úÈ¡clusterNum¸öµã£¬×÷Îª³õÊ¼¾ÛÀàÖĞĞÄ
+    //å…ˆæ‰¾å‡ºæœ¬è¿›ç¨‹æ‰€æœ‰éç©ºæ …æ ¼ï¼Œå†åœ¨è¿™äº›æ …æ ¼é‡Œéšæœºå–clusterNumä¸ªç‚¹ï¼Œä½œä¸ºåˆå§‹èšç±»ä¸­å¿ƒ
     vector<int> tmpIdx;
     for (int i = 1; i < _xSize - 1; ++i) {
         for (int j = 1; j < _ySize - 1; ++j) {
@@ -144,15 +144,15 @@ void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
     }
     int* randomIdx = new int[clusterNum];
     cout << "cells with value to init cluster center are " << tmpIdx.size() << endl;
-    createRandomIdx(clusterNum, tmpIdx.size(), randomIdx); //²úÉúµÄ¾ÛÀàÖĞĞÄÖ±½Ó·ÅÈëcenterIndex
+    createRandomIdx(clusterNum, tmpIdx.size(), randomIdx); //äº§ç”Ÿçš„èšç±»ä¸­å¿ƒç›´æ¥æ”¾å…¥centerIndex
     cout << "init center idx and value is done. " << endl;
     for (int i = 0; i < clusterNum; ++i) {
         centerIndex[i] = tmpIdx[randomIdx[i]];
-        //ÏÈ»¹Ô­ÎªĞĞÁĞºÅ£¬ÔÙ»ñÈ¡ÖµµÈ
+        //å…ˆè¿˜åŸä¸ºè¡Œåˆ—å·ï¼Œå†è·å–å€¼ç­‰
         int tmpRow = centerIndex[i] / _ySize;
-        int tmpCol = centerIndex[i] % _ySize; //´Ó²úÉúµÄËæ»úÊıÓ³Éä»Ø¶ÔÓ¦µÄĞĞÁĞºÅ,¿Ï¶¨²»Îª¿Õ
+        int tmpCol = centerIndex[i] % _ySize; //ä»äº§ç”Ÿçš„éšæœºæ•°æ˜ å°„å›å¯¹åº”çš„è¡Œåˆ—å·,è‚¯å®šä¸ä¸ºç©º
         //cout<<tmpRow<<" "<<tmpCol<<" ";
-        //»ñÈ¡¾ÛÀàÖĞĞÄ¸÷Í¼²ãÊôĞÔÖµ
+        //è·å–èšç±»ä¸­å¿ƒå„å›¾å±‚å±æ€§å€¼
         for (int j = 0; j < imageNum; ++j) {
             centerVal[i * imageNum + j] = (*_vInputLayer[j]->cellSpace())[tmpRow][tmpCol];
             //cout<<centerVal[i*imageNum+j]<<" ";
@@ -161,7 +161,7 @@ void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
     }
 }
 
-///¹éÀà,È·¶¨Ã¿¸öcellµÄ×î´óÁ¥ÊôÀà£¬²¢½«¸ÃÀà±àºÅ¸³¸øfcmL[i][j]
+///å½’ç±»,ç¡®å®šæ¯ä¸ªcellçš„æœ€å¤§éš¶å±ç±»ï¼Œå¹¶å°†è¯¥ç±»ç¼–å·èµ‹ç»™fcmL[i][j]
 void FCMOperator::assignMaxMembershipDegrees() {
     double startTime=0,endTime=0;
     CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
@@ -169,18 +169,18 @@ void FCMOperator::assignMaxMembershipDegrees() {
         for (int j = 1; j < _ySize - 1; j++) {
             startTime = MPI_Wtime();
             if (!allNoDataAt(i,j)) {
-                int cNum = -1; //ËùÊôÀàºÅ
-                double degreeMax = 0.0; //×î´óÁ¥Êô¶ÈÖµ
+                int cNum = -1; //æ‰€å±ç±»å·
+                double degreeMax = 0.0; //æœ€å¤§éš¶å±åº¦å€¼
                 for (int p = 0; p < clusterNum; p++) {
                     if (degree[p][i][j] > degreeMax) {
                         degreeMax = degree[p][i][j];
                         cNum = p;
                     }
-                    //¸³Öµ¶Ô¸÷ÀàµÄÁ¥Êô¶È¸ødegreeLayer
+                    //èµ‹å€¼å¯¹å„ç±»çš„éš¶å±åº¦ç»™degreeLayer
                     (*_vDegLayer[p]->cellSpace())[i][j] = degree[p][i][j];
-                    //Ä¿Ç°²âÊÔÖĞ»¹ÊÇÊä³öÁËìØĞÅÏ¢£¬Èç¹û²»Êä³ö£¬²»ÖªµÀÓ°ÏìÓĞ¶à´ó
+                    //ç›®å‰æµ‹è¯•ä¸­è¿˜æ˜¯è¾“å‡ºäº†ç†µä¿¡æ¯ï¼Œå¦‚æœä¸è¾“å‡ºï¼Œä¸çŸ¥é“å½±å“æœ‰å¤šå¤§
                     if ((degree[p][i][j] - _vDegLayer[p]->metaData()->noData) > Eps) {
-                        //ÕâÅĞ¶ÏÓ¦¸ÃÊÇÈßÓàµÄ
+                        //è¿™åˆ¤æ–­åº”è¯¥æ˜¯å†—ä½™çš„
                         int nRows = _vInputLayer[0]->_pMetaData->row;
                         int nCols = _vInputLayer[0]->_pMetaData->column;
                         partitionCoef += degree[p][i][j] * degree[p][i][j] / (nRows * nCols - nodataNums);
@@ -208,32 +208,32 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     int iCol = coord.iCol();
     if (_pComptLayer) {
         if (_iterNum == 0) {
-            (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0; //ÒıÈëÁË¶îÍâ´ú¼Û£¬Ó°Ïì¹À¼ÆµÄ×¼È·³Ì¶È;µ«²»ÕâÑù¶Ô-9999»á¼ÆËãÓĞÎó£¬¶Ô¿ÕÖµºÍ·Ç¿ÕÖµ¶¼Ã»Ó°Ïì
+            (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0; //å¼•å…¥äº†é¢å¤–ä»£ä»·ï¼Œå½±å“ä¼°è®¡çš„å‡†ç¡®ç¨‹åº¦;ä½†ä¸è¿™æ ·å¯¹-9999ä¼šè®¡ç®—æœ‰è¯¯ï¼Œå¯¹ç©ºå€¼å’Œéç©ºå€¼éƒ½æ²¡å½±å“
         }
     }
 
     double* pInputVal = new double[imageNum];
     for (int i = 0; i < imageNum; ++i) {
-        pInputVal[i] = (*_vInputLayer[i]->cellSpace())[iRow][iCol]; //*¶ş¼¶£¬[]Ò»¼¶ÓÅÏÈ
+        pInputVal[i] = (*_vInputLayer[i]->cellSpace())[iRow][iCol]; //*äºŒçº§ï¼Œ[]ä¸€çº§ä¼˜å…ˆ
     }
     if ((iRow == 1) && (iCol == 1)) {
         if ((_iterNum == 0)) {
-            //µÚÒ»´Îµü´ú,·ÃÎÊµÚÒ»¸öÕ¤¸ñÊ±£¬³õÊ¼»¯¸÷±äÁ¿,²¢ÓÉÖ÷½ø³Ì²úÉú¾ÛÀàÖĞĞÄ²¢¹ã²¥
-            centerVal = new double[clusterNum * imageNum]; //¾ÛÀàÖĞĞÄ number * imageNum
-            centerIndex = new int[clusterNum]; //¾ÛÀàÖĞĞÄË÷Òı clusterNum * 1
+            //ç¬¬ä¸€æ¬¡è¿­ä»£,è®¿é—®ç¬¬ä¸€ä¸ªæ …æ ¼æ—¶ï¼Œåˆå§‹åŒ–å„å˜é‡,å¹¶ç”±ä¸»è¿›ç¨‹äº§ç”Ÿèšç±»ä¸­å¿ƒå¹¶å¹¿æ’­
+            centerVal = new double[clusterNum * imageNum]; //èšç±»ä¸­å¿ƒ number * imageNum
+            centerIndex = new int[clusterNum]; //èšç±»ä¸­å¿ƒç´¢å¼• clusterNum * 1
             sumNumerator = new double[clusterNum * imageNum];
             sumDenominator = new double[clusterNum];
             totNumerator = new double[clusterNum * imageNum];
             totDenominator = new double[clusterNum];
-            //´æ·Å¸÷¸öµãÓë¸÷ÀàÖĞĞÄµÄ¾àÀë
-            dist = new double **[clusterNum]; //distÈıÎ¬£¬ÀàÊı*ĞĞÊı*ÁĞÊı
+            //å­˜æ”¾å„ä¸ªç‚¹ä¸å„ç±»ä¸­å¿ƒçš„è·ç¦»
+            dist = new double **[clusterNum]; //distä¸‰ç»´ï¼Œç±»æ•°*è¡Œæ•°*åˆ—æ•°
             for (int i = 0; i < clusterNum; ++i) {
                 dist[i] = new double *[_xSize];
                 for (int j = 0; j < _xSize; ++j) {
                     dist[i][j] = new double[_ySize];
                 }
             }
-            degree = new double **[clusterNum]; //Á¥Êô¶ÈÊı×é,³õÊ¼»¯Îª¿ÕÖµ
+            degree = new double **[clusterNum]; //éš¶å±åº¦æ•°ç»„,åˆå§‹åŒ–ä¸ºç©ºå€¼
             for (int i = 0; i < clusterNum; i++) {
                 degree[i] = new double *[_xSize];
                 for (int j = 0; j < _xSize; j++) {
@@ -243,17 +243,17 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 }
             }
 
-            //µÚÒ»´Îµü´úÖ÷½ø³Ì²úÉúËæ»ú¾ÛÀàÖĞĞÄ,³õÊ¼¾ÛÀàÖĞĞÄ¶¼ÔÚÖ÷½ø³ÌµÄÊı¾İ·¶Î§ÄÚ
+            //ç¬¬ä¸€æ¬¡è¿­ä»£ä¸»è¿›ç¨‹äº§ç”Ÿéšæœºèšç±»ä¸­å¿ƒ,åˆå§‹èšç±»ä¸­å¿ƒéƒ½åœ¨ä¸»è¿›ç¨‹çš„æ•°æ®èŒƒå›´å†…
             if (_rank == 0) {
                 initRandomClusterCenters(centerVal);
             }
             MPI_Barrier(MPI_COMM_WORLD);
-            MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //½ø³Ì0¸ºÔğ¹ã²¥¾ÛÀàÖĞĞÄ
+            MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //è¿›ç¨‹0è´Ÿè´£å¹¿æ’­èšç±»ä¸­å¿ƒ
         }
         else {
-            //±¾´Îµü´ú¿ªÊ¼Ê±£¬¹ã²¥¸üĞÂµÄ¾ÛÀàÖĞĞÄ
+            //æœ¬æ¬¡è¿­ä»£å¼€å§‹æ—¶ï¼Œå¹¿æ’­æ›´æ–°çš„èšç±»ä¸­å¿ƒ
             MPI_Barrier(MPI_COMM_WORLD);
-            MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //½ø³Ì0¸ºÔğ¹ã²¥¾ÛÀàÖĞĞÄ
+            MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //è¿›ç¨‹0è´Ÿè´£å¹¿æ’­èšç±»ä¸­å¿ƒ
         }
         starttime=MPI_Wtime();
     }
@@ -261,19 +261,19 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     time = MPI_Wtime();
 
     if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
-        //¿ÕÖµ²»×ö´¦Àí£¬×îºóÒ»²¢¸³¿ÕÖµ
+        //ç©ºå€¼ä¸åšå¤„ç†ï¼Œæœ€åä¸€å¹¶èµ‹ç©ºå€¼
     }
     else {
-        fnDistance(iRow, iCol, pInputVal); //·ÇnodataµÄcellµ½¸÷ÀàÖĞĞÄµÄ¾àÀëÖµ¼ÆËã
-        InitDegree(iRow, iCol); //Á¥Êô¶È¼ÆËã
+        fnDistance(iRow, iCol, pInputVal); //énodataçš„cellåˆ°å„ç±»ä¸­å¿ƒçš„è·ç¦»å€¼è®¡ç®—
+        InitDegree(iRow, iCol); //éš¶å±åº¦è®¡ç®—
     }
     // if(allNoDataAt(iRow,iCol)) {
     //     for (int i = 0; i < clusterNum; i++) {
     //         dist[i][iRow][iCol] = -1;
     //     }
     // }else{
-    //     fnDistance(iRow, iCol, pInputVal); //cellµ½¸÷ÀàÖĞĞÄµÄ¾àÀëÖµ¼ÆËã
-    //     InitDegree(iRow, iCol); //Á¥Êô¶È¼ÆËã
+    //     fnDistance(iRow, iCol, pInputVal); //cellåˆ°å„ç±»ä¸­å¿ƒçš„è·ç¦»å€¼è®¡ç®—
+    //     InitDegree(iRow, iCol); //éš¶å±åº¦è®¡ç®—
     // }
 
     if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;
@@ -290,7 +290,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         if (_rank == 0) {
             cout << "_iterNum is " << _iterNum << endl;
         }
-        //ãĞÖµÅĞ¶Ï,µ½×îºóÒ»¸öÕ¤¸ñ¼ÆËãºó£¬val¹éÔ¼µ½½ø³Ì0£¬ÅĞ¶ÏÁ½´Î¾ø¶Ô²îÊÇ·ñÔÚãĞÖµ·¶Î§ÄÚ
+        //é˜ˆå€¼åˆ¤æ–­,åˆ°æœ€åä¸€ä¸ªæ …æ ¼è®¡ç®—åï¼Œvalå½’çº¦åˆ°è¿›ç¨‹0ï¼Œåˆ¤æ–­ä¸¤æ¬¡ç»å¯¹å·®æ˜¯å¦åœ¨é˜ˆå€¼èŒƒå›´å†…
         if ((fabs(totval - oldtval) <= tolerance) || (_iterNum >= maxIteration)) {
             
             double tmpStart = MPI_Wtime();
@@ -310,15 +310,15 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             time=MPI_Wtime();
             oldtval = totval;
             for (int p = 0; p < clusterNum; p++) {
-                //¹éÁã·Ö×Ó·ÖÄ¸
+                //å½’é›¶åˆ†å­åˆ†æ¯
                 sumDenominator[p] = 0.0;
                 for (int q = 0; q < imageNum; q++) {
                     sumNumerator[p * imageNum + q] = 0.0;
                 }
-                //¼ÆËã·Ö×Ó·ÖÄ¸,ÇóĞÂ¾ÛÀàÖĞĞÄ
+                //è®¡ç®—åˆ†å­åˆ†æ¯,æ±‚æ–°èšç±»ä¸­å¿ƒ
                 int valCount = 0;
                 for (int i = 1; i < _xSize - 1; i++) {
-                    //Ò»¶¨Òª×¢ÒâÕâÀïÖ»¼ÆËãÓĞĞ§¿Õ¼ä
+                    //ä¸€å®šè¦æ³¨æ„è¿™é‡Œåªè®¡ç®—æœ‰æ•ˆç©ºé—´
                     for (int j = 1; j < _ySize - 1; j++) {
                         //if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
                         //    sumDenominator[p] += pow(degree[p][i][j], weight);
@@ -328,7 +328,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                         //    ++valCount;
                         //}
 
-                        //Èç¹ûÒ²¼ÆËãº¬nodataµÄ¶àÍ¼²ãÄØ
+                        //å¦‚æœä¹Ÿè®¡ç®—å«nodataçš„å¤šå›¾å±‚å‘¢
                         if(allNoDataAt(i,j)) {
                             continue;
                         }
@@ -351,7 +351,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             MPI_Allreduce(sumDenominator, totDenominator, clusterNum, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(sumNumerator, totNumerator, clusterNum * imageNum, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             cout<<"rank"<<_rank<<" reduce3 time is "<<MPI_Wtime()-time<<"s"<<endl;
-            //¸üĞÂ¾ÛÀàÖĞĞÄcenter
+            //æ›´æ–°èšç±»ä¸­å¿ƒcenter
             for (int p = 0; p < clusterNum; p++) {
                 for (int q = 0; q < imageNum; q++) {
                     centerVal[p * imageNum + q] = totNumerator[p * imageNum + q] / totDenominator[p];

@@ -74,9 +74,9 @@ int main(int argc, char* argv[]) {
     int fldIdx;
     int idw_nbrPoints;
     int idw_power;
-    double idw_buffer; //ÔİÊ±¶¼¶¨ÒåÎªint¿É¸ÄÎª¸¡µãĞÍ
-    double blockSize; //ÑùµãÒÔ¿é´æ·ÅµÄ´ÖÍø¸ñÁ£¶È£¬ÒÔÃ×Îªµ¥Î»
-    int granularity=10;//¼ÆËãÓò·Ö±æÂÊ=granularity*Êı¾İÓë·Ö±æÂÊ (10 temporarily)
+    double idw_buffer; //æš‚æ—¶éƒ½å®šä¹‰ä¸ºintå¯æ”¹ä¸ºæµ®ç‚¹å‹
+    double blockSize; //æ ·ç‚¹ä»¥å—å­˜æ”¾çš„ç²—ç½‘æ ¼ç²’åº¦ï¼Œä»¥ç±³ä¸ºå•ä½
+    int granularity=10;//è®¡ç®—åŸŸåˆ†è¾¨ç‡=granularity*æ•°æ®ä¸åˆ†è¾¨ç‡ (10 temporarily)
     bool decomposeBySapce; /// decomp by compute load if false
     char* writeLoadPath = nullptr;
     char* readLoadPath = nullptr;
@@ -279,19 +279,19 @@ int main(int argc, char* argv[]) {
 
 
     IDWOperator idwOper(cellSize, idw_nbrPoints, idw_power, idw_buffer, blockSize);
-    char* spatialrefWkt; //Í¶Ó°ĞÅÏ¢
+    char* spatialrefWkt; //æŠ•å½±ä¿¡æ¯
 	
-	idwOper.readSampleNums(inputFileName, &spatialrefWkt); //»ñÈ¡ÑùµãÊıÄ¿£¬idwOper.sample_nums
+	idwOper.readSampleNums(inputFileName, &spatialrefWkt); //è·å–æ ·ç‚¹æ•°ç›®ï¼ŒidwOper.sample_nums
 	vector<SamplePoint> samples;
-    idwOper.readSamples(inputFileName, fldIdx, &spatialrefWkt, samples); //¶ÁÈ¡Ñùµã£¬²¢¸üĞÂÁËidwOper.glb_extent
-    //¿É»ñÈ¡idwLayerµÄ×ø±ê·¶Î§,·ÅÈëidwOper.sample_extent
-    idwOper.creatSampleBlocks(samples); //±éÀúpAllSamples£¬·Ö¿é´æÈëidwOper._pSampleBlocks³ÉÔ±
+    idwOper.readSamples(inputFileName, fldIdx, &spatialrefWkt, samples); //è¯»å–æ ·ç‚¹ï¼Œå¹¶æ›´æ–°äº†idwOper.glb_extent
+    //å¯è·å–idwLayerçš„åæ ‡èŒƒå›´,æ”¾å…¥idwOper.sample_extent
+    idwOper.creatSampleBlocks(samples); //éå†pAllSamplesï¼Œåˆ†å—å­˜å…¥idwOper._pSampleBlocksæˆå‘˜
     vector<SamplePoint> vTemp(0);
     vTemp.swap( samples );
 
 	RasterLayer<int> maskLayer("maskLayer");
     maskLayer.readNeighborhood(dataNeighbor);
-    //ÒÔ´ÖÍø¸ñĞÎÊ½×éÖ¯Ñùµã£¬Êı¾İ³ÉÔ±ĞĞÁĞÊı£¬Ã¿¸öÕ¤¸ñÉÏÊÇÒ»ÏµÁĞÑùµã
+    //ä»¥ç²—ç½‘æ ¼å½¢å¼ç»„ç»‡æ ·ç‚¹ï¼Œæ•°æ®æˆå‘˜è¡Œåˆ—æ•°ï¼Œæ¯ä¸ªæ …æ ¼ä¸Šæ˜¯ä¸€ç³»åˆ—æ ·ç‚¹
     RasterLayer<double> idwLayer("idwLayer");
     idwLayer.readNeighborhood(dataNeighbor);
     

@@ -7,62 +7,55 @@
 #include<iomanip>
 
 
+void SCAOperator::demLayer(RasterLayer<double>& layerD, int kc_meth2, float StepRatio2, int threadNUM2) {
 
-void SCAOperator::demLayer(RasterLayer<double> &layerD, int kc_meth2, float StepRatio2, int threadNUM2)
+    _pDEMLayer = &layerD;
 
-{
+    _pDEMNbrhood = layerD.nbrhood();
 
-	_pDEMLayer = &layerD;
+    kc_Meth = kc_meth2;
 
-	_pDEMNbrhood = layerD.nbrhood();
+    StepR = StepRatio2;
 
-	kc_Meth = kc_meth2;
-
-	StepR = StepRatio2;
-
-	threadNum = threadNUM2;
+    threadNum = threadNUM2;
 
 
+    int xSize = _pDEMLayer->_pMetaData->_localdims.nRows(); //number of rows in this process
 
-	int xSize = _pDEMLayer->_pMetaData->_localdims.nRows();//number of rows in this process
+    int ySize = _pDEMLayer->_pMetaData->_localdims.nCols();
 
-	int ySize = _pDEMLayer->_pMetaData->_localdims.nCols();
+    zq = new double*[xSize];
 
-	zq = new double*[xSize];
+    qb = new double*[xSize];
 
-	qb = new double*[xSize];
+    diff = new double*[xSize];
 
-	diff = new double*[xSize];
+    for (int i = 0; i < xSize; i++) {
 
-	for (int i = 0; i<xSize; i++){
+        zq[i] = new double[ySize];
 
-		zq[i] = new double[ySize];
+        qb[i] = new double[ySize];
 
-		qb[i] = new double[ySize];
+        diff[i] = new double[ySize];
 
-		diff[i] = new double[ySize];
+    }
 
-	}
+    relDiffMin = new double[threadNum];
 
-	relDiffMin = new double[threadNum];
+    relDiffMax = new double[threadNum];
 
-	relDiffMax = new double[threadNum];
+    cout << "initialization is ok" << endl;
 
-	cout << "initialization is ok" << endl;
-
-	Configure(_pDEMLayer, false);
+    Configure(_pDEMLayer, false);
 
 }
 
 
+void SCAOperator::SCALayer(RasterLayer<double>& layerD) {
 
-void SCAOperator::SCALayer(RasterLayer<double> &layerD)
+    _pSCALayer = &layerD;
 
-{
-
-	_pSCALayer = &layerD;
-
-	Configure(_pSCALayer, false);
+    Configure(_pSCALayer, false);
 
 }
 
@@ -77,891 +70,901 @@ void SCAOperator::SCALayer(RasterLayer<double> &layerD)
 //}
 
 
+bool SCAOperator::isTermination() {
 
-bool SCAOperator::isTermination()
-
-{
-
-	return flag;
+    return flag;
 
 }
 
 
+bool SCAOperator::Operator(const CellCoord& coord) {
 
-bool SCAOperator::Operator(const CellCoord &coord)
+    CellSpace<double>& demL = *(_pDEMLayer->cellSpace());
 
-{
+    CellSpace<double>& scaL = *(_pSCALayer->cellSpace());
 
-	CellSpace<double> &demL = *(_pDEMLayer->cellSpace());
+    //CellSpace<double> &tmpL = *(_pTMPLayer->cellSpace());
 
-	CellSpace<double> &scaL = *(_pSCALayer->cellSpace());
+    Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);
 
-	//CellSpace<double> &tmpL = *(_pTMPLayer->cellSpace());
-
-	Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);
-
-	int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
+    int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
 
 
+    int xSize = _pDEMLayer->_pMetaData->_localdims.nRows(); //number of rows in this process
 
-	int xSize = _pDEMLayer->_pMetaData->_localdims.nRows();//number of rows in this process
+    int ySize = _pDEMLayer->_pMetaData->_localdims.nCols();
 
-	int ySize = _pDEMLayer->_pMetaData->_localdims.nCols();
+    int iRow = coord.iRow(); //current cell
 
-	int iRow = coord.iRow();//current cell
+    int iCol = coord.iCol();
 
-	int iCol = coord.iCol();
+    double dCellSize = _pDEMLayer->_pMetaData->cellSize; //resolution
 
-	double dCellSize = _pDEMLayer->_pMetaData->cellSize;//resolution
+    noData = _pDEMLayer->_pMetaData->noData;
 
-	noData = _pDEMLayer->_pMetaData->noData;
-
-	int mythread = omp_get_thread_num();
-
+    int mythread = omp_get_thread_num();
 
 
-	if (num == 1){
+    if (num == 1) {
 
-		zq[iRow][iCol] = qb[iRow][iCol] + 1.0 / 6.0*(qb[iRow - 1][iCol] + qb[iRow + 1][iCol] + qb[iRow][iCol + 1] + qb[iRow][iCol - 1]) +
+        zq[iRow][iCol] = qb[iRow][iCol] + 1.0 / 6.0 * (qb[iRow - 1][iCol] + qb[iRow + 1][iCol] + qb[iRow][iCol + 1] + qb[iRow][iCol - 1]) +
 
-			1.0 / 36.0*(qb[iRow - 1][iCol - 1] + qb[iRow - 1][iCol + 1] + qb[iRow + 1][iCol - 1] + qb[iRow + 1][iCol + 1]);
+            1.0 / 36.0 * (qb[iRow - 1][iCol - 1] + qb[iRow - 1][iCol + 1] + qb[iRow + 1][iCol - 1] + qb[iRow + 1][iCol + 1]);
 
-		diff[iRow][iCol] = zq[iRow][iCol] - demL[iRow][iCol];
+        diff[iRow][iCol] = zq[iRow][iCol] - demL[iRow][iCol];
 
-		if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum)*(mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread<(threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1)*(mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))){
+        if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
 
 #pragma omp barrier
 
-			num = 2;
+            num = 2;
 
-			Termination = 0;
-
-#pragma omp barrier
-
-		}
-
-	}
-	else{
-
-		if (num == 2){
-
-			qb[iRow][iCol] -= 1.0*diff[iRow][iCol] * 9.0 / 16.0;
-
-			double tmp = fabs(demL[iRow][iCol]);
-
-			double relDiff = tmp<1.0 ? diff[iRow][iCol] : (diff[iRow][iCol] / tmp);
-
-			if ((iCol == 1) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum)*(mythread)+1)) || (((xSize - 2) % threadNum != 0) && (((iRow == ((int)(xSize - 2) / threadNum + 1)*mythread + 1)))))){
-
-				relDiffMax[mythread] = relDiff;
-
-				relDiffMin[mythread] = relDiff;
-
-			}
-
-			if (relDiff < relDiffMin[mythread]){
-
-				relDiffMin[mythread] = relDiff;
-
-			}
-			else{
-
-				if (relDiff > relDiffMax[mythread]){
-
-					relDiffMax[mythread] = relDiff;
-
-				}
-
-			}
-
-			if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum)*(mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread<(threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1)*(mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))){
+            Termination = 0;
 
 #pragma omp barrier
 
-				//recalculating border
+        }
 
-				if (mythread == 0){
+    }
+    else {
 
-					for (int i = 1; i<xSize - 1; i++){
+        if (num == 2) {
 
-						qb[i][0] = 2 * qb[i][1] - qb[i][2]; //left border
+            qb[iRow][iCol] -= 1.0 * diff[iRow][iCol] * 9.0 / 16.0;
 
-						qb[i][ySize - 1] = 2 * qb[i][ySize - 2] - qb[i][ySize - 3]; //right border
+            double tmp = fabs(demL[iRow][iCol]);
 
-					}
+            double relDiff = tmp < 1.0 ? diff[iRow][iCol] : (diff[iRow][iCol] / tmp);
 
-					for (int j = 1; j<ySize - 1; j++){
+            if ((iCol == 1) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread) + 1)) || (((xSize - 2) % threadNum != 0) && (((iRow == ((int)(xSize - 2) / threadNum + 1) * mythread + 1)))))) {
 
-						qb[0][j] = 2 * qb[1][j] - qb[2][j]; //top border
+                relDiffMax[mythread] = relDiff;
 
-						qb[xSize - 1][j] = 2 * qb[xSize - 2][j] - qb[xSize - 3][j]; //bottom border
+                relDiffMin[mythread] = relDiff;
 
-					}
+            }
 
-					qb[0][0] = 4 * qb[1][1] - 2 * qb[1][2] - 2 * qb[2][1] + qb[2][2]; //top-left corner
+            if (relDiff < relDiffMin[mythread]) {
 
-					qb[0][ySize - 1] = 4 * qb[1][ySize - 2] - 2 * qb[1][ySize - 3] - 2 * qb[2][ySize - 2] + qb[2][ySize - 3]; //top-right corner
+                relDiffMin[mythread] = relDiff;
 
-					qb[xSize - 1][0] = 4 * qb[xSize - 2][1] - 2 * qb[xSize - 2][2] - 2 * qb[xSize - 3][1] + qb[xSize - 3][2];	//bottom-left corner
+            }
+            else {
 
-					qb[xSize - 1][ySize - 1] = 4 * qb[xSize - 2][ySize - 2] - 2 * qb[xSize - 2][ySize - 3] - 2 * qb[xSize - 3][ySize - 2] + qb[xSize - 3][ySize - 3];	//bottom-right corner
+                if (relDiff > relDiffMax[mythread]) {
 
-					//whether continuing iterating approximation
+                    relDiffMax[mythread] = relDiff;
 
-					for (int i = 1; i<threadNum; i++){
+                }
 
-						if (relDiffMin[i]<relDiffMin[0]){
+            }
 
-							relDiffMin[0] = relDiffMin[i];
-
-						}
-
-						if (relDiffMax[i]>relDiffMax[0]){
-
-							relDiffMax[0] = relDiffMax[i];
-
-						}
-
-					}
-
-					if ((fabs(relDiffMax[0]) + fabs(relDiffMin[0])) >= 1e-9){
-
-						num = 1;
-
-						Termination = 0;
-
-						cout << fabs(relDiffMax[0]) << " continuing iterating approximation " << fabs(relDiffMin[0]) << endl;
-
-						relDiffMin[0] = 0.0;
-
-						relDiffMax[0] = 0.0;
-
-					}
-					else{
-
-						num = 3;
-
-						Termination = 0;
-
-					}
-
-				}
+            if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
 
 #pragma omp barrier
 
-			}
+                //recalculating border
 
-		}
-		else{
+                if (mythread == 0) {
 
-			if (num == 0){
+                    for (int i = 1; i < xSize - 1; i++) {
 
-				qb[iRow][iCol] = 9.0 / 16.0*demL[iRow][iCol];
+                        qb[i][0] = 2 * qb[i][1] - qb[i][2]; //left border
 
-				if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum)*(mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread<(threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1)*(mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))){
+                        qb[i][ySize - 1] = 2 * qb[i][ySize - 2] - qb[i][ySize - 3]; //right border
+
+                    }
+
+                    for (int j = 1; j < ySize - 1; j++) {
+
+                        qb[0][j] = 2 * qb[1][j] - qb[2][j]; //top border
+
+                        qb[xSize - 1][j] = 2 * qb[xSize - 2][j] - qb[xSize - 3][j]; //bottom border
+
+                    }
+
+                    qb[0][0] = 4 * qb[1][1] - 2 * qb[1][2] - 2 * qb[2][1] + qb[2][2]; //top-left corner
+
+                    qb[0][ySize - 1] = 4 * qb[1][ySize - 2] - 2 * qb[1][ySize - 3] - 2 * qb[2][ySize - 2] + qb[2][ySize - 3]; //top-right corner
+
+                    qb[xSize - 1][0] = 4 * qb[xSize - 2][1] - 2 * qb[xSize - 2][2] - 2 * qb[xSize - 3][1] + qb[xSize - 3][2]; //bottom-left corner
+
+                    qb[xSize - 1][ySize - 1] = 4 * qb[xSize - 2][ySize - 2] - 2 * qb[xSize - 2][ySize - 3] - 2 * qb[xSize - 3][ySize - 2] + qb[xSize - 3][ySize - 3]; //bottom-right corner
+
+                    //whether continuing iterating approximation
+
+                    for (int i = 1; i < threadNum; i++) {
+
+                        if (relDiffMin[i] < relDiffMin[0]) {
+
+                            relDiffMin[0] = relDiffMin[i];
+
+                        }
+
+                        if (relDiffMax[i] > relDiffMax[0]) {
+
+                            relDiffMax[0] = relDiffMax[i];
+
+                        }
+
+                    }
+
+                    if ((fabs(relDiffMax[0]) + fabs(relDiffMin[0])) >= 1e-9) {
+
+                        num = 1;
+
+                        Termination = 0;
+
+                        cout << fabs(relDiffMax[0]) << " continuing iterating approximation " << fabs(relDiffMin[0]) << endl;
+
+                        relDiffMin[0] = 0.0;
+
+                        relDiffMax[0] = 0.0;
+
+                    }
+                    else {
+
+                        num = 3;
+
+                        Termination = 0;
+
+                    }
+
+                }
 
 #pragma omp barrier
 
-					if (mythread == 0){
+            }
 
-						for (int i = 1; i<xSize - 1; i++){
+        }
+        else {
 
-							qb[i][0] = 2 * qb[i][1] - qb[i][2]; //left border
+            if (num == 0) {
 
-							qb[i][ySize - 1] = 2 * qb[i][ySize - 2] - qb[i][ySize - 3]; //right border
+                qb[iRow][iCol] = 9.0 / 16.0 * demL[iRow][iCol];
 
-						}
-
-						for (int j = 1; j<ySize - 1; j++){
-
-							qb[0][j] = 2 * qb[1][j] - qb[2][j]; //top border
-
-							qb[xSize - 1][j] = 2 * qb[xSize - 2][j] - qb[xSize - 3][j]; //bottom border
-
-						}
-
-						qb[0][0] = 4 * qb[1][1] - 2 * qb[1][2] - 2 * qb[2][1] + qb[2][2]; //top-left corner
-
-						qb[0][ySize - 1] = 4 * qb[1][ySize - 2] - 2 * qb[1][ySize - 3] - 2 * qb[2][ySize - 2] + qb[2][ySize - 3]; //top-right corner
-
-						qb[xSize - 1][0] = 4 * qb[xSize - 2][1] - 2 * qb[xSize - 2][2] - 2 * qb[xSize - 3][1] + qb[xSize - 3][2];	//bottom-left corner
-
-						qb[xSize - 1][ySize - 1] = 4 * qb[xSize - 2][ySize - 2] - 2 * qb[xSize - 2][ySize - 3] - 2 * qb[xSize - 3][ySize - 2] + qb[xSize - 3][ySize - 3];	//bottom-right corner
-
-						num = 1;
-
-						Termination = 0;
-
-					}
+                if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
 
 #pragma omp barrier
 
-				}
+                    if (mythread == 0) {
 
-			}
-			else{
+                        for (int i = 1; i < xSize - 1; i++) {
 
-				if (num == 3){
+                            qb[i][0] = 2 * qb[i][1] - qb[i][2]; //left border
 
-					//check the biquadratic interpolation by comparing the value in cell center
+                            qb[i][ySize - 1] = 2 * qb[i][ySize - 2] - qb[i][ySize - 3]; //right border
 
-					//double localX = 0.5;
+                        }
 
-					//double localY = 0.5;
+                        for (int j = 1; j < ySize - 1; j++) {
 
-					//zq[iRow][iCol] = (4.0*localX*(1-localX)+2.0)/3.0*2.0/3.0*((qb[iRow-1][iCol]*localY*localY) + (qb[iRow][iCol]*(2.0*localY*(1-localY)+1.0)) + (qb[iRow+1][iCol]*(1-localY)*(1-localY))) +
+                            qb[0][j] = 2 * qb[1][j] - qb[2][j]; //top border
 
-					//	2.0*localX*localX/3.0*2.0/3.0*((qb[iRow-1][iCol+1]*localY*localY) + (qb[iRow][iCol+1]*(2.0*localY*(1-localY)+1.0)) + (qb[iRow+1][iCol+1]*(1-localY)*(1-localY))) +
+                            qb[xSize - 1][j] = 2 * qb[xSize - 2][j] - qb[xSize - 3][j]; //bottom border
 
-					//	2.0*(1.0-localX)*(1.0-localX)/3.0*2.0/3.0*((qb[iRow-1][iCol-1]*localY*localY) + (qb[iRow][iCol-1]*(2.0*localY*(1-localY)+1.0)) + (qb[iRow+1][iCol-1]*(1-localY)*(1-localY)));
+                        }
 
-					//zq[iRow][iCol] = q2(localX)*(qb[iRow-1][iCol]*q1(localY)+qb[iRow][iCol]*q2(localY)+qb[iRow+1][iCol]*q3(localY)) +
+                        qb[0][0] = 4 * qb[1][1] - 2 * qb[1][2] - 2 * qb[2][1] + qb[2][2]; //top-left corner
 
-					//				q1(localX)*(qb[iRow-1][iCol+1]*q1(localY)+qb[iRow][iCol+1]*q2(localY)+qb[iRow+1][iCol+1]*q3(localY)) +
+                        qb[0][ySize - 1] = 4 * qb[1][ySize - 2] - 2 * qb[1][ySize - 3] - 2 * qb[2][ySize - 2] + qb[2][ySize - 3]; //top-right corner
 
-					//				q3(localX)*(qb[iRow-1][iCol-1]*q1(localY)+qb[iRow][iCol-1]*q2(localY)+qb[iRow+1][iCol-1]*q3(localY));
+                        qb[xSize - 1][0] = 4 * qb[xSize - 2][1] - 2 * qb[xSize - 2][2] - 2 * qb[xSize - 3][1] + qb[xSize - 3][2]; //bottom-left corner
 
-					vector<double> planCur;
+                        qb[xSize - 1][ySize - 1] = 4 * qb[xSize - 2][ySize - 2] - 2 * qb[xSize - 2][ySize - 3] - 2 * qb[xSize - 3][ySize - 2] + qb[xSize - 3][ySize - 3]; //bottom-right corner
 
-					vector<double> stepL;
+                        num = 1;
 
-					int curRow = iRow;
+                        Termination = 0;
 
-					int curCol = iCol;//which cell the current point is in
+                    }
 
-					double curX = 0.5*dCellSize;
+#pragma omp barrier
 
-					double curY = 0.5*dCellSize;//the local coordinate of current point
+                }
 
-					double prevAsp = 0.0;
+            }
+            else {
 
-					double nextStepL = StepR*dCellSize;
+                if (num == 3) {
 
-					double curStepL = StepR*dCellSize;
+                    //check the biquadratic interpolation by comparing the value in cell center
 
-					bool upFlag = true;
+                    //double localX = 0.5;
 
-					int expNum = 0;
+                    //double localY = 0.5;
 
-					while (upFlag){
+                    //zq[iRow][iCol] = (4.0*localX*(1-localX)+2.0)/3.0*2.0/3.0*((qb[iRow-1][iCol]*localY*localY) + (qb[iRow][iCol]*(2.0*localY*(1-localY)+1.0)) + (qb[iRow+1][iCol]*(1-localY)*(1-localY))) +
 
-						//double globalx = -400+dCellSize*curCol+curX;
+                    //	2.0*localX*localX/3.0*2.0/3.0*((qb[iRow-1][iCol+1]*localY*localY) + (qb[iRow][iCol+1]*(2.0*localY*(1-localY)+1.0)) + (qb[iRow+1][iCol+1]*(1-localY)*(1-localY))) +
 
-						//double globaly = -400+dCellSize*(xSize-curRow-1)+curY;
+                    //	2.0*(1.0-localX)*(1.0-localX)/3.0*2.0/3.0*((qb[iRow-1][iCol-1]*localY*localY) + (qb[iRow][iCol-1]*(2.0*localY*(1-localY)+1.0)) + (qb[iRow+1][iCol-1]*(1-localY)*(1-localY)));
 
-						//double globalx = 437168.40625+(double)(dCellSize*curCol)+curX;
+                    //zq[iRow][iCol] = q2(localX)*(qb[iRow-1][iCol]*q1(localY)+qb[iRow][iCol]*q2(localY)+qb[iRow+1][iCol]*q3(localY)) +
 
-						//double globaly = 5417476.5+(double)dCellSize*(xSize-curRow-1)+curY;
+                    //				q1(localX)*(qb[iRow-1][iCol+1]*q1(localY)+qb[iRow][iCol+1]*q2(localY)+qb[iRow+1][iCol+1]*q3(localY)) +
 
-						//if( (iRow==450)&&(iCol==500) )
+                    //				q3(localX)*(qb[iRow-1][iCol-1]*q1(localY)+qb[iRow][iCol-1]*q2(localY)+qb[iRow+1][iCol-1]*q3(localY));
 
-						//if ((iRow==690)&&(iCol==460))
+                    vector<double> planCur;
 
-						//cout<<"globalx "<<globalx<<" globaly "<<globaly<<" tmpL[curRow][curCol] "<<tmpL[curRow][curCol]<<endl;
+                    vector<double> stepL;
 
-						//{printf("%3f,%3f",globalx,globaly);
+                    int curRow = iRow;
 
-						//cout<<endl;}
+                    int curCol = iCol; //which cell the current point is in
 
-						//cout<<"tmpL[curRow][curCol] "<<tmpL[curRow][curCol]<<endl;
+                    double curX = 0.5 * dCellSize;
 
-						if ((curRow<1) || (curRow>xSize - 2) || (curCol<1) || (curCol>ySize - 2)){
+                    double curY = 0.5 * dCellSize; //the local coordinate of current point
 
-							upFlag = false;
+                    double prevAsp = 0.0;
 
-						}
-						else{
+                    double nextStepL = StepR * dCellSize;
 
-							//whether noData cells exists in its neighborhood
+                    double curStepL = StepR * dCellSize;
 
-							for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++){
+                    bool upFlag = true;
 
-								if (!upFlag){
+                    int expNum = 0;
 
-									break;
+                    while (upFlag) {
 
-								}
+                        //double globalx = -400+dCellSize*curCol+curX;
 
-								for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++){
+                        //double globaly = -400+dCellSize*(xSize-curRow-1)+curY;
 
-									if (fabs(demL[iRow1][iCol1] - noData)<Eps){
+                        //double globalx = 437168.40625+(double)(dCellSize*curCol)+curX;
 
-										upFlag = false;
+                        //double globaly = 5417476.5+(double)dCellSize*(xSize-curRow-1)+curY;
 
-										break;
+                        //if( (iRow==450)&&(iCol==500) )
 
-									}
+                        //if ((iRow==690)&&(iCol==460))
 
-								}
+                        //cout<<"globalx "<<globalx<<" globaly "<<globaly<<" tmpL[curRow][curCol] "<<tmpL[curRow][curCol]<<endl;
 
-							}
+                        //{printf("%3f,%3f",globalx,globaly);
 
-							//hilltop
+                        //cout<<endl;}
 
-							if (upFlag){
+                        //cout<<"tmpL[curRow][curCol] "<<tmpL[curRow][curCol]<<endl;
 
-								upFlag = false;
+                        if ((curRow < 1) || (curRow > xSize - 2) || (curCol < 1) || (curCol > ySize - 2)) {
 
-								for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++){
+                            upFlag = false;
 
-									if (upFlag){
+                        }
+                        else {
 
-										break;
+                            //whether noData cells exists in its neighborhood
 
-									}
+                            for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++) {
 
-									for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++){
+                                if (!upFlag) {
 
-										if (demL[iRow1][iCol1] - demL[curRow][curCol]>Eps){
+                                    break;
 
-											upFlag = true;
+                                }
 
-											break;
+                                for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++) {
 
-										}
+                                    if (fabs(demL[iRow1][iCol1] - noData) < Eps) {
 
-									}
+                                        upFlag = false;
 
-								}
+                                        break;
 
-								if (!upFlag){
+                                    }
 
-									scaL[curRow][curCol] = 0.0;
+                                }
 
-									//calculating when the endpoint is hilltop
+                            }
 
-									if (stepL.size()>0){
+                            //hilltop
 
-										double z[9];
+                            if (upFlag) {
 
-										int dir = 0;
+                                upFlag = false;
 
-										for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++){
+                                for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++) {
 
-											for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++){
+                                    if (upFlag) {
 
-												z[dir] = qb[iRow1][iCol1];
+                                        break;
 
-												dir++;
+                                    }
 
-											}
+                                    for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++) {
 
-										}
+                                        if (demL[iRow1][iCol1] - demL[curRow][curCol] > Eps) {
 
-										double p, q, r, s, t;
+                                            upFlag = true;
 
-										double percurX = curX / dCellSize;
+                                            break;
 
-										double percurY = curY / dCellSize;
+                                        }
 
-										p = 4.0*(1 - 2.0*percurX) / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
+                                    }
 
-											4.0*percurX / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
+                                }
 
-											4.0*(percurX - 1.0) / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
+                                if (!upFlag) {
 
-										r = -8.0 / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
+                                    scaL[curRow][curCol] = 0.0;
 
-											4.0 / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
+                                    //calculating when the endpoint is hilltop
 
-											4.0 / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
+                                    if (stepL.size() > 0) {
 
-										q = 4.0*(1 - 2.0*percurY) / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
+                                        double z[9];
 
-											4.0*percurY / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
+                                        int dir = 0;
 
-											4.0*(percurY - 1.0) / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
+                                        for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++) {
 
-										t = -8.0 / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
+                                            for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++) {
 
-											4.0 / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
+                                                z[dir] = qb[iRow1][iCol1];
 
-											4.0 / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
+                                                dir++;
 
-										s = 4.0*(1 - 2.0*percurY) / 3.0 * (4.0*(1 - 2.0*percurX) / 3.0*z[4] + 4.0*percurX / 3.0*z[5] + 4.0*(percurX - 1.0) / 3.0*z[3]) +
+                                            }
 
-											4.0*percurY / 3.0 * (4.0*(1 - 2.0*percurX) / 3.0*z[1] + 4.0*percurX / 3.0*z[2] + 4.0*(percurX - 1.0) / 3.0*z[0]) +
+                                        }
 
-											4.0*(percurY - 1.0) / 3.0 * (4.0*(1 - 2.0*percurX) / 3.0*z[7] + 4.0*percurX / 3.0*z[8] + 4.0*(percurX - 1.0) / 3.0*z[6]);
+                                        double p, q, r, s, t;
 
-										double tmpCur = -((q*q*r - 2 * p*q*s + p*p*t) / (sqrt((p*p + q*q)*(p*p + q*q)*(p*p + q*q)))) / dCellSize;
+                                        double percurX = curX / dCellSize;
 
-										planCur.push_back(tmpCur);
+                                        double percurY = curY / dCellSize;
 
-										stepL.push_back(curStepL);
+                                        p = 4.0 * (1 - 2.0 * percurX) / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
 
-									}
+                                            4.0 * percurX / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
 
-								}
+                                            4.0 * (percurX - 1.0) / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
 
-							}
+                                        r = -8.0 / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
 
-						}
+                                            4.0 / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
 
-						if (upFlag){
+                                            4.0 / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
 
-							double z[9];
+                                        q = 4.0 * (1 - 2.0 * percurY) / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
 
-							int dir = 0;
+                                            4.0 * percurY / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
 
-							for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++){
+                                            4.0 * (percurY - 1.0) / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
 
-								for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++){
+                                        t = -8.0 / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
 
-									z[dir] = qb[iRow1][iCol1];
+                                            4.0 / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
 
-									dir++;
+                                            4.0 / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
 
-								}
+                                        s = 4.0 * (1 - 2.0 * percurY) / 3.0 * (4.0 * (1 - 2.0 * percurX) / 3.0 * z[4] + 4.0 * percurX / 3.0 * z[5] + 4.0 * (percurX - 1.0) / 3.0 * z[3]) +
 
-							}
+                                            4.0 * percurY / 3.0 * (4.0 * (1 - 2.0 * percurX) / 3.0 * z[1] + 4.0 * percurX / 3.0 * z[2] + 4.0 * (percurX - 1.0) / 3.0 * z[0]) +
 
-							double p, q, r, s, t;
+                                            4.0 * (percurY - 1.0) / 3.0 * (4.0 * (1 - 2.0 * percurX) / 3.0 * z[7] + 4.0 * percurX / 3.0 * z[8] + 4.0 * (percurX - 1.0) / 3.0 * z[6]);
 
-							double percurX = curX / dCellSize;
+                                        double tmpCur = -((q * q * r - 2 * p * q * s + p * p * t) / (sqrt((p * p + q * q) * (p * p + q * q) * (p * p + q * q)))) / dCellSize;
 
-							double percurY = curY / dCellSize;
+                                        planCur.push_back(tmpCur);
 
-							p = 4.0*(1 - 2.0*percurX) / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
+                                        stepL.push_back(curStepL);
 
-								4.0*percurX / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
+                                    }
 
-								4.0*(percurX - 1.0) / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
+                                }
 
-							r = -8.0 / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
+                            }
 
-								4.0 / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
+                        }
 
-								4.0 / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
+                        if (upFlag) {
 
-							q = 4.0*(1 - 2.0*percurY) / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
+                            double z[9];
 
-								4.0*percurY / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
+                            int dir = 0;
 
-								4.0*(percurY - 1.0) / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
+                            for (int iRow1 = curRow - iNeighborCells; iRow1 <= curRow + iNeighborCells; iRow1++) {
 
-							t = -8.0 / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
+                                for (int iCol1 = curCol - iNeighborCells; iCol1 <= curCol + iNeighborCells; iCol1++) {
 
-								4.0 / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
+                                    z[dir] = qb[iRow1][iCol1];
 
-								4.0 / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
+                                    dir++;
 
-							s = 4.0*(1 - 2.0*percurY) / 3.0 * (4.0*(1 - 2.0*percurX) / 3.0*z[4] + 4.0*percurX / 3.0*z[5] + 4.0*(percurX - 1.0) / 3.0*z[3]) +
+                                }
 
-								4.0*percurY / 3.0 * (4.0*(1 - 2.0*percurX) / 3.0*z[1] + 4.0*percurX / 3.0*z[2] + 4.0*(percurX - 1.0) / 3.0*z[0]) +
+                            }
 
-								4.0*(percurY - 1.0) / 3.0 * (4.0*(1 - 2.0*percurX) / 3.0*z[7] + 4.0*percurX / 3.0*z[8] + 4.0*(percurX - 1.0) / 3.0*z[6]);
+                            double p, q, r, s, t;
 
-							double tmpCur = 1.0;
+                            double percurX = curX / dCellSize;
 
-							tmpCur = -((q*q*r - 2 * p*q*s + p*p*t) / (sqrt((p*p + q*q)*(p*p + q*q)*(p*p + q*q)))) / dCellSize;
+                            double percurY = curY / dCellSize;
 
-							planCur.push_back(tmpCur);
+                            p = 4.0 * (1 - 2.0 * percurX) / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
 
-							if (!(stepL.empty())){
+                                4.0 * percurX / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
 
-								//calculating aspect,north is zero degree in a clockwise direction
+                                4.0 * (percurX - 1.0) / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
 
-								double tmpAsp = 0.0;
+                            r = -8.0 / 3.0 * (z[1] * q1(percurY) + z[4] * q2(percurY) + z[7] * q3(percurY)) +
 
-								if (fabs(p - 0)<Eps){
+                                4.0 / 3.0 * (z[2] * q1(percurY) + z[5] * q2(percurY) + z[8] * q3(percurY)) +
 
-									if (fabs(q - 0)<Eps){
+                                4.0 / 3.0 * (z[0] * q1(percurY) + z[3] * q2(percurY) + z[6] * q3(percurY));
 
-										//Cells in the input grid of zero slope (flat) are calculated by D8
+                            q = 4.0 * (1 - 2.0 * percurY) / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
 
-										double tmpDiffer = 0.0;
+                                4.0 * percurY / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
 
-										int tmpLowNum = 4;
+                                4.0 * (percurY - 1.0) / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
 
-										for (int i = 0; i<9; i++){
+                            t = -8.0 / 3.0 * (z[5] * q1(percurX) + z[4] * q2(percurX) + z[3] * q3(percurX)) +
 
-											if ((i % 2 == 0) && (i != 4) && ((z[4] - z[i]) / sqrt(2.0)>tmpDiffer)){
+                                4.0 / 3.0 * (z[2] * q1(percurX) + z[1] * q2(percurX) + z[0] * q3(percurX)) +
 
-												tmpDiffer = (z[4] - z[i]) / sqrt(2.0);
+                                4.0 / 3.0 * (z[8] * q1(percurX) + z[7] * q2(percurX) + z[6] * q3(percurX));
 
-												tmpLowNum = i;
+                            s = 4.0 * (1 - 2.0 * percurY) / 3.0 * (4.0 * (1 - 2.0 * percurX) / 3.0 * z[4] + 4.0 * percurX / 3.0 * z[5] + 4.0 * (percurX - 1.0) / 3.0 * z[3]) +
 
-											}
-											else{
+                                4.0 * percurY / 3.0 * (4.0 * (1 - 2.0 * percurX) / 3.0 * z[1] + 4.0 * percurX / 3.0 * z[2] + 4.0 * (percurX - 1.0) / 3.0 * z[0]) +
 
-												if ((i % 2 != 0) && ((z[4] - z[i])>tmpDiffer)){
+                                4.0 * (percurY - 1.0) / 3.0 * (4.0 * (1 - 2.0 * percurX) / 3.0 * z[7] + 4.0 * percurX / 3.0 * z[8] + 4.0 * (percurX - 1.0) / 3.0 * z[6]);
 
-													tmpDiffer = z[4] - z[i];
+                            double tmpCur = 1.0;
 
-													tmpLowNum = i;
+                            tmpCur = -((q * q * r - 2 * p * q * s + p * p * t) / (sqrt((p * p + q * q) * (p * p + q * q) * (p * p + q * q)))) / dCellSize;
 
-												}
+                            planCur.push_back(tmpCur);
 
-											}
+                            if (!(stepL.empty())) {
 
-										}
+                                //calculating aspect,north is zero degree in a clockwise direction
 
-										switch (tmpLowNum){
+                                double tmpAsp = 0.0;
 
-										case 0: tmpAsp = 315; break;
+                                if (fabs(p - 0) < Eps) {
 
-										case 1: tmpAsp = 0; break;
+                                    if (fabs(q - 0) < Eps) {
 
-										case 2: tmpAsp = 45; break;
+                                        //Cells in the input grid of zero slope (flat) are calculated by D8
 
-										case 3: tmpAsp = 270; break;
+                                        double tmpDiffer = 0.0;
 
-										case 4: tmpAsp = false; break;
+                                        int tmpLowNum = 4;
 
-											//case 4:cout<<"start mid-point central aspect is wrong for it's a pit for iRow="<<iRow<<" iCol="<<iCol<<endl;break;
+                                        for (int i = 0; i < 9; i++) {
 
-										case 5: tmpAsp = 90; break;
+                                            if ((i % 2 == 0) && (i != 4) && ((z[4] - z[i]) / sqrt(2.0) > tmpDiffer)) {
 
-										case 6: tmpAsp = 225; break;
+                                                tmpDiffer = (z[4] - z[i]) / sqrt(2.0);
 
-										case 7: tmpAsp = 180; break;
+                                                tmpLowNum = i;
 
-										case 8: tmpAsp = 135; break;
+                                            }
+                                            else {
 
-										default:cout << "start mid-point central aspect is wrong(impossible)" << endl; break;
+                                                if ((i % 2 != 0) && ((z[4] - z[i]) > tmpDiffer)) {
 
-										}
+                                                    tmpDiffer = z[4] - z[i];
 
-										//cout<<"p && q is nearly zero"<<endl;
+                                                    tmpLowNum = i;
 
-									}
-									else{
+                                                }
 
-										tmpAsp = 90.0 + 90.0*q / fabs(q);
+                                            }
 
-										//cout<<"p is nearly zero"<<endl;
+                                        }
 
-									}
+                                        switch (tmpLowNum) {
 
-								}
-								else{
+                                        case 0: tmpAsp = 315;
+                                            break;
 
-									tmpAsp = 180.0 - 57.29578*atan(q / p) + 90.0*p / fabs(p);
+                                        case 1: tmpAsp = 0;
+                                            break;
 
-								}
+                                        case 2: tmpAsp = 45;
+                                            break;
 
-								//compare the aspect to find next integration step length
+                                        case 3: tmpAsp = 270;
+                                            break;
 
-								//if(fabs(tmpAsp-prevAsp) <= 0.8){
+                                        case 4: tmpAsp = false;
+                                            break;
 
-								//	nextStepL = 1.5*curStepL;
+                                            //case 4:cout<<"start mid-point central aspect is wrong for it's a pit for iRow="<<iRow<<" iCol="<<iCol<<endl;break;
 
-								//	if(nextStepL/dCellSize > 10){
+                                        case 5: tmpAsp = 90;
+                                            break;
 
-								//		nextStepL = dCellSize * 10;	//防止步长过大
+                                        case 6: tmpAsp = 225;
+                                            break;
 
-								//	}
+                                        case 7: tmpAsp = 180;
+                                            break;
 
-								//}else{
+                                        case 8: tmpAsp = 135;
+                                            break;
 
-								//	nextStepL = 0.5*curStepL;
+                                        default: cout << "start mid-point central aspect is wrong(impossible)" << endl;
+                                            break;
 
-								//	if(nextStepL/dCellSize < 0.1){
+                                        }
 
-								//		nextStepL = dCellSize * 0.1;	//防止步长过小
+                                        //cout<<"p && q is nearly zero"<<endl;
 
-								//		cout<<"too short step length for "<<iRow<<" "<<iCol<<" with "<<stepL.size()<<endl;
+                                    }
+                                    else {
 
-								//	}
+                                        tmpAsp = 90.0 + 90.0 * q / fabs(q);
 
-								//}
+                                        //cout<<"p is nearly zero"<<endl;
 
-								stepL.push_back(nextStepL);
+                                    }
 
-								//specially processing for infinite loop
+                                }
+                                else {
 
-								if ((fabs(tmpAsp - prevAsp) > 179) && (fabs(tmpAsp - prevAsp) < 181)){
+                                    tmpAsp = 180.0 - 57.29578 * atan(q / p) + 90.0 * p / fabs(p);
 
-									expNum++;
+                                }
 
-								}
-								else{
+                                //compare the aspect to find next integration step length
 
-									expNum = 0;
+                                //if(fabs(tmpAsp-prevAsp) <= 0.8){
 
-								}
+                                //	nextStepL = 1.5*curStepL;
 
-								if (expNum>10){
+                                //	if(nextStepL/dCellSize > 10){
 
-									upFlag = false;
+                                //		nextStepL = dCellSize * 10;	//防止步长过大
 
-								}
+                                //	}
 
-								prevAsp = tmpAsp;
+                                //}else{
 
-							}
-							else{
+                                //	nextStepL = 0.5*curStepL;
 
-								stepL.push_back(curStepL);
+                                //	if(nextStepL/dCellSize < 0.1){
 
-								//calculating aspect for start point,north is zero degree in a clockwise direction
+                                //		nextStepL = dCellSize * 0.1;	//防止步长过小
 
-								if (fabs(p - 0.0)<Eps){
+                                //		cout<<"too short step length for "<<iRow<<" "<<iCol<<" with "<<stepL.size()<<endl;
 
-									if (fabs(q - 0.0)<Eps){
+                                //	}
 
-										//Cells in the input grid of zero slope (flat) are approximately calculated by D8
+                                //}
 
-										double tmpDiffer = 0.0;
+                                stepL.push_back(nextStepL);
 
-										int tmpLowNum = 4;
+                                //specially processing for infinite loop
 
-										for (int i = 0; i<9; i++){
+                                if ((fabs(tmpAsp - prevAsp) > 179) && (fabs(tmpAsp - prevAsp) < 181)) {
 
-											if ((i % 2 == 0) && (i != 4) && ((z[4] - z[i]) / sqrt(2.0)>tmpDiffer)){
+                                    expNum++;
 
-												tmpDiffer = (z[4] - z[i]) / sqrt(2.0);
+                                }
+                                else {
 
-												tmpLowNum = i;
+                                    expNum = 0;
 
-											}
-											else{
+                                }
 
-												if ((i % 2 != 0) && ((z[4] - z[i])>tmpDiffer)){
+                                if (expNum > 10) {
 
-													tmpDiffer = z[4] - z[i];
+                                    upFlag = false;
 
-													tmpLowNum = i;
+                                }
 
-												}
+                                prevAsp = tmpAsp;
 
-											}
+                            }
+                            else {
 
-										}
+                                stepL.push_back(curStepL);
 
-										switch (tmpLowNum){
+                                //calculating aspect for start point,north is zero degree in a clockwise direction
 
-										case 0: prevAsp = 315; break;
+                                if (fabs(p - 0.0) < Eps) {
 
-										case 1: prevAsp = 0; break;
+                                    if (fabs(q - 0.0) < Eps) {
 
-										case 2: prevAsp = 45; break;
+                                        //Cells in the input grid of zero slope (flat) are approximately calculated by D8
 
-										case 3: prevAsp = 270; break;
+                                        double tmpDiffer = 0.0;
 
-										case 4: upFlag = false; break;
+                                        int tmpLowNum = 4;
 
-											//case 4:cout<<"start mid-point central aspect is wrong for it's a pit for iRow="<<iRow<<" iCol="<<iCol<<endl;break;
+                                        for (int i = 0; i < 9; i++) {
 
-										case 5: prevAsp = 90; break;
+                                            if ((i % 2 == 0) && (i != 4) && ((z[4] - z[i]) / sqrt(2.0) > tmpDiffer)) {
 
-										case 6: prevAsp = 225; break;
+                                                tmpDiffer = (z[4] - z[i]) / sqrt(2.0);
 
-										case 7: prevAsp = 180; break;
+                                                tmpLowNum = i;
 
-										case 8: prevAsp = 135; break;
+                                            }
+                                            else {
 
-										default:cout << "start mid-point central aspect is wrong(impossible)" << endl; break;
+                                                if ((i % 2 != 0) && ((z[4] - z[i]) > tmpDiffer)) {
 
-										}
+                                                    tmpDiffer = z[4] - z[i];
 
-										//cout<<"p && q is nearly zero"<<endl;
+                                                    tmpLowNum = i;
 
-									}
-									else{
+                                                }
 
-										prevAsp = 90.0 + 90.0*q / fabs(q);
+                                            }
 
-										//cout<<"p is nearly zero"<<endl;
+                                        }
 
-									}
+                                        switch (tmpLowNum) {
 
-								}
-								else{
+                                        case 0: prevAsp = 315;
+                                            break;
 
-									prevAsp = 180.0 - 57.29578*atan(q / p) + 90.0*p / fabs(p);
+                                        case 1: prevAsp = 0;
+                                            break;
 
-								}
+                                        case 2: prevAsp = 45;
+                                            break;
 
-							}
+                                        case 3: prevAsp = 270;
+                                            break;
 
-							//求当前点的上游点所在栅格及其局部坐标，步长curStepL
+                                        case 4: upFlag = false;
+                                            break;
 
-							int upRow, upCol;
+                                            //case 4:cout<<"start mid-point central aspect is wrong for it's a pit for iRow="<<iRow<<" iCol="<<iCol<<endl;break;
 
-							double upx, upy;
+                                        case 5: prevAsp = 90;
+                                            break;
 
-							upx = curX - curStepL*sin(prevAsp / 180.0*3.1415926);
+                                        case 6: prevAsp = 225;
+                                            break;
 
-							upy = curY - curStepL*cos(prevAsp / 180.0*3.1415926);
+                                        case 7: prevAsp = 180;
+                                            break;
 
-							if (upx<0){
+                                        case 8: prevAsp = 135;
+                                            break;
 
-								upCol = curCol - (int)(fabs(upx) / dCellSize) - 1;
+                                        default: cout << "start mid-point central aspect is wrong(impossible)" << endl;
+                                            break;
 
-								if (upy<0){
+                                        }
 
-									upRow = curRow + (int)(fabs(upy) / dCellSize) + 1;
+                                        //cout<<"p && q is nearly zero"<<endl;
 
-								}
-								else{
+                                    }
+                                    else {
 
-									upRow = curRow - (int)(upy / dCellSize);
+                                        prevAsp = 90.0 + 90.0 * q / fabs(q);
 
-								}
+                                        //cout<<"p is nearly zero"<<endl;
 
-							}
-							else{
+                                    }
 
-								upCol = curCol + (int)(upx / dCellSize);
+                                }
+                                else {
 
-								if (upy<0){
+                                    prevAsp = 180.0 - 57.29578 * atan(q / p) + 90.0 * p / fabs(p);
 
-									upRow = curRow + (int)(fabs(upy) / dCellSize) + 1;
+                                }
 
-								}
-								else{
+                            }
 
-									upRow = curRow - (int)(upy / dCellSize);
+                            //求当前点的上游点所在栅格及其局部坐标，步长curStepL
 
-								}
+                            int upRow, upCol;
 
-							}
+                            double upx, upy;
 
-							upx = upx - (upCol - curCol)*dCellSize;
+                            upx = curX - curStepL * sin(prevAsp / 180.0 * 3.1415926);
 
-							upy = upy - (curRow - upRow)*dCellSize;
+                            upy = curY - curStepL * cos(prevAsp / 180.0 * 3.1415926);
 
+                            if (upx < 0) {
 
+                                upCol = curCol - (int)(fabs(upx) / dCellSize) - 1;
 
-							curStepL = nextStepL;
+                                if (upy < 0) {
 
-							curRow = upRow;
+                                    upRow = curRow + (int)(fabs(upy) / dCellSize) + 1;
 
-							curCol = upCol;
+                                }
+                                else {
 
-							curX = upx;
+                                    upRow = curRow - (int)(upy / dCellSize);
 
-							curY = upy;
+                                }
 
-						}
+                            }
+                            else {
 
-					}
+                                upCol = curCol + (int)(upx / dCellSize);
 
-					//integral downslope
+                                if (upy < 0) {
 
-					double a0, a, k0, k1, k, l, c0, c1;
+                                    upRow = curRow + (int)(fabs(upy) / dCellSize) + 1;
 
-					a0 = 0.0;
+                                }
+                                else {
 
-					int segNum = stepL.size();
+                                    upRow = curRow - (int)(upy / dCellSize);
 
-					if (segNum>0){
+                                }
 
-						for (int i = segNum - 1; i>0; i--){
+                            }
 
-							int tmpMeth = kc_Meth;
+                            upx = upx - (upCol - curCol) * dCellSize;
 
-							l = stepL[i - 1];
+                            upy = upy - (curRow - upRow) * dCellSize;
 
-							k0 = planCur[i];
 
-							k1 = planCur[i - 1];
+                            curStepL = nextStepL;
 
-							if (tmpMeth == 2){
+                            curRow = upRow;
 
-								if ((fabs(k0 - 0)>Eps) && (fabs(k1 - 0)>Eps)){
+                            curCol = upCol;
 
-									c0 = 1.0 / k0;
+                            curX = upx;
 
-									c1 = (1.0 / k1 - 1.0 / k0) / l;
+                            curY = upy;
 
-									if (fabs(1 + c1) < 1e-9 || fabs(c1) < 1e-9 || k0 * k1 < 0){
+                        }
 
-										tmpMeth = 1;
+                    }
 
-									}
-									else{
+                    //integral downslope
 
-										a = (c0 + c1*l) / (1 + c1) + (a0 - c0 / (1 + c1)) * pow((c0 + c1*l) / c0, -1 / c1);
+                    double a0, a, k0, k1, k, l, c0, c1;
 
-									}
+                    a0 = 0.0;
 
-								}
-								else{
+                    int segNum = stepL.size();
 
-									tmpMeth = 1;
+                    if (segNum > 0) {
 
-								}
+                        for (int i = segNum - 1; i > 0; i--) {
 
-							}
+                            int tmpMeth = kc_Meth;
 
-							if (tmpMeth == 1){
+                            l = stepL[i - 1];
 
-								k = (k0 + k1) / 2.0;
+                            k0 = planCur[i];
 
-								if ((k*l) > 10 * dCellSize){	//special case that (k*l) is too big
+                            k1 = planCur[i - 1];
 
-									a = 1.0 / k;
+                            if (tmpMeth == 2) {
 
-									//cout<<"(k*l) is too big, so 1.0/k approximation, k*l = "<<k*l<<" a = "<<a<<endl;
+                                if ((fabs(k0 - 0) > Eps) && (fabs(k1 - 0) > Eps)) {
 
-								}
-								else{
+                                    c0 = 1.0 / k0;
 
-									if (fabs(k*l)<0.0001){
+                                    c1 = (1.0 / k1 - 1.0 / k0) / l;
 
-										//cout<<"fabs(k*l) is too small, so linear approximation, k*l = "<<k*l<<" a = "<<a<<endl;
+                                    if (fabs(1 + c1) < 1e-9 || fabs(c1) < 1e-9 || k0 * k1 < 0) {
 
-										a = a0 + l;
+                                        tmpMeth = 1;
 
-									}
-									else{
+                                    }
+                                    else {
 
-										a = 1. / k - (1. / k - a0)*exp(-k*l);
+                                        a = (c0 + c1 * l) / (1 + c1) + (a0 - c0 / (1 + c1)) * pow((c0 + c1 * l) / c0, -1 / c1);
 
-									}
+                                    }
 
-								}
+                                }
+                                else {
 
-							}
+                                    tmpMeth = 1;
 
+                                }
 
+                            }
 
-							if (a>30000){	//the extreme SCA value should be determined by practical application
+                            if (tmpMeth == 1) {
 
-								a = noData;
+                                k = (k0 + k1) / 2.0;
 
-								i = 0;
+                                if ((k * l) > 10 * dCellSize) {
+                                    //special case that (k*l) is too big
 
-								//cout<<a<<"too large, no further calculation"<<iRow<<","<<iCol<<endl;
+                                    a = 1.0 / k;
 
-							}
+                                    //cout<<"(k*l) is too big, so 1.0/k approximation, k*l = "<<k*l<<" a = "<<a<<endl;
 
-							a0 = a;
+                                }
+                                else {
 
-							//if ((iRow==690)&&(iCol==460))
+                                    if (fabs(k * l) < 0.0001) {
 
-							//cout<<a0<<endl;
+                                        //cout<<"fabs(k*l) is too small, so linear approximation, k*l = "<<k*l<<" a = "<<a<<endl;
 
-						}
+                                        a = a0 + l;
 
-						scaL[iRow][iCol] = a;
+                                    }
+                                    else {
 
-						vector<double>().swap(planCur);
+                                        a = 1. / k - (1. / k - a0) * exp(-k * l);
 
-						vector<double>().swap(stepL);
+                                    }
 
-						
+                                }
 
-					}
+                            }
 
-				}
-				else{
 
-					cout << "something is wrong with iteration" << endl;
+                            if (a > 30000) {
+                                //the extreme SCA value should be determined by practical application
 
-				}
+                                a = noData;
 
-			}
+                                i = 0;
 
-		}
+                                //cout<<a<<"too large, no further calculation"<<iRow<<","<<iCol<<endl;
 
-	}
+                            }
 
+                            a0 = a;
 
+                            //if ((iRow==690)&&(iCol==460))
 
-	return true;
+                            //cout<<a0<<endl;
+
+                        }
+
+                        scaL[iRow][iCol] = a;
+
+                        vector<double>().swap(planCur);
+
+                        vector<double>().swap(stepL);
+
+
+                    }
+
+                }
+                else {
+
+                    cout << "something is wrong with iteration" << endl;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    return true;
 
 }

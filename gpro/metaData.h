@@ -16,7 +16,7 @@
 #ifndef METADATA_H
 #define METADATA_H
 
-#include <utility>	//这些头文件都是必须的吗，测试是否可删
+#include <utility>	//杩欎簺澶存枃浠堕兘鏄繀椤荤殑鍚楋紝娴嬭瘯鏄惁鍙垹
 #include <vector>
 #include <map>
 #include <algorithm>
