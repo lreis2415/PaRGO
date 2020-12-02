@@ -54,7 +54,7 @@ C:\lib\mpi\8.1\Bin\mpiexec.exe -n 8 C:\src\PaRGO\vs2010\build\apps\spatial\Relea
 
 ## 5. Develop based on PaRGO
 
-  1. create program files (`.cpp` or/and `.h`) in a proper folder (e.g., `PaRGO\apps\spatial\myAlgorithm`), accoding to the path of existing programs.
+  1. create program files (`.cpp` or/and `.h`) in a proper folder (e.g., `PaRGO\apps\spatial\myAlgorithm`), referring to the path of existing programs.
   2. modify the `CMkaeLists.txt` of the created folder (e.g., `PaRGO\apps\spatial\CMkaeLists.txt`)
     > FILE(GLOB MYALGOFILES ./myAlgorithm/*.cpp)
       SET(MYALGOFILES ${MYALGOFILES} ${GPRO_SRCS})
