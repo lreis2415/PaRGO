@@ -5,11 +5,11 @@ Coming soon...
 
 Usage on Windows is listed below.
 
-## 2. Prerequisites - Windows
+## 2. Prerequisites
 **See Installation Guide in /doc for more details**
-### 2.1. MSVC
+### 2.1. MSVC, CMake
 ### 2.2. GDAL
-### 2.3. MSMPI
+### 2.3. MS-MPI
 ### 2.4. Depending on specific computing platforms, PaRGO has dependency on MPI, MPI+OpenMP, or CUDA.
 
 
@@ -24,7 +24,7 @@ cd build
 cmake -G "Visual Studio 10 2010 Win64" ../PaRGO -DUSE_MPI_DEBUGGER=1 ..
 #(open VS2010, run ALL_BUILD and ALL_ISNTALL)
 
-or：
+or:
 cmake -G "Visual Studio 14 2015 Win64" ../PaRGO -DUSE_MPI_DEBUGGER=1 ..
 #(open VS2015, run ALL_BUILD and ALL_ISNTALL)
 
@@ -36,7 +36,7 @@ cmake -G "Visual Studio 14 2015 Win64" ../PaRGO -DUSE_MPI_DEBUGGER=1 ..
 
 ## 4. Run
 
-examples (replace `C:\lib\mpi\v8.1\Bin\mpiexec.exe` to the path of ):
+examples (replace `C:\lib\mpi\v8.1\Bin\mpiexec.exe` to your installed path):
 
 ```shell
 MultiScaleLE:
@@ -51,6 +51,18 @@ C:\lib\mpi\8.1\Bin\mpiexec.exe -n 8 C:\src\PaRGO\vs2010\build\apps\spatial\Relea
 FCM:
 C:\lib\mpi\8.1\Bin\mpiexec.exe -n 8 C:\src\PaRGO\vs2010\build\apps\spatial\Release\fcm.exe -inputs D:\data-arcgis\pargo\fcm\normalized\twi_1.tif,D:\data-arcgis\pargo\fcm\normalized\plan_1.tif,D:\data-arcgis\pargo\fcm\normalized\prof_1.tif,D:\data-arcgis\pargo\fcm\normalized\slp_1.tif, -dataNbr D:\data-arcgis\pargo\moore.nbr -computeNbr D:\data-arcgis\pargo\moore.nbr -out D:\data-arcgis\pargo\fcm\out\temp.tif -clusterNum 5 -maxIter 5 -tolerance 0.00001 -weight 2 -dcmp space
 ```
+
+## 5. Develop based on PaRGO
+
+  1. create program files (`.cpp` or/and `.h`) in a proper folder (e.g., `PaRGO\apps\spatial\myAlgorithm`), accoding to the path of existing programs.
+  2. modify the `CMkaeLists.txt` of the created folder (e.g., `PaRGO\apps\spatial\CMkaeLists.txt`)
+    > FILE(GLOB MYALGOFILES ./myAlgorithm/*.cpp)
+      SET(MYALGOFILES ${MYALGOFILES} ${GPRO_SRCS})
+      ADD_EXECUTABLE(myalgorithm ${MYALGOFILES})
+      SET(SPATIAL_TARGETS idw
+                    fcm
+                    myalgorithm
+                    )
 
 ## 5. Tested platforms
 + Windows 10 with Visual Studio 2010/2013/2015, MSMPI-v8.1, GDAL-1.11.4
