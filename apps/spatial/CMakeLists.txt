@@ -1,15 +1,20 @@
 ### Set each program separatly.
 # Inverse Distance Weight for interpolation.
 FILE(GLOB IDWFILES ./idw/*.cpp)
-FILE(GLOB FCMFILES ./fcm/*.cpp)
 SET(IDWFILES ${IDWFILES} ${GPRO_SRCS})
-SET(FCMFILES ${FCMFILES} ${GPRO_SRCS})
-
 ADD_EXECUTABLE(idw ${IDWFILES})
+
+FILE(GLOB FCMFILES ./fcm/*.cpp)
+SET(FCMFILES ${FCMFILES} ${GPRO_SRCS})
 ADD_EXECUTABLE(fcm ${FCMFILES})
+
+FILE(GLOB RECLASSIFYFILES ./reclassify/*.cpp)
+SET(RECLASSIFYFILES ${RECLASSIFYFILES} ${GPRO_SRCS})
+ADD_EXECUTABLE(reclassify ${RECLASSIFYFILES})
 
 SET(SPATIAL_TARGETS idw
                     fcm
+                    reclassify
                     )
 
 foreach (c_target ${SPATIAL_TARGETS})

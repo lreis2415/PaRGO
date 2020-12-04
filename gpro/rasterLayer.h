@@ -98,6 +98,7 @@ namespace GPRO {
          *init Neighborhood
          */
         bool newNbrhood();
+        bool newLocalNbrhood();
         bool newNbrhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 );
         bool newNbrhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights );
         template<class elemType2>
@@ -233,18 +234,22 @@ RasterLayer()
     :
     _strLayerName( "Untitled" ),
     _pCellSpace( 0 ),
-    _pNbrhood( 0 ),
+    _pNbrhood(0),
     _pMetaData( 0 ),
-	_nLayerID(-1) {}
+	_nLayerID(-1) {
+    _pNbrhood = new Neighborhood<elemType>(true);
+}
 
 template<class elemType>
 inline GPRO::RasterLayer<elemType>::
 RasterLayer( const string layerName )
     :_strLayerName( layerName ),
      _pCellSpace( 0 ),
-     _pNbrhood( 0 ),
+     _pNbrhood(0),
 	 _pMetaData( 0 ),
-	 _nLayerID(-1) {}
+	 _nLayerID(-1) {
+    _pNbrhood = new Neighborhood<elemType>(true);
+}
 
 template<class elemType>
 inline GPRO::RasterLayer<elemType>::
@@ -468,7 +473,20 @@ newNbrhood() {
     
 	return true;
 }
-
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+newLocalNbrhood() {
+    cleanNbrhood();
+    _pNbrhood = new Neighborhood<elemType>(true);
+    if ( !_pNbrhood ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: unable to new a Neighborhood on process[" \
+			 << title() << "]" << endl;
+        return false;
+    }
+    
+	return true;
+}
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 newNbrhood( const vector<CellCoord> &vNbrCoords, double weight ) {

@@ -30,6 +30,7 @@ namespace GPRO {
     class Neighborhood {
     public:
         Neighborhood();
+        Neighborhood( bool isLocal);
         Neighborhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 ); /// Construct with the same weight
         Neighborhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights ); /// Construct coordinates with different weights
         Neighborhood( const Neighborhood<elemType> &rhs ); /// Deep copy
@@ -224,6 +225,17 @@ inline GPRO::Neighborhood<elemType>::
 Neighborhood()
     :_specified( false ) {}
 
+template<class elemType>
+inline GPRO::Neighborhood<elemType>::
+Neighborhood(bool isLocal)
+    :_specified( false ) {
+    if(isLocal) {
+        vector<CellCoord> nbr;
+        CellCoord c(0,0);
+        nbr.push_back(c);
+        fromVect(nbr,1);
+    }
+}
 template<class elemType>
 inline GPRO::Neighborhood<elemType>::
 Neighborhood( const vector<CellCoord> &vNbrCoords, double weight )
