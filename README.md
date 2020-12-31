@@ -6,7 +6,7 @@ Coming soon...
 Usage on Windows is listed below.
 
 ## 2. Prerequisites
-**See Installation Guide in /doc for more details**
+**See user manual in /doc for more details**
 ### 2.1. MSVC, CMake
 ### 2.2. GDAL
 ### 2.3. MS-MPI

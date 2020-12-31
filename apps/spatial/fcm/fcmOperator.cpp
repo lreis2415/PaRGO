@@ -211,7 +211,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     for (int i = 0; i < imageNum; ++i) {
         pInputVal[i] = (*_vInputLayer[i]->cellSpace())[iRow][iCol]; //[] first, then *
     }
-    if ((iRow == 1) && (iCol == 1)) {
+    if ((iRow == 0) && (iCol == 0)) {
         if ((_iterNum == 0)) {
             //init for the first iteration
             centerVal = new double[clusterNum * imageNum]; //number * imageNum cluster centers
@@ -272,7 +272,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;
 
 
-    if ((iRow == _xSize - 2) && (iCol == _ySize - 2)) {
+    if ((iRow == _xSize - 1) && (iCol == _ySize - 1)) {
         //MPI_Barrier(MPI_COMM_WORLD);
         cout<<"rank"<<_rank<<" compute time before reduce is "<<MPI_Wtime()-starttime<<"s"<<endl;
         time = MPI_Wtime();
@@ -309,8 +309,8 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 }
                 //find the new cluster center
                 int valCount = 0;
-                for (int i = 1; i < _xSize - 1; i++) {
-                    for (int j = 1; j < _ySize - 1; j++) {
+                for (int i = 0; i < _xSize ; i++) {
+                    for (int j = 0; j < _ySize ; j++) {
                         ////only calculate if the cell of first layer is nonempty.
                         //if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
                         //    sumDenominator[p] += pow(degree[p][i][j], weight);

@@ -9,6 +9,8 @@
  *  purposes, NO COMMERCIAL usages are allowed unless the author is 
  *  contacted and a permission is granted
  * 
+ *  This file is adapted from https://github.com/HPSCIL/pRPL.
+ * 
  * changelog:
  *  - 1. 2020 - Wang Yujing - Code reformat
  */

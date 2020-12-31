@@ -346,12 +346,12 @@ valRowDcmp( vector<CoordBR> &vDcmpBR, ComputeLayer<elemType> &layer, int nSubSpc
             int rowGap = cRow - 0;
             subComptLoad += rowComptLoad[rowGap];
             accuComptLoad += rowComptLoad[rowGap];
-            if ( subComptLoad <= averComptLoad ) {
+            if ( subComptLoad <= averComptLoad && _glbDims.nRows()-1-cRow>nSubSpcs-1-i) {
                 if ( fabs( minComptDiff ) < Eps || ( averComptLoad - subComptLoad ) < minComptDiff ) {
                     minComptDiff = averComptLoad - subComptLoad;
                 }
             } else {
-                if ( fabs( minComptDiff ) < Eps || ( subComptLoad - averComptLoad ) <= minComptDiff ) {
+                if ( fabs( minComptDiff ) < Eps || ( subComptLoad - averComptLoad ) <= minComptDiff || _glbDims.nRows()-1-cRow==nSubSpcs-1-i) {
                     subEnd = cRow;
                     CellCoord nwCorner( subBegin, 0 );
                     CellCoord seCorner( subEnd, layer._pMetaData->_MBR.maxICol());
