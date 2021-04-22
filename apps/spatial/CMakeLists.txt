@@ -12,9 +12,25 @@ FILE(GLOB RECLASSIFYFILES ./reclassify/*.cpp)
 SET(RECLASSIFYFILES ${RECLASSIFYFILES} ${GPRO_SRCS})
 ADD_EXECUTABLE(reclassify ${RECLASSIFYFILES})
 
+FILE(GLOB KRIGINGFILES ./kriging/*.cpp)
+SET(KRIGINGFILES ${KRIGINGFILES} ${GPRO_SRCS})
+ADD_EXECUTABLE(kriging ${KRIGINGFILES})
+
+######## $1: variable, name it whatever
+######## $2: directory name of your app
+######## Add your app here, replace $1 and $2 ########
+# FILE(GLOB $1 ./$2/*.cpp)
+# SET($1 ${$1} ${GPRO_SRCS})
+# ADD_EXECUTABLE($2 ${$1})
+######## Add your app here, replace $1 and $2 ########
+
 SET(SPATIAL_TARGETS idw
                     fcm
                     reclassify
+                    kriging
+                    ######## Add your app here, replace $2 ########
+                    #$2
+                    ######## Add your app here, replace $2 ########
                     )
 
 foreach (c_target ${SPATIAL_TARGETS})
