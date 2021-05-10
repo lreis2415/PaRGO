@@ -113,7 +113,12 @@ vector<int> KrigingOperator::decomposePointsForVariogram(int processNums, vector
     int p=0; // partition
     int sfiP=0;
     for (int i = 0; i < processNums-1; ++i) {
-        double temp1=sqrt(static_cast<double>(k) * (a * a * k - a * a - 2 * a * p * k - 2 * a * k + a + p * p * k + 2 * p * k + k));
+        long temp1t1 = a * a * k;
+        long temp1t2 = a * a + 2 * a * p * k + 2 * a * k;
+        long temp1t3 = a + p * p * k + 2 * p * k + k;
+        long temp1sum = temp1t1 - temp1t2 + temp1t3;
+        double temp1=sqrt(static_cast<double>(k) * temp1sum);
+        //double temp1=sqrt(static_cast<double>(k) * (a * a * k - a * a - 2 * a * p * k - 2 * a * k + a + p * p * k + 2 * p * k + k));
         double temp2=a*k-p*k-k;
         int p1 = (-temp1 + temp2)/k;
         int p2 = (temp1 + temp2)/k;
@@ -1170,7 +1175,7 @@ bool KrigingOperator::Operator(const CellCoord& coord, bool operFlag) {
 	idwL[iRow][iCol] = estimatedZ;
 
 	if (_pComptLayer) {
-		(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - startTime) * 1000;
+		idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
 	}
 
 	return true;

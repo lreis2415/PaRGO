@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <vector>
 #include <iostream>
+#include <cmath>
 
 // Various helper routines for debugging
 // Output a matrix

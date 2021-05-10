@@ -78,6 +78,8 @@ namespace GPRO {
          * \param[in] comptGrain 1 computeLayer cell contains comptGrain^2 dataLayer cells.
          */ 
         bool initSerial( const char* neighborFile,int comptGrain=1);
+        
+        bool init( const char* neighborFile,int comptGrain=1);
 
         void cleanDataLayers();
         vector<RasterLayer<elemType> *> *dataLayers();
@@ -114,6 +116,12 @@ namespace GPRO {
          * \param[in] outputfile output file path.
          */         
         bool writeComputeIntensityFileSerial( const char *outputfile );
+
+        /**
+         * \brief Write the compute load file out. It requires a solved compute layer.
+         * \param[in] outputfile output file path.
+         */         
+        bool writeComputeIntensityFile( const char *outputfile );
     public:
         vector< RasterLayer<elemType> *> _vDataLayers; ///< trans from this data domain to compute domain
     private:
@@ -195,6 +203,77 @@ addRasterLayersSerial(vector<RasterLayer<elemType> *> dataLayers) {
         return;
     }
     _vDataLayers=dataLayers;
+}
+
+template<class elemType>
+bool GPRO::ComputeLayer<elemType>::
+init(const char* neighborFile,int comptGrain) {
+    if ( _vDataLayers.empty() ) {
+        return false;
+    }
+    
+    RasterLayer<elemType>::readNeighborhood(neighborFile);
+    const MetaData &rhs = *( _vDataLayers[0]->_pMetaData );
+    RasterLayer<elemType>::_pMetaData = new MetaData();
+    MetaData *&pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
+
+    _comptGrain=comptGrain;
+    pMetaData->cellSize = rhs.cellSize * comptGrain;
+    pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
+    pMetaData->row += ( rhs._localworkBR.nRows() % comptGrain ) ? 1 : 0;
+    pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
+    pMetaData->column += ( rhs._localworkBR.nCols() % comptGrain ) ? 1 : 0;
+    pMetaData->format = rhs.format;
+    pMetaData->projection = rhs.projection;
+    pMetaData->noData = rhs.noData;
+    pMetaData->myrank = rhs.myrank;
+    pMetaData->processor_number = GetRank();
+    pMetaData->_domDcmpType = NON_DCMP;
+    SpaceDims sdim( pMetaData->row, pMetaData->column );
+    pMetaData->_glbDims = sdim;
+    if ( pMetaData->_domDcmpType == NON_DCMP ) {
+        CoordBR _glbWorkBR;
+        RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims );
+        pMetaData->_localworkBR = _glbWorkBR;
+        CellCoord nwCorner( 0, 0 );
+        CellCoord seCorner( pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1 );
+        CoordBR subMBR( nwCorner, seCorner );
+        pMetaData->_MBR = subMBR;
+        pMetaData->_localdims = pMetaData->_glbDims;
+    } else {
+        CoordBR _glbWorkBR;
+        RasterLayer<elemType>::_pNbrhood->calcWorkBR( _glbWorkBR, pMetaData->_glbDims );
+        pMetaData->_localworkBR = _glbWorkBR;
+
+        //关键就是这里MBR要缩放，还要保证范围加起来能一样，目前还不对
+        pMetaData->row = rhs._MBR.nRows()/ comptGrain;
+        pMetaData->row += ( rhs._MBR.nRows() % comptGrain ) ? 1 : 0;
+        pMetaData->column = rhs._MBR.nCols() / comptGrain;
+        pMetaData->column += ( rhs._MBR.nCols() % comptGrain ) ? 1 : 0;
+
+        CellCoord nwCorner( 0, 0 );
+        CellCoord seCorner( pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1 );
+        CoordBR subMBR( nwCorner, seCorner );
+        pMetaData->_MBR = subMBR;
+
+
+
+        pMetaData->_localdims = pMetaData->_glbDims;
+    }
+
+    pMetaData->dataType = RasterLayer<elemType>::getGDALType();
+
+    for ( int i = 0; i < 6; i++ ) {
+        pMetaData->pTransform[i] = rhs.pTransform[i];
+    }
+    pMetaData->pTransform[0] += rhs._localworkBR.minICol() * rhs.cellSize;
+    pMetaData->pTransform[3] -= rhs._localworkBR.minIRow() * rhs.cellSize;
+    pMetaData->pTransform[1] *= comptGrain;//one-pixel distance in the we/ns direction, need update
+    pMetaData->pTransform[5] *= comptGrain;
+
+    RasterLayer<elemType>::newCellSpace( pMetaData->_localdims, 0 ); //allocate
+
+    return true;
 }
 template<class elemType>
 bool GPRO::ComputeLayer<elemType>::
@@ -442,4 +521,50 @@ writeComputeIntensityFileSerial( const char *outputfile ) {
     return true;
 }
 
+template<class elemType>
+bool GPRO::ComputeLayer<elemType>::
+writeComputeIntensityFile( const char *outputfile ) {
+    GDALAllRegister();
+    if ( !RasterLayer<elemType>::createFile( outputfile )) {
+        cout << "create file is not correct!" << endl;
+        MPI_Finalize();
+    }
+
+    GDALDataset *poDataset = NULL;
+    poDataset = (GDALDataset *) GDALOpen( outputfile, GA_Update );
+    if ( poDataset == NULL) {
+        //do something
+        cout << "data file is not open correct" << endl;
+        exit( 1 );
+    }
+
+    GDALRasterBand *poBanddest = poDataset->GetRasterBand( 1 );
+    if ( poBanddest == NULL ) {
+        //do something
+        cout << "poBanddest is NULL" << endl;
+        exit( 1 );
+    }
+    poBanddest->SetNoDataValue( RasterLayer<elemType>::_pMetaData->noData );
+
+    if ( RasterLayer<elemType>::_pMetaData->myrank == 0 ) {
+        poBanddest->RasterIO( GF_Write,
+                              0,
+                              0,
+                              RasterLayer<elemType>::_pMetaData->_glbDims.nCols(),
+                              RasterLayer<elemType>::_pMetaData->_glbDims.nRows(),
+                              RasterLayer<elemType>::_pCellSpace->_matrix,
+                              RasterLayer<elemType>::_pMetaData->_glbDims.nCols(),
+                              RasterLayer<elemType>::_pMetaData->_glbDims.nRows(),
+                              RasterLayer<elemType>::_pMetaData->dataType,
+                              0,
+                              0 );
+    }
+
+    if ( poDataset != NULL ) {
+        GDALClose((GDALDatasetH) poDataset );
+        poDataset = NULL;
+    }
+
+    return true;
+}
 #endif

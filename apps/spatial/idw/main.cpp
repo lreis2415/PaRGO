@@ -299,15 +299,18 @@ int main(int argc, char* argv[]) {
         idwOper.maskLayer(maskLayer);
         ComputeLayer<double> comptLayer("computeLayer");
         if (writeLoadPath) {
-            comptLayer.addRasterLayerSerial(&idwLayer);
-            comptLayer.initSerial(compuNeighbor, 1);
-            idwOper.comptLayer(comptLayer);
+            idwOper._writePreExpLoad=true;
         }
+        //if (writeLoadPath) {
+        //    comptLayer.addRasterLayerSerial(&idwLayer);
+        //    comptLayer.initSerial(compuNeighbor, 1);
+        //    idwOper.comptLayer(comptLayer);
+        //}
         if (myRank == 0) cout<<"start computing"<<endl;
         starttime = MPI_Wtime();
         idwOper.Run(); //fill idwLayer
-        if (writeLoadPath)
-            comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
+        //if (writeLoadPath)
+        //    comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
     }
     else {
         idwOper.idwLayerSerial(idwLayer, &spatialrefWkt);

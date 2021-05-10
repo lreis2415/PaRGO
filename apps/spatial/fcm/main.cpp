@@ -307,14 +307,17 @@ int main(int argc, char* argv[]) {
         fcmOper.degLayer(vDegreeLayer);
 
         ComputeLayer<double> comptLayer("copmtLayer");
-        if(writeLoadPath) {
-            comptLayer.initSerial(vInputLayers,compuNeighbor);
-            fcmOper.comptLayer(comptLayer);
+        //if(writeLoadPath) {
+        //    comptLayer.initSerial(vInputLayers,compuNeighbor);
+        //    fcmOper.comptLayer(comptLayer);
+        //}
+        if (writeLoadPath) {
+            fcmOper._writePreExpLoad=true;
         }
         starttime = MPI_Wtime();
         fcmOper.Run();
-        if(writeLoadPath)
-            comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
+        //if(writeLoadPath)
+        //    comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
     }
     else{

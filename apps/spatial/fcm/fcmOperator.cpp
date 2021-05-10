@@ -159,12 +159,12 @@ void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
 
 ///Clustering. find the maximum membership degree of every cell, and set the value to fcmL[i][j].
 void FCMOperator::assignMaxMembershipDegrees() {
-    double startTime=0,endTime=0;
     CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
     for (int i = 1; i < _xSize - 1; i++) {
         for (int j = 1; j < _ySize - 1; j++) {
-            startTime = MPI_Wtime();
-            if (!allNoDataAt(i,j)) {
+            if (_writePreExpLoad){
+
+            } else if (!allNoDataAt(i,j)) {
                 int cNum = -1; //cluster index
                 double degreeMax = 0.0;
                 for (int p = 0; p < clusterNum; p++) {
@@ -187,7 +187,7 @@ void FCMOperator::assignMaxMembershipDegrees() {
                     }
                 }
                 fcmL[i][j] = cNum;
-            }else {
+            } else {
                 fcmL[i][j] = _noData;
                 for (int p = 0; p < clusterNum; p++) {
                     (*_vDegLayer[p]->cellSpace())[i][j] = _noData;
@@ -201,11 +201,12 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     double time;
     int iRow = coord.iRow();
     int iCol = coord.iCol();
-    if (_pComptLayer) {
-        if (_iterNum == 0) {
-            (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0;
-        }
-    }
+    CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
+    //if (_pComptLayer) {
+    //    if (_iterNum == 0) {
+    //        (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0;
+    //    }
+    //}
 
     double* pInputVal = new double[imageNum];
     for (int i = 0; i < imageNum; ++i) {
@@ -248,7 +249,6 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             MPI_Barrier(MPI_COMM_WORLD);
             MPI_Bcast(centerVal, clusterNum * imageNum, MPI_DOUBLE, 0, MPI_COMM_WORLD); //process 0 broadcast the cluster center
         }
-        starttime=MPI_Wtime();
     }
     
     time = MPI_Wtime();
@@ -269,12 +269,19 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //     InitDegree(iRow, iCol);
     // }
 
-    if (_pComptLayer) (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;
-
+    if (_writePreExpLoad){
+        //(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;//acutally not in use. Please use the "-out" file when setting "-dcmp compute -writeLoad /../../.."
+        CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
+        if (fcmL[iRow][iCol] < 0) {
+            fcmL[iRow][iCol] = 0;
+        }
+        fcmL[iRow][iCol] += (MPI_Wtime() - time) * 1000;
+        return true;
+    }
 
     if ((iRow == _xSize - 1) && (iCol == _ySize - 1)) {
         //MPI_Barrier(MPI_COMM_WORLD);
-        cout<<"rank"<<_rank<<" compute time before reduce is "<<MPI_Wtime()-starttime<<"s"<<endl;
+        cout<<"rank"<<_rank<<" compute time before reduce is "<<MPI_Wtime()-time<<"s"<<endl;
         time = MPI_Wtime();
         MPI_Allreduce(&subval, &totval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         cout<<"rank"<<_rank<<" reduce1 time is "<<MPI_Wtime()-time<<"s"<<endl;

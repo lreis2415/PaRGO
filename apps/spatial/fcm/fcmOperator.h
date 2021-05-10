@@ -48,7 +48,7 @@ private:
     int _rank;
     int _iterNum; ///<iteration number
     bool flag;
-    double starttime, endtime;
+    double preExpTime;
     double tmpSumTime1, tmpSumTime2;
 protected:
     int clusterNum;

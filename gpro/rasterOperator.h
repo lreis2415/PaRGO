@@ -48,7 +48,8 @@ namespace GPRO
               _pComptLayer(NULL),
               commFlag(false),
               Termination(true),
-              computeTimeExceptLastCell(0)
+              computeTimeExceptLastCell(0),
+              _writePreExpLoad(false)
               {}
 
         virtual ~RasterOperator() {}
@@ -105,6 +106,7 @@ namespace GPRO
         bool commFlag; ///< true if involve communication
         int Termination; ///< typically 1 implies terminate, 0 implies another traversion
         double computeTimeExceptLastCell;
+        bool _writePreExpLoad;
     };
 };
 

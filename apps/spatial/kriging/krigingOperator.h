@@ -20,9 +20,6 @@
 #include <utility>
 #include <vector>
 
-#include <direct.h>
-#include <iomanip>
-#include <assert.h>
 
 using namespace GPRO;
 

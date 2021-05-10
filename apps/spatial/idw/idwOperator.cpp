@@ -434,6 +434,7 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     double startTime = MPI_Wtime();
     int iRow = coord.iRow();
     int iCol = coord.iCol();
+    CellSpace<double>& idwL = *_pIDWLayer->cellSpace();
 
     int maskRow=_pIDWLayer->rowAtOtherLayer(_pMaskLayer,iRow);
     int maskCol=_pIDWLayer->colAtOtherLayer(_pMaskLayer,iCol);
@@ -441,15 +442,15 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     double maskNoData=_pMaskLayer->metaData()->noData;
     if(mask==maskNoData) {
         (*_pIDWLayer->cellSpace())[iRow][iCol]=_noData;
-        if(_pComptLayer) {
-            (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
+        if(_writePreExpLoad) {
+            //(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
+		    idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
         }
         return true;
     }
 
     int myRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-    CellSpace<double>& idwL = *_pIDWLayer->cellSpace();
     const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
  
     double* pNbrSamples = new double [_nbrPoints * 2]; //distance & value, pair by pair.
@@ -476,9 +477,12 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     ////idwL[iRow][iCol] = blockRow*blockCols+blockCol;
     //idwL[iRow][iCol] = 100;
 
-    if(_pComptLayer) {
-        (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
-    }
+    //if(_pComptLayer) {
+    //    (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
+    //}
+    if (_writePreExpLoad) {
+		idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
+	}
     delete []pNbrSamples;
     pNbrSamples=nullptr;
     delete []pWeight;

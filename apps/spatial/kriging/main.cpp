@@ -231,15 +231,14 @@ int main(int argc, char* argv[]) {
 	krigingOper.readSamples(inputFileName, fieldIndex, &spatialrefWkt, samples);
 	krigingOper.creatSampleBlocks(samples);
 
-	//starttime = MPI_Wtime();
-	//krigingOper.Initialize();
-	//cout << "kriging serial init time is " << MPI_Wtime() - starttime << endl << endl;
-
-
 	starttime = MPI_Wtime();
-	//krigingOper.Initialize();
-	krigingOper.ParallelInitialize();
-	cout << "kriging init time is " << MPI_Wtime() - starttime << endl << endl;
+	krigingOper.Initialize();
+	cout << "kriging serial init time is " << MPI_Wtime() - starttime << endl << endl;
+
+
+	// starttime = MPI_Wtime();
+	// krigingOper.ParallelInitialize();
+	// cout << "kriging parallel init time is " << MPI_Wtime() - starttime << endl << endl;
 
 
     //不删除数组，存到类里后面要用
@@ -259,17 +258,27 @@ int main(int argc, char* argv[]) {
 			krigingOper.maskLayer(maskLayer);
 		}
 		ComputeLayer<double> comptLayer("computeLayer");
-		if (writeLoadPath) {
-			comptLayer.addRasterLayerSerial(&idwLayer);
-			comptLayer.initSerial(compuNeighbor, 1);
+		//if (writeLoadPath) {
+		//	comptLayer.addRasterLayerSerial(&idwLayer);
+		//	comptLayer.initSerial(compuNeighbor, 1);
+		//	krigingOper.comptLayer(comptLayer);
+		//}
+
+        // Actually not in use! The output of parallel Preliminary-Experiment-Computational-Domain-Constructing is in the "-out" path.
+
+        if (writeLoadPath) {
+			comptLayer.addRasterLayer(&idwLayer);
+			comptLayer.init(compuNeighbor, 1);
 			krigingOper.comptLayer(comptLayer);
 		}
 		if (myRank == 0) cout << "start computing" << endl;
 
 		starttime = MPI_Wtime();
 		krigingOper.Run(); //fill idwLayer
-		if (writeLoadPath)
-			comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
+		//if (writeLoadPath)
+		//	comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
+      //  if (writeLoadPath)
+		    //comptLayer.writeComputeIntensityFile(writeLoadPath);
 	}
 	else {
 		krigingOper.idwLayerSerial(idwLayer, &spatialrefWkt);
