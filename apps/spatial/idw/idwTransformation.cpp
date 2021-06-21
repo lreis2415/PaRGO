@@ -55,5 +55,6 @@ bool IdwTransformation::Operator(const CellCoord &coord) {
     double load_1 = searchBlockNums; //algorithms depend on specific application
     double load_2 = nbrNums * 2;
     comptL[cRow][cCol] = load_1 + load_2;
+    //comptL[cRow][cCol] = 1;
     return true;
 }

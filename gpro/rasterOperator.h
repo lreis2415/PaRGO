@@ -106,6 +106,7 @@ namespace GPRO
         bool commFlag; ///< true if involve communication
         int Termination; ///< typically 1 implies terminate, 0 implies another traversion
         double computeTimeExceptLastCell;
+        double operatorReduceTime;
         bool _writePreExpLoad;
     };
 };
@@ -177,9 +178,9 @@ Work(const CoordBR* const pWBR) {
             for (int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) {
                 for (int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++) {
                     CellCoord coord(iRow, iCol);
-                    if(iRow==pWBR->maxIRow()&&iCol== pWBR->maxICol()) {
-                        computeTimeExceptLastCell+=MPI_Wtime()-iterStartTime;
-                    }
+                    //if(iRow==pWBR->maxIRow()&&iCol== pWBR->maxICol()) {
+                    //    computeTimeExceptLastCell+=MPI_Wtime()-iterStartTime;
+                    //}
                     if (!Operator(coord, true)) {
                         cout << "Operator is not successes!" << endl;
                         flag = false;
@@ -203,6 +204,8 @@ Work(const CoordBR* const pWBR) {
                 }
 #endif
             }
+            cout<<"rank"<<myRank<<" compute time "<<computeTimeExceptLastCell<<"s"<<endl;
+            cout<<"rank"<<myRank<<" reduce time "<<operatorReduceTime<<"s"<<endl;
             cout<<"rank"<<myRank<<" iter time "<<MPI_Wtime()-iterStartTime<<"s"<<endl;
             if (commFlag) {
                 if (_domDcmpType == ROWWISE_DCMP) {

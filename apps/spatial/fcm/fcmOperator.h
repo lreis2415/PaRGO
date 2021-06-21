@@ -19,7 +19,7 @@ public:
     FCMOperator()
         : RasterOperator<double>(),
           _iterNum(0), flag(true),
-          block(0), nodataNums(0), dFlag(true), subval(0.0), totval(0.0), oldtval(0.0), partitionCoef(0.0), entropy(0), totpartitionCoef(0), totentropy(0) {
+          block(0), nodataNums(0), dFlag(true), subval(0.0), totval(0.0), oldtval(0.0), partitionCoef(0.0), entropy(0), totpartitionCoef(0), totentropy(0), reduceTime(0) {
     }
 
     ~FCMOperator();
@@ -33,6 +33,8 @@ public:
 
     bool isNoData(double value, int rasterLayerIndex);
     bool allNoDataAt(int row, int col);
+    bool anyNoDataAt(int row, int col);
+    inline bool firstNoDataAt(int row, int col);
     void createRandomIdx(int nums, int range, int* randomIdx);
     void fnDistance(int curRow, int curCol, double* pInputVal);
     void InitDegree(int curRow, int curCol);
@@ -40,6 +42,7 @@ public:
     void assignMaxMembershipDegrees();
     virtual bool Operator(const CellCoord& coord, bool operFlag);
 
+    double reduceTime;
 private:
     int _cellSize;
     int _xSize, _ySize; ///<local size

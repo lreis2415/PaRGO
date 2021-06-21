@@ -15,6 +15,9 @@ void KrigingOperator::Initialize()
     cout<<"range: "<<GetEstimatedRange()<<endl;
     cout<<"lag distance: "<<GetLagDistances()<<endl;
 }
+
+// Not in use. The reducing contains some parallelism details, and not much improvement is made
+//   unless the sorting of distance-variance pairs is parallelized, which is another difficulty.
 void KrigingOperator::ParallelInitialize()
 {
 
@@ -1133,14 +1136,29 @@ bool KrigingOperator::Operator(const CellCoord& coord, bool operFlag) {
 	if (_pMaskLayer) {
 		int maskRow = _pIDWLayer->rowAtOtherLayer(_pMaskLayer, iRow);
 		int maskCol = _pIDWLayer->colAtOtherLayer(_pMaskLayer, iCol);
+        if(maskRow>=_pMaskLayer->cellSpace()->nRows()) {
+            if(iCol==0) {
+                cout<<"Reading mask layer row "<<maskRow<<" exceeding boundary "<<_pMaskLayer->cellSpace()->nRows()<<", converted to boundary"<<endl;
+                double scale = (double)_pMaskLayer->metaData()->_glbDims.nRows()/_pIDWLayer->metaData()->_glbDims.nRows();
+                cout<< scale*iRow<<endl;
+            }
+            maskRow=_pMaskLayer->cellSpace()->nRows()-1;
+        }
+        if(maskCol>=_pMaskLayer->cellSpace()->nCols()) {
+            if(iRow==0) {
+                cout<<"Reading mask layer col "<<maskCol<<" exceeding boundary "<<_pMaskLayer->cellSpace()->nCols()<<", converted to boundary"<<endl;
+            }
+            maskCol=_pMaskLayer->cellSpace()->nCols()-1;
+        }
 		mask = (*_pMaskLayer->cellSpace())[maskRow][maskCol];
 		maskNoData = _pMaskLayer->metaData()->noData;
 	}
 
 	if (mask == maskNoData) {
-		(*_pIDWLayer->cellSpace())[iRow][iCol] = _noData;
 		if (_pComptLayer) {
-			(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - startTime) * 1000;
+			(*_pIDWLayer->cellSpace())[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
+		}else {
+		    (*_pIDWLayer->cellSpace())[iRow][iCol] = _noData;
 		}
 		return true;
 	}
@@ -1154,6 +1172,7 @@ bool KrigingOperator::Operator(const CellCoord& coord, bool operFlag) {
 	double cellX = getXByCellIndex(iCol);
 	double cellY = getYByCellIndex(iRow + minRow);
 	multimap<double, SamplePoint> candidateDistanceMap = searchNbrSamples(minRow, iRow, iCol, cellX, cellY);
+
 	vector<SamplePoint> dataPointCandidate;
 	for (std::multimap<double, SamplePoint>::const_iterator iterator = candidateDistanceMap.begin();iterator != candidateDistanceMap.end();iterator++)
 	{
@@ -1173,10 +1192,9 @@ bool KrigingOperator::Operator(const CellCoord& coord, bool operFlag) {
 		[](double weight, const SamplePoint& dataPointCandidate) { return weight * dataPointCandidate.value; });
 	//cout << estimatedZ; // -nan(ind)
 	idwL[iRow][iCol] = estimatedZ;
-
+	double endTime = MPI_Wtime();
 	if (_pComptLayer) {
-		idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
+		idwL[iRow][iCol] = (endTime - startTime) * 1000;
 	}
-
 	return true;
 }

@@ -71,7 +71,20 @@ bool FCMOperator::allNoDataAt(int row, int col) {
     }
     return true;
 }
-
+bool FCMOperator::anyNoDataAt(int row, int col) {
+    for (int i=0;i<_vInputLayer.size();i++) {
+        if(isNoData((*_vInputLayer[i]->cellSpace())[row][col],i)) {
+            return true;
+        }
+    }
+    return false;
+}
+inline bool FCMOperator::firstNoDataAt(int row, int col) {
+    if(isNoData((*_vInputLayer[0]->cellSpace())[row][col],0)) {
+        return true;
+    }
+    return false;
+}
 void FCMOperator::createRandomIdx(int nums, int range, int* randomIdx) {
     //generate nums numbers within the range
     srand((unsigned int)time(NULL)); //seed
@@ -103,10 +116,10 @@ void FCMOperator::fnDistance(int curRow, int curCol, double* pInputVal) {
         dist[i][curRow][curCol] = 0.0;
         int count = 0;
         for (int j = 0; j < imageNum; j++) {
-            if (isNoData(pInputVal[j], j)) {
-                cout<<"found a nodata! ("<< curRow<<","<<curCol<<")"<<endl;
-                continue;
-            }
+            //if (isNoData(pInputVal[j], j)) {
+            //    cout<<"found a nodata! ("<< curRow<<","<<curCol<<")"<<endl;
+            //    continue;
+            //}
             dist[i][curRow][curCol] += (pInputVal[j] - centerVal[i * imageNum + j]) * (pInputVal[j] - centerVal[i *imageNum + j]);
             count++;//wyj 2020-10-21 update, calculate the mean value of the existing values
         }
@@ -160,11 +173,11 @@ void FCMOperator::initRandomClusterCenters(double* clusterCenters) {
 ///Clustering. find the maximum membership degree of every cell, and set the value to fcmL[i][j].
 void FCMOperator::assignMaxMembershipDegrees() {
     CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
-    for (int i = 1; i < _xSize - 1; i++) {
-        for (int j = 1; j < _ySize - 1; j++) {
-            if (_writePreExpLoad){
-
-            } else if (!allNoDataAt(i,j)) {
+    for (int i = 0; i < _xSize ; i++) {
+        for (int j = 0; j < _ySize ; j++) {
+            double time = MPI_Wtime();
+            if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps) {
+            //if (!firstNoDataAt(i,j)) {
                 int cNum = -1; //cluster index
                 double degreeMax = 0.0;
                 for (int p = 0; p < clusterNum; p++) {
@@ -186,27 +199,29 @@ void FCMOperator::assignMaxMembershipDegrees() {
                         }
                     }
                 }
-                fcmL[i][j] = cNum;
+                //if(!_writePreExpLoad)
+                    fcmL[i][j] = cNum;
             } else {
-                fcmL[i][j] = _noData;
+                //if(!_writePreExpLoad)
+                    fcmL[i][j] = _noData;
                 for (int p = 0; p < clusterNum; p++) {
                     (*_vDegLayer[p]->cellSpace())[i][j] = _noData;
                 }
             }
+            //if (_writePreExpLoad){
+            //    if (fcmL[i][j] < 0) {
+            //        fcmL[i][j] = 0;
+            //    }
+            //    fcmL[i][j] += (MPI_Wtime() - time) * 1000;
+            //} 
         }
     }
 }
 
 bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
-    double time;
     int iRow = coord.iRow();
     int iCol = coord.iCol();
     CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
-    //if (_pComptLayer) {
-    //    if (_iterNum == 0) {
-    //        (*_pComptLayer->cellSpace())[iRow][iCol] = 0.0;
-    //    }
-    //}
 
     double* pInputVal = new double[imageNum];
     for (int i = 0; i < imageNum; ++i) {
@@ -251,7 +266,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
     }
     
-    time = MPI_Wtime();
+    double time = MPI_Wtime();
 
     if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
         
@@ -260,6 +275,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         fnDistance(iRow, iCol, pInputVal); //distance from nonempty cells to the cluster centers
         InitDegree(iRow, iCol); //calculate membership degree
     }
+    FCMOperator::computeTimeExceptLastCell+=MPI_Wtime()-time;
     // if(allNoDataAt(iRow,iCol)) {
     //     for (int i = 0; i < clusterNum; i++) {
     //         dist[i][iRow][iCol] = -1;
@@ -269,26 +285,24 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //     InitDegree(iRow, iCol);
     // }
 
-    if (_writePreExpLoad){
-        //(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;//acutally not in use. Please use the "-out" file when setting "-dcmp compute -writeLoad /../../.."
-        CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
-        if (fcmL[iRow][iCol] < 0) {
-            fcmL[iRow][iCol] = 0;
-        }
-        fcmL[iRow][iCol] += (MPI_Wtime() - time) * 1000;
-        return true;
-    }
-
+    //if (_writePreExpLoad){
+    //    //(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime() - time) * 1000;//acutally not in use. Please use the "-out" file when setting "-dcmp compute -writeLoad /../../.."
+    //    CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
+    //    if (fcmL[iRow][iCol] < 0) {
+    //        fcmL[iRow][iCol] = 0;
+    //    }
+    //    fcmL[iRow][iCol] += (MPI_Wtime() - time) * 1000;
+    //}
+    
+    double time0 = MPI_Wtime();
     if ((iRow == _xSize - 1) && (iCol == _ySize - 1)) {
-        //MPI_Barrier(MPI_COMM_WORLD);
-        cout<<"rank"<<_rank<<" compute time before reduce is "<<MPI_Wtime()-time<<"s"<<endl;
         time = MPI_Wtime();
         MPI_Allreduce(&subval, &totval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        cout<<"rank"<<_rank<<" reduce1 time is "<<MPI_Wtime()-time<<"s"<<endl;
+        //cout<<"rank"<<_rank<<" reduce1 time is "<<MPI_Wtime()-time<<"s"<<endl;
         _iterNum++;
         subval = 0.0;
         if (_rank == 0) {
-            cout << "_iterNum is " << _iterNum << endl;
+            cout << "_iterNum " << _iterNum << " computation done. Start reducing." << endl;
         }
         //at last cell, val reduced to process 0, judge if the difference is under the threshold.
         if ((fabs(totval - oldtval) <= tolerance) || (_iterNum >= maxIteration)) {
@@ -303,8 +317,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 cout << "totpartitionCoef " << totpartitionCoef << " totentropy " << totentropy << " nodataNums " << nodataNums << endl;
                 cout << _rank << " time is " << tmpEnd-tmpStart << endl;
             }
-            cout<<"rank"<<_rank<<" reduce2 time is "<<MPI_Wtime()-time<<"s"<<endl;
-
+            //cout<<"rank"<<_rank<<" reduce2 time is "<<MPI_Wtime()-time<<"s"<<endl;
         }
         else {
             time=MPI_Wtime();
@@ -318,38 +331,45 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
                 int valCount = 0;
                 for (int i = 0; i < _xSize ; i++) {
                     for (int j = 0; j < _ySize ; j++) {
-                        ////only calculate if the cell of first layer is nonempty.
-                        //if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
-                        //    sumDenominator[p] += pow(degree[p][i][j], weight);
-                        //    for (int q = 0; q < imageNum; q++) {
-                        //        sumNumerator[p * imageNum + q] += (pow(degree[p][i][j], weight) * (*_vInputLayer[q]->cellSpace())[i][j]);
-                        //    }
-                        //    ++valCount;
-                        //}
-
-                        //multiple layer support
-                        if(allNoDataAt(i,j)) {
-                            continue;
-                        }
-                        sumDenominator[p] += pow(degree[p][i][j], weight);
-                        for (int q = 0; q < imageNum; q++)
-                        {
-                            const double value = (*_vInputLayer[q]->cellSpace())[i][j];
-                            if (isNoData(value,q)) {
-                                continue;
+                        //double singleIterTime = MPI_Wtime();
+                        //only calculate if the cell of first layer is nonempty.
+                        if (fabs((*_vInputLayer[0]->cellSpace())[i][j] - _noData) > Eps && fabs((*_vInputLayer[0]->cellSpace())[i][j] + 9999) > Eps) {
+                        //if (!firstNoDataAt(i,j)) {
+                            sumDenominator[p] += pow(degree[p][i][j], weight);
+                            for (int q = 0; q < imageNum; q++) {
+                                sumNumerator[p * imageNum + q] += (pow(degree[p][i][j], weight) * (*_vInputLayer[q]->cellSpace())[i][j]);
                             }
-                            sumNumerator[p * imageNum + q] += pow(degree[p][i][j], weight) * value;
                             ++valCount;
                         }
+                        //if (_writePreExpLoad){
+                        //    CellSpace<double>& fcmL = *(_pFCMLayer->cellSpace());
+                        //    if (fcmL[i][j] < 0) {
+                        //        fcmL[i][j] = 0;
+                        //    }
+                        //    fcmL[i][j] += (MPI_Wtime() - singleIterTime) * 1000;
+                        //}
+                        //multiple layer support
+                        //if(allNoDataAt(i,j)) {
+                        //    continue;
+                        //}
+                        //sumDenominator[p] += pow(degree[p][i][j], weight);
+                        //for (int q = 0; q < imageNum; q++)
+                        //{
+                        //    const double value = (*_vInputLayer[q]->cellSpace())[i][j];
+                        //    //if (isNoData(value,q)) {
+                        //    //    continue;
+                        //    //}
+                        //    sumNumerator[p * imageNum + q] += pow(degree[p][i][j], weight) * value;
+                        //    ++valCount;
+                        //}
                     }
                 }
             }
-            cout<<"rank"<<_rank<<" disp time is "<<MPI_Wtime()-time<<"s"<<endl;
+            //cout<<"rank"<<_rank<<" disp time is "<<MPI_Wtime()-time<<"s"<<endl;
             
-            time=MPI_Wtime();
             MPI_Allreduce(sumDenominator, totDenominator, clusterNum, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(sumNumerator, totNumerator, clusterNum * imageNum, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-            cout<<"rank"<<_rank<<" reduce3 time is "<<MPI_Wtime()-time<<"s"<<endl;
+            //cout<<"rank"<<_rank<<" reduce3 time is "<<MPI_Wtime()-time<<"s"<<endl;
             for (int p = 0; p < clusterNum; p++) {
                 for (int q = 0; q < imageNum; q++) {
                     centerVal[p * imageNum + q] = totNumerator[p * imageNum + q] / totDenominator[p];
@@ -358,6 +378,8 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             Termination = 0;
         }
     }
+    reduceTime+=MPI_Wtime()-time0;
+    FCMOperator::operatorReduceTime+=MPI_Wtime()-time0;
 
     delete pInputVal;
 

@@ -15,7 +15,7 @@ bool ReclassifyOperator::Operator(const CellCoord& coord, bool operFlag) {
     CellSpace<double>& out = *_outputLayer->cellSpace();
     double v = in[iRow][iCol];
     double result=0;
-    if(v==_inputLayer->metaData()->noData) {
+    if(v-_inputLayer->metaData()->noData <0.00001) {
         return true;
     }
 

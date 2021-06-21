@@ -319,6 +319,7 @@ int main(int argc, char* argv[]) {
         //if(writeLoadPath)
         //    comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
+        cout<< "rank" <<myRank<<" reduce time: "<<fcmOper.reduceTime<<"s"<<endl;
     }
     else{
     	for (int i = 0; i < vInputnames.size(); i++) {
@@ -368,6 +369,7 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         fcmOper.Run();
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
+        cout<< "rank" <<myRank<<" reduce time: "<<fcmOper.reduceTime<<"s"<<endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
     endtime = MPI_Wtime();

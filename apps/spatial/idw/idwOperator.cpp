@@ -427,6 +427,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
         //delete []block2search;
         //block2search=nullptr;
     }
+    //return searchRad;
     return min(tailIdx+1,_nbrPoints);
 }
 
@@ -475,7 +476,7 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     //int blockCol = getBlockColIndexByCellIndex(iCol);
     //int blockCols = _blockCols;
     ////idwL[iRow][iCol] = blockRow*blockCols+blockCol;
-    //idwL[iRow][iCol] = 100;
+    //idwL[iRow][iCol] = sampleNum;
 
     //if(_pComptLayer) {
     //    (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
