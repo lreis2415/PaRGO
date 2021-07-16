@@ -10,7 +10,6 @@ inline double IDWOperator::getMinDistanceToBlockBound(double x,double y) {
         _sub_extent.maxY-(getBlockRowIndexByCoord(y)+1)*_blockSize //up, block max y
     };
 
-
     double distances[]={
         abs(x-boundXY[0]),
         abs(x-boundXY[1]),

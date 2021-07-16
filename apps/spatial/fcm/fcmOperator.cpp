@@ -266,7 +266,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
     }
     
-    double time = MPI_Wtime();
+    //double time = MPI_Wtime();
 
     if (fabs(pInputVal[0] + 9999) <= Eps || fabs(pInputVal[0] - _noData) <= Eps) {
         
@@ -275,7 +275,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
         fnDistance(iRow, iCol, pInputVal); //distance from nonempty cells to the cluster centers
         InitDegree(iRow, iCol); //calculate membership degree
     }
-    FCMOperator::computeTimeExceptLastCell+=MPI_Wtime()-time;
+    //FCMOperator::computeTimeExceptLastCell+=MPI_Wtime()-time;
     // if(allNoDataAt(iRow,iCol)) {
     //     for (int i = 0; i < clusterNum; i++) {
     //         dist[i][iRow][iCol] = -1;
@@ -294,9 +294,9 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
     //    fcmL[iRow][iCol] += (MPI_Wtime() - time) * 1000;
     //}
     
-    double time0 = MPI_Wtime();
+    //double time0 = MPI_Wtime();
     if ((iRow == _xSize - 1) && (iCol == _ySize - 1)) {
-        time = MPI_Wtime();
+        //time = MPI_Wtime();
         MPI_Allreduce(&subval, &totval, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         //cout<<"rank"<<_rank<<" reduce1 time is "<<MPI_Wtime()-time<<"s"<<endl;
         _iterNum++;
@@ -309,7 +309,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             
             double tmpStart = MPI_Wtime();
             assignMaxMembershipDegrees();
-            time=MPI_Wtime();
+            //time=MPI_Wtime();
             MPI_Allreduce(&partitionCoef, &totpartitionCoef, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(&entropy, &totentropy, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             if (_rank == 0) {
@@ -320,7 +320,7 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             //cout<<"rank"<<_rank<<" reduce2 time is "<<MPI_Wtime()-time<<"s"<<endl;
         }
         else {
-            time=MPI_Wtime();
+            //time=MPI_Wtime();
             oldtval = totval;
             for (int p = 0; p < clusterNum; p++) {
                 sumDenominator[p] = 0.0;
@@ -378,8 +378,8 @@ bool FCMOperator::Operator(const CellCoord& coord, bool operFlag) {
             Termination = 0;
         }
     }
-    reduceTime+=MPI_Wtime()-time0;
-    FCMOperator::operatorReduceTime+=MPI_Wtime()-time0;
+    //reduceTime+=MPI_Wtime()-time0;
+    //FCMOperator::operatorReduceTime+=MPI_Wtime()-time0;
 
     delete pInputVal;
 

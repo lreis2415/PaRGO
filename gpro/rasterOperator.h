@@ -204,9 +204,9 @@ Work(const CoordBR* const pWBR) {
                 }
 #endif
             }
-            cout<<"rank"<<myRank<<" compute time "<<computeTimeExceptLastCell<<"s"<<endl;
-            cout<<"rank"<<myRank<<" reduce time "<<operatorReduceTime<<"s"<<endl;
-            cout<<"rank"<<myRank<<" iter time "<<MPI_Wtime()-iterStartTime<<"s"<<endl;
+            //cout<<"rank"<<myRank<<" compute time "<<computeTimeExceptLastCell<<"s"<<endl;
+            //cout<<"rank"<<myRank<<" reduce time "<<operatorReduceTime<<"s"<<endl;
+            //cout<<"rank"<<myRank<<" iter time "<<MPI_Wtime()-iterStartTime<<"s"<<endl;
             if (commFlag) {
                 if (_domDcmpType == ROWWISE_DCMP) {
                     COMNI.rowComm();
