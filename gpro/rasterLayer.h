@@ -30,6 +30,7 @@
 #include <gdal_priv.h>
 
 using namespace std;
+#define EPS 0.0000001
 
 namespace GPRO {
     /**
@@ -100,6 +101,7 @@ namespace GPRO {
         bool newNbrhood();
         bool newLocalNbrhood();
         bool newNbrhood( const vector<CellCoord> &vNbrCoords, double weight = 1.0 );
+        bool newRectangleNbrhood( int radiusExcludingCenter );
         bool newNbrhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights );
         template<class elemType2>
         bool newNbrhood( const Neighborhood<elemType2> &nbr );
@@ -124,6 +126,8 @@ namespace GPRO {
          */
         bool readFile( const char *inputfile, DomDcmpType dcmpType = NON_DCMP );
 
+        bool newUpscaleFile( const char *inputfile, int g, DomDcmpType dcmpType = NON_DCMP);
+
         /**
          * \brief read raster layer.
          *  
@@ -133,6 +137,7 @@ namespace GPRO {
          * \param[in] dcmpType decomposition type. It is not used in this method, but may be for further use.
          */
         bool readFile( const char *inputfile, const CoordBR &subWorkBR, DomDcmpType dcmpType = NON_DCMP );
+
 
         /**
          *all processes read raster layer according to the decomposition type. 
@@ -154,6 +159,8 @@ namespace GPRO {
          * \param[in] dcmpType decomposition type. info should be coordinate with data.
          */
 		GDALRasterBand * readFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType);
+
+        GDALRasterBand * readUpscaleFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType, int g);
 
         /**
          * \brief decompose this layer and init _pMetaData & CellSpace.
@@ -195,6 +202,7 @@ namespace GPRO {
         int rowAtOtherLayer(RasterLayer<int>* layer, int row);
         int colAtOtherLayer(RasterLayer<double>* layer, int col);
         int colAtOtherLayer(RasterLayer<int>* layer, int col);
+        bool isNodata(elemType value);
     protected:
 
         /**
@@ -330,7 +338,11 @@ title() const {
     ostringstream myTitle;
     return myTitle.str();
 }
-
+template<class elemType>
+inline bool GPRO::RasterLayer<elemType>::
+isNodata(elemType value) {
+    return value - _pMetaData->noData < EPS;
+}
 template<class elemType>
 void GPRO::RasterLayer<elemType>::
 cleanCellSpace() {
@@ -502,7 +514,28 @@ newNbrhood( const vector<CellCoord> &vNbrCoords, double weight ) {
 
     return true;
 }
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+newRectangleNbrhood( int radiusExcludingCenter ) {
+    int r = radiusExcludingCenter;
+    cleanNbrhood();
+    vector<CellCoord> nbr;
+    for (int i = -r; i <= r; ++i) {
+        for (int j = -r; j <= r; ++j) {
+            CellCoord c(i,j);
+            nbr.push_back(c);
+        }
+    }
+    _pNbrhood = new Neighborhood<elemType>( nbr, 1 );
+    if ( !_pNbrhood ) {
+        cerr << __FILE__ << " " << __FUNCTION__ \
+			 << " Error: unable to new a Neighborhood on process[" \
+			 << title() << "]" << endl;
+        return false;
+    }
 
+    return true;
+}
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 newNbrhood( const vector<CellCoord> &vNbrCoords, const vector<double> &vNbrWeights ) {
@@ -684,7 +717,6 @@ copyLayerMetadata( const RasterLayer<elemType> &rhs ) {
     newNbrhood( *( rhs.nbrhood()));	//allocate and init
     return true;
 }
-
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 copyLayerInfo( const RasterLayer<elemType> &rhs ) {
@@ -726,6 +758,40 @@ readFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType ){
     return poBandsrc;
 }
 
+template<class elemType>
+GDALRasterBand * GPRO::RasterLayer<elemType>::
+readUpscaleFileInfo(GDALDataset *poDatasetsrc, DomDcmpType dcmpType, int g) {
+    if ( poDatasetsrc == NULL) {
+        cout << "[ERROR] data file is not open correct" << endl;
+        exit( 1 );
+    }
+
+    _pMetaData = new MetaData();
+    if ( _pMetaData == NULL ) {
+        cout << "[ERROR] MetaData is not allocate correct" << endl;
+        exit( 1 );
+    }
+
+    poDatasetsrc->GetGeoTransform( _pMetaData->pTransform );
+    _pMetaData->projection = poDatasetsrc->GetProjectionRef();
+    GDALRasterBand *poBandsrc = poDatasetsrc->GetRasterBand( 1 );
+
+    _pMetaData->noData = poBandsrc->GetNoDataValue();
+    _pMetaData->row = poBandsrc->GetYSize()/g;
+    _pMetaData->column = poBandsrc->GetXSize()/g;
+    
+    _pMetaData->pTransform[1]*=g; //w-e pixel resolution
+    _pMetaData->pTransform[5]*=g; //n-s pixel resolution
+    _pMetaData->cellSize = _pMetaData->pTransform[1];
+
+    _pMetaData->format = "GTiff";
+    _pMetaData->_domDcmpType = dcmpType;
+    _pMetaData->dataType = getGDALType();
+    SpaceDims sdim( _pMetaData->row, _pMetaData->column );
+    _pMetaData->_glbDims = sdim;
+
+    return poBandsrc;
+}
 template<class elemType>
 bool GPRO::RasterLayer<elemType>::
 layerDcmp(DomDcmpType dcmpType ){
@@ -790,7 +856,7 @@ layerDcmp(const CoordBR &subWorkBR){
     }
     _pMetaData->_localworkBR = workBR;
 
-    newCellSpace( _pMetaData->_localdims );
+    newCellSpace(_pMetaData->_localdims );
     return true;
 }
 
@@ -818,6 +884,24 @@ readFile( const char *inputfile, DomDcmpType dcmpType ) {
     return true;
 }
 
+template<class elemType>
+bool GPRO::RasterLayer<elemType>::
+newUpscaleFile( const char *inputfile, int g, DomDcmpType dcmpType ) {
+    GDALAllRegister();
+    GDALDataset *poDatasetsrc = (GDALDataset *) GDALOpen( inputfile, GA_ReadOnly );
+
+    GDALRasterBand *poBandsrc=readUpscaleFileInfo(poDatasetsrc, dcmpType,g);
+
+    if(!layerDcmp(dcmpType)) return false;
+    newCellSpace(_pMetaData->_localdims, _pMetaData->noData );
+    
+    if ( poDatasetsrc != NULL ) {
+        GDALClose((GDALDatasetH) poDatasetsrc );
+        poDatasetsrc = NULL;
+    }
+
+    return true;
+}
 //Todo: CoordBR should be invisible to user, may use RowID or ColID instead.
 //is dcmpType still in use?
 template<class elemType>
@@ -866,6 +950,7 @@ createFile( const char *outputfile ) {
         char **papszMetadata = NULL;
         papszMetadata = CSLSetNameValue( papszMetadata, "BLOCKXSIZE", "256" );
         papszMetadata = CSLSetNameValue( papszMetadata, "BLOCKYSIZE", "1" );
+        papszMetadata = CSLSetNameValue( papszMetadata, "COMPRESS", "LZW" );
 
         if ( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATE, FALSE ) );
         //cout<< "This format driver supports Create() method."<<endl;

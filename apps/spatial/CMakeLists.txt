@@ -16,6 +16,10 @@ FILE(GLOB KRIGINGFILES ./kriging/*.cpp)
 SET(KRIGINGFILES ${KRIGINGFILES} ${GPRO_SRCS})
 ADD_EXECUTABLE(kriging ${KRIGINGFILES})
 
+FILE(GLOB RESAMPLE ./resample/*.cpp)
+SET(RESAMPLE ${RESAMPLE} ${GPRO_SRCS})
+ADD_EXECUTABLE(resample ${RESAMPLE})
+
 ######## $1: variable, name it whatever
 ######## $2: directory name of your app
 ######## Add your app here, replace $1 and $2 ########
@@ -28,6 +32,7 @@ SET(SPATIAL_TARGETS idw
                     fcm
                     reclassify
                     kriging
+                    resample
                     ######## Add your app here, replace $2 ########
                     #$2
                     ######## Add your app here, replace $2 ########

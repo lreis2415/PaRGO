@@ -166,7 +166,6 @@ rowDcmp( MetaData &metaData, int nSubSpcs ) const {
     CellCoord seCorner( subEnd + _pNbrhood->maxIRow(), _glbDims.nCols() - 1 );
     CoordBR subMBR( nwCorner, seCorner );
     metaData._MBR = subMBR;
-
     SpaceDims dims( subMBR.nRows(), subMBR.nCols() );
     metaData._localdims = dims;
     CoordBR workBR;

@@ -10,10 +10,10 @@ void KrigingOperator::Initialize()
 	CalculateExperimentalVariogram(GetDefaultLag(), GetDefaultLagTolerance());
 	CalculateEstimatedVariogramParameters();
     
-    cout<<"nugget: "<<GetEstimatedNugget()<<endl;
-    cout<<"sill: "<<GetEstimatedSill()<<endl;
-    cout<<"range: "<<GetEstimatedRange()<<endl;
-    cout<<"lag distance: "<<GetLagDistances()<<endl;
+    //cout<<"nugget: "<<GetEstimatedNugget()<<endl;
+    //cout<<"sill: "<<GetEstimatedSill()<<endl;
+    //cout<<"range: "<<GetEstimatedRange()<<endl;
+    //cout<<"lag distance: "<<GetLagDistances()<<endl;
 }
 
 // Not in use. The reducing contains some parallelism details, and not much improvement is made

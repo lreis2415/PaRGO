@@ -292,6 +292,7 @@ int main(int argc, char* argv[]) {
 			comptLayer.initSerial(compuNeighbor, granularity);
 			comptLayer.readComputeLoadFile(readLoadPath);
 			comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+		    if (myRank == 0) cout << "dcmp-read time is " << MPI_Wtime() - starttime << endl;
 		}
 		else {
 			RasterLayer<int> fullMaskLayer("fullMaskLayer");
@@ -305,11 +306,11 @@ int main(int argc, char* argv[]) {
 			KrigingTransformation trans(&comptLayer, &krigingOper);
 			trans.run();
 			comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+		    if (myRank == 0) cout << "dcmp-write time is " << MPI_Wtime() - starttime << endl;
 			if (writeLoadPath) {
 				comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
 			}
 		}
-		if (myRank == 0) cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
 		cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
 		krigingOper.idwLayer(idwLayer, &spatialrefWkt, subWorkBR);
 		maskLayer.readFile(maskFileName, subWorkBR, ROWWISE_DCMP);
