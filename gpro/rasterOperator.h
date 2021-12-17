@@ -31,28 +31,27 @@
 
 using namespace std;
 
-namespace GPRO
-{
+namespace GPRO {
     /**
      * \ingroup gpro
      * \class RasterOperator
      * \brief A basic super class that each Operator of a specific algorithm should extends
      */
     template <class elemType>
-    class RasterOperator
-    {
+    class RasterOperator {
     public:
         RasterOperator()
             : _domDcmpType(NON_DCMP),
-              _pWorkBR(NULL),
-              _pComptLayer(NULL),
+              _pComptLayer(nullptr),
+              _pWorkBR(nullptr),
               commFlag(false),
               Termination(true),
               computeTimeExceptLastCell(0),
-              _writePreExpLoad(false)
-              {}
+              _writePreExpLoad(false) {
+        }
 
-        virtual ~RasterOperator() {}
+        virtual ~RasterOperator() {
+        }
 
 
         /**
@@ -71,7 +70,7 @@ namespace GPRO
          * \brief Operator is invoked here. Traverse throughout the workBR.
          * \param[in] pWorkBR the Bounding Rectangle area to be traversed.
          */
-        bool Work(const CoordBR* const pWorkBR);
+        bool Work(const CoordBR* pWorkBR);
 
         /**
          * \brief Assign the workBR in pLayer to this Operator.
@@ -84,14 +83,14 @@ namespace GPRO
          * \brief This entrance method is to be called in the main process.
          */
         bool Run();
-        
+
         /**
          * \brief Mount the compute layer to this Operator.
          *  
          * It is designed for intensity evaluation strategy. The member comptLayer will be initialised.
          * \param[in] layerD the rectangle area to be traversed.
          * \param[in] pWorkBR the rectangle area to be traversed.
-         */        
+         */
         void comptLayer(RasterLayer<elemType>& layerD);
 
     private:
@@ -101,7 +100,7 @@ namespace GPRO
         RasterLayer<elemType>* _pComptLayer; ///< compute layer, mounted to be filled
         // char* _computeLayerOutPath;
 
-        vector<RasterLayer<elemType> *> CommVec; ///< raster layers to communicate between processes
+        vector<RasterLayer<elemType>*> CommVec; ///< raster layers to communicate between processes
         CoordBR* _pWorkBR; ///< work bounding rectangle of this process
         bool commFlag; ///< true if involve communication
         int Termination; ///< typically 1 implies terminate, 0 implies another traversion
@@ -133,7 +132,7 @@ Configure(RasterLayer<elemType>* pLayer, bool isCommunication) {
     //wyj: why not overwrite workBR? It's OK tentatively.
     _pWorkBR = &pLayer->_pMetaData->_localworkBR;
     _domDcmpType = pLayer->_pMetaData->_domDcmpType;
-    
+
     //if (_pWorkBR == NULL) { //wyj: why not overwrite workBR?
     //    _pWorkBR = &pLayer->_pMetaData->_localworkBR;
     //    _domDcmpType = pLayer->_pMetaData->_domDcmpType;
@@ -161,19 +160,19 @@ Work(const CoordBR* const pWBR) {
     }
     int noterm = 1; // if iteration continues. "may change to other vars." (?)
     int itera = 0; // iteration nums
-    int myRank=0;
-    int nRow=pWBR->maxIRow()-pWBR->minIRow();
-    int delim=20;
-    int lastRowInterval=0;
+    int myRank = 0;
+    int nRow = pWBR->maxIRow() - pWBR->minIRow();
+    int delim = 20;
+    int lastRowInterval = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-    double startTime=MPI_Wtime();
-    double endTime=0;
-    double iterStartTime=0;
-    double intervalStartTime=MPI_Wtime();
+    double startTime = MPI_Wtime();
+    double endTime = 0;
+    double iterStartTime = 0;
+    double intervalStartTime = MPI_Wtime();
     if (Application::_programType == MPI_Type) {
         MPI_Barrier(MPI_COMM_WORLD);
         do {
-            iterStartTime=MPI_Wtime();
+            iterStartTime = MPI_Wtime();
             Termination = 1;
             for (int iRow = pWBR->minIRow(); iRow <= pWBR->maxIRow(); iRow++) {
                 for (int iCol = pWBR->minICol(); iCol <= pWBR->maxICol(); iCol++) {
@@ -188,19 +187,19 @@ Work(const CoordBR* const pWBR) {
                     }
                 }
 #ifdef _DEBUG
-                int rowInterval= (iRow-pWBR->minIRow())/(double(nRow)/delim);
-                if(rowInterval != lastRowInterval) {
-                    lastRowInterval=rowInterval;
-                    cout<<"rank"<<myRank<<"\t[";
+                int rowInterval = (iRow - pWBR->minIRow()) / (static_cast<double>(nRow) / delim);
+                if (rowInterval != lastRowInterval) {
+                    lastRowInterval = rowInterval;
+                    cout << "rank" << myRank << "\t[";
                     for (int i = 0; i < lastRowInterval; ++i) {
-                        cout<<".";
+                        cout << ".";
                     }
-                    for (int i = 0; i < delim-lastRowInterval; ++i) {
-                        cout<<" ";
+                    for (int i = 0; i < delim - lastRowInterval; ++i) {
+                        cout << " ";
                     }
-                    endTime=MPI_Wtime();
-                    cout<<"]"<<endTime-intervalStartTime<<"s ("<<iRow-nRow/delim<<"~"<<iRow<<")"<<endl;
-                    intervalStartTime=MPI_Wtime();
+                    endTime = MPI_Wtime();
+                    cout << "]" << endTime - intervalStartTime << "s (" << iRow - nRow / delim << "~" << iRow << ")" << endl;
+                    intervalStartTime = MPI_Wtime();
                 }
 #endif
             }
@@ -349,10 +348,8 @@ Work(const CoordBR* const pWBR) {
         //		cout<<"iterative numerber is "<<itera<<endl;
     }
     else if (Application::_programType == CUDA_Type) {
-        ;
     }
     else {
-        ;
     }
 
     return flag;
@@ -364,9 +361,7 @@ Run() {
     if (Work(_pWorkBR)) {
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 #endif

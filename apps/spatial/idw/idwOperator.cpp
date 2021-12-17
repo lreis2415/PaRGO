@@ -2,25 +2,25 @@
 #include "utility.h"
 #include "idwOperator.h"
 
-inline double IDWOperator::getMinDistanceToBlockBound(double x,double y) {
-    double boundXY[]={
-        getBlockColIndexByCoord(x)*_blockSize+_sub_extent.minX, //left, block min x
-        (getBlockColIndexByCoord(x)+1)*_blockSize+_sub_extent.minX, //right, block max x
-        _sub_extent.maxY- getBlockRowIndexByCoord(y)*_blockSize, //down, block min y
-        _sub_extent.maxY-(getBlockRowIndexByCoord(y)+1)*_blockSize //up, block max y
+inline double IDWOperator::getMinDistanceToBlockBound(double x, double y) {
+    double boundXY[] = {
+        getBlockColIndexByCoord(x) * _blockSize + _sub_extent.minX, //left, block min x
+        (getBlockColIndexByCoord(x) + 1) * _blockSize + _sub_extent.minX, //right, block max x
+        _sub_extent.maxY - getBlockRowIndexByCoord(y) * _blockSize, //down, block min y
+        _sub_extent.maxY - (getBlockRowIndexByCoord(y) + 1) * _blockSize //up, block max y
     };
 
-    double distances[]={
-        abs(x-boundXY[0]),
-        abs(x-boundXY[1]),
-        abs(y-boundXY[2]),
-        abs(y-boundXY[3])
+    double distances[] = {
+        abs(x - boundXY[0]),
+        abs(x - boundXY[1]),
+        abs(y - boundXY[2]),
+        abs(y - boundXY[3])
     };
-    return min(min(distances[0],distances[1]),min(distances[2],distances[3]));
+    return min(min(distances[0],distances[1]), min(distances[2],distances[3]));
 }
 
 IDWOperator::~IDWOperator() {
-    vector<SampleBlock> ().swap(_pSampleBlocks);
+    vector<SampleBlock>().swap(_pSampleBlocks);
 }
 
 int IDWOperator::readSampleNums(const char* filename, char** pSpatialRefWkt) {
@@ -31,7 +31,7 @@ int IDWOperator::readSampleNums(const char* filename, char** pSpatialRefWkt) {
     OGRRegisterAll();
     OGRDataSource* poDatasetsrc = OGRSFDriverRegistrar::Open(filename, FALSE);
 #endif
-    if (poDatasetsrc == NULL) {
+    if (poDatasetsrc == nullptr) {
         printf("[ERROR] Open failed.\n");
         exit(1);
     }
@@ -47,7 +47,7 @@ int IDWOperator::readSampleNums(const char* filename, char** pSpatialRefWkt) {
     OGRFeature* poFeature;
 
     poLayer->ResetReading();
-    while ((poFeature = poLayer->GetNextFeature()) != NULL) {
+    while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
         _sample_nums++;
         OGRFeature::DestroyFeature(poFeature);
     }
@@ -60,7 +60,7 @@ int IDWOperator::readSampleNums(const char* filename, char** pSpatialRefWkt) {
     return _sample_nums;
 }
 
-bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<SamplePoint> &samples) {
+bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatialRefWkt, vector<SamplePoint>& samples) {
 
 #if GDAL_VERSION_MAJOR >= 2
 	GDALAllRegister();
@@ -69,7 +69,7 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
     OGRRegisterAll();
     OGRDataSource* poDatasetsrc = OGRSFDriverRegistrar::Open(filename, FALSE);
 #endif
-    if (poDatasetsrc == NULL) {
+    if (poDatasetsrc == nullptr) {
         printf("[ERROR] Open failed.\n");
         exit(1);
     }
@@ -85,19 +85,19 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
     double x = 0.0;
     double y = 0.0;
     OGRFeature* poFeature;
-    while ((poFeature = poLayer->GetNextFeature()) != NULL) {
+    while ((poFeature = poLayer->GetNextFeature()) != nullptr) {
         OGRGeometry* poGeometry;
         poGeometry = poFeature->GetGeometryRef();
-        if (poGeometry != NULL && wkbFlatten(poGeometry->getGeometryType()) == wkbPoint) {
+        if (poGeometry != nullptr && wkbFlatten(poGeometry->getGeometryType()) == wkbPoint) {
             //why not poLayer->GetExtent
-            OGRPoint* poPoint = (OGRPoint *)poGeometry;
+            OGRPoint* poPoint = static_cast<OGRPoint*>(poGeometry);
             x = poPoint->getX();
             y = poPoint->getY();
-        	SamplePoint point;
-        	point.x=x;
-        	point.y=y;
-        	point.value=poFeature->GetFieldAsDouble(fieldIdx);
-        	samples.push_back(point);
+            SamplePoint point;
+            point.x = x;
+            point.y = y;
+            point.value = poFeature->GetFieldAsDouble(fieldIdx);
+            samples.push_back(point);
             if (idx == 0) {
                 _glb_extent.minX = x;
                 _glb_extent.maxX = x;
@@ -117,7 +117,7 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
         }
         else {
             printf("[ERROR] No point geometry\n");
-            return 1;
+            return true;
         }
         OGRFeature::DestroyFeature(poFeature);
         idx++;
@@ -149,27 +149,28 @@ bool IDWOperator::readSamples(const char* filename, int fieldIdx, char** pSpatia
 }
 
 
-void IDWOperator::creatSampleBlocks(vector<SamplePoint> &samples) {
+void IDWOperator::creatSampleBlocks(vector<SamplePoint>& samples) {
     _blockRows = ceil((_glb_extent.maxY - _glb_extent.minY) / _blockSize);
     _blockCols = ceil((_glb_extent.maxX - _glb_extent.minX) / _blockSize);
     _pSampleBlocks.resize(_blockRows * _blockCols);
-    for (int i = 0; i < _sample_nums; ++i) { 
+    for (int i = 0; i < _sample_nums; ++i) {
         double x = samples[i].x;
-        double y = samples[i].y; 
+        double y = samples[i].y;
         int iCol = getBlockColIndexByCoord(x);
         int iRow = getBlockRowIndexByCoord(y);
         int index = iRow * _blockCols + iCol;
-        if( index>= _pSampleBlocks.size()) {
-            cerr<<"Index out of range. An error in creatSampleBlocks()"<<endl;
-            cout<<"__blockRows * _blockCols = "<<_blockRows<<" * "<<_blockCols<<endl;
-            printf("_pSampleBlocks.size()=%llu,samples.size()=%llu, _sample_nums=%i\n",_pSampleBlocks.size(),samples.size(),_sample_nums);
+        if (index >= _pSampleBlocks.size()) {
+            cerr << "Index out of range. An error in creatSampleBlocks()" << endl;
+            cout << "__blockRows * _blockCols = " << _blockRows << " * " << _blockCols << endl;
+            printf("_pSampleBlocks.size()=%llu,samples.size()=%llu, _sample_nums=%i\n", _pSampleBlocks.size(), samples.size(), _sample_nums);
         }
         _pSampleBlocks[index].samplePoints.push_back(samples[i]);
     }
 }
+
 void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt, DomDcmpType dcmpType) {
     layerD._pMetaData = new MetaData();
-    if (layerD._pMetaData == NULL) {
+    if (layerD._pMetaData == nullptr) {
         cout << "[ERROR] MetaData is not allocate correct" << endl;
         exit(1);
     }
@@ -213,12 +214,14 @@ void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt, D
     _pIDWLayer = &layerD;
     Configure(_pIDWLayer, false);
 }
+
 void IDWOperator::maskLayer(RasterLayer<int>& layerD) {
     _pMaskLayer = &layerD;
 }
+
 void IDWOperator::initIdwLayerGlobalInfo(RasterLayer<double>& layerD, char** pSpatialRefWkt) {
     layerD._pMetaData = new MetaData();
-    if (layerD._pMetaData == NULL) {
+    if (layerD._pMetaData == nullptr) {
         //do something
         cout << "[ERROR] MetaData is not allocate correct" << endl;
         exit(1);
@@ -249,14 +252,15 @@ void IDWOperator::initIdwLayerGlobalInfo(RasterLayer<double>& layerD, char** pSp
     layerD._pMetaData->pTransform[5] = -_cellSize;
 
 }
-void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt,CoordBR &subWorkBR) {
 
-    initIdwLayerGlobalInfo(layerD,pSpatialRefWkt);
+void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt, CoordBR& subWorkBR) {
+
+    initIdwLayerGlobalInfo(layerD, pSpatialRefWkt);
 
 
-    layerD._pMetaData->_MBR=subWorkBR;
-    layerD._pMetaData->_localdims=SpaceDims(subWorkBR.nRows(),subWorkBR.nCols());
-    layerD.nbrhood()->calcWorkBR(layerD._pMetaData->_localworkBR,layerD._pMetaData->_localdims);
+    layerD._pMetaData->_MBR = subWorkBR;
+    layerD._pMetaData->_localdims = SpaceDims(subWorkBR.nRows(), subWorkBR.nCols());
+    layerD.nbrhood()->calcWorkBR(layerD._pMetaData->_localworkBR, layerD._pMetaData->_localdims);
     layerD.newCellSpace(layerD._pMetaData->_localdims); //read global samples, only calculate local workBR
 
     _sub_extent.minX = _glb_extent.minX;
@@ -269,13 +273,14 @@ void IDWOperator::idwLayer(RasterLayer<double>& layerD, char** pSpatialRefWkt,Co
     _pIDWLayer = &layerD;
     Configure(_pIDWLayer, false);
 }
+
 void IDWOperator::idwLayerSerial(RasterLayer<double>& layerD, char** pSpatialRefWkt) {
-    if(GetRank()!=0) {
+    if (GetRank() != 0) {
         return;
     }
 
     layerD._pMetaData = new MetaData();
-    if (layerD._pMetaData == NULL) {
+    if (layerD._pMetaData == nullptr) {
         cout << "[ERROR] MetaData not allocated." << endl;
         exit(1);
     }
@@ -319,15 +324,16 @@ void IDWOperator::idwLayerSerial(RasterLayer<double>& layerD, char** pSpatialRef
     _pIDWLayer = &layerD;
     Configure(_pIDWLayer, false);
 }
+
 bool IDWOperator::isTermination() {
     return flag;
 }
 
 int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol, double* nbrSamples) {
     double cellX = getXByCellIndex(cellCol);
-    double cellY = getYByCellIndex(cellRow+subMinRow);
+    double cellY = getYByCellIndex(cellRow + subMinRow);
     int blockRow = getBlockRowIndexByCoord(cellY);
-    int blockRow1 = getBlockRowIndexByCellIndex(cellRow+subMinRow);
+    int blockRow1 = getBlockRowIndexByCellIndex(cellRow + subMinRow);
     int blockCol = getBlockColIndexByCoord(cellX);
     int blockRows = _blockRows;
     int blockCols = _blockCols;
@@ -337,10 +343,10 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
     int tailIdx = -1; //tail index of found points. i.e., points found - 1
     int searchRad = 0; //search circle by circle. 1 = 3*3 neighbor
     bool isSearch = true;
-    double minDistToBound=getMinDistanceToBlockBound(cellX,cellY);
-    while (isSearch){
-        double searchRange=(double)(searchRad-1) * _blockSize + minDistToBound;
-        if(_idw_buffer>0 && searchRange >= _idw_buffer) {
+    double minDistToBound = getMinDistanceToBlockBound(cellX, cellY);
+    while (isSearch) {
+        double searchRange = static_cast<double>(searchRad - 1) * _blockSize + minDistToBound;
+        if (_idw_buffer > 0 && searchRange >= _idw_buffer) {
             break;
         }
         vector<int> block2search;
@@ -379,9 +385,9 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
             int blockIdx = block2search[i];
             //cout<<blockIdx<<" "<<_pSampleBlocks[blockIdx].samplePoints.size()<<endl;
             for (vector<SamplePoint>::iterator iter = _pSampleBlocks[blockIdx].samplePoints.begin(); iter != _pSampleBlocks[blockIdx].samplePoints.end(); ++iter) {
-                double tmpDist = sqrt(pow(iter->x - cellX,2) + pow(iter->y - cellY,2));
-                if(tmpDist==0) {
-                    tmpDist=EPS;
+                double tmpDist = sqrt(pow(iter->x - cellX, 2) + pow(iter->y - cellY, 2));
+                if (tmpDist == 0) {
+                    tmpDist = EPS;
                 }
 
                 if (tailIdx < _nbrPoints - 1) {
@@ -414,7 +420,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
         }
         if (tailIdx >= _nbrPoints - 1) {
             if (searchRange >= maxDist) {
-                isSearch=false;
+                isSearch = false;
             }
             else {
                 ++searchRad;
@@ -427,7 +433,7 @@ int IDWOperator::searchNbrSamples(const int subMinRow, int cellRow, int cellCol,
         //block2search=nullptr;
     }
     //return searchRad;
-    return min(tailIdx+1,_nbrPoints);
+    return min(tailIdx+1, _nbrPoints);
 }
 
 bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
@@ -436,40 +442,40 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     int iCol = coord.iCol();
     CellSpace<double>& idwL = *_pIDWLayer->cellSpace();
 
-    int maskRow=_pIDWLayer->rowAtOtherLayer(_pMaskLayer,iRow);
-    int maskCol=_pIDWLayer->colAtOtherLayer(_pMaskLayer,iCol);
+    int maskRow = _pIDWLayer->rowAtOtherLayer(_pMaskLayer, iRow);
+    int maskCol = _pIDWLayer->colAtOtherLayer(_pMaskLayer, iCol);
     double mask = (*_pMaskLayer->cellSpace())[maskRow][maskCol];
-    double maskNoData=_pMaskLayer->metaData()->noData;
-    if(mask==maskNoData) {
-        (*_pIDWLayer->cellSpace())[iRow][iCol]=_noData;
-        if(_writePreExpLoad) {
+    double maskNoData = _pMaskLayer->metaData()->noData;
+    if (mask == maskNoData) {
+        (*_pIDWLayer->cellSpace())[iRow][iCol] = _noData;
+        if (_writePreExpLoad) {
             //(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
-		    idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
+            idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
         }
         return true;
     }
 
     int myRank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     const int minRow = _pIDWLayer->_pMetaData->_MBR.minIRow();
- 
+
     double* pNbrSamples = new double [_nbrPoints * 2]; //distance & value, pair by pair.
-    int sampleNum=searchNbrSamples(minRow, iRow, iCol, pNbrSamples);
+    int sampleNum = searchNbrSamples(minRow, iRow, iCol, pNbrSamples);
 
     double weightSum = 0.0;
     double* pWeight = new double[_nbrPoints];
-    idwL[iRow][iCol]=0;
+    idwL[iRow][iCol] = 0;
     for (int i = 0; i < sampleNum; ++i) {
         pWeight[i] = 1 / pow(pNbrSamples[i * 2], _idw_power);
         weightSum += pWeight[i];
     }
     for (int i = 0; i < sampleNum; ++i) {
-        double value=pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
+        double value = pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
         //idwL[iRow][iCol] += pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
         idwL[iRow][iCol] += value;
     }
-	
-//for test.
+
+    //for test.
     //idwL[iRow][iCol] = minRow;
     //int blockRow = getBlockRowIndexByCellIndex(iRow+minRow);
     //int blockCol = getBlockColIndexByCellIndex(iCol);
@@ -481,12 +487,12 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     //    (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
     //}
     if (_writePreExpLoad) {
-		idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
-	}
+        idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
+    }
     delete []pNbrSamples;
-    pNbrSamples=nullptr;
+    pNbrSamples = nullptr;
     delete []pWeight;
-    pWeight=nullptr;
-    
+    pWeight = nullptr;
+
     return true;
 }

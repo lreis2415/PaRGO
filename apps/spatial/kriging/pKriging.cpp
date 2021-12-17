@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
 			starttime = MPI_Wtime();
 			ComputeLayer<double> comptLayer("computLayer");
 			comptLayer.addRasterLayerSerial(&idwLayer);
-			comptLayer.initSerial(compuNeighbor, granularity);
+			comptLayer.init(compuNeighbor, granularity);
 			comptLayer.readComputeLoadFile(readLoadPath);
 			comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
 		    if (myRank == 0) cout << "dcmp-read time is " << MPI_Wtime() - starttime << endl;
@@ -302,13 +302,13 @@ int main(int argc, char* argv[]) {
 			starttime = MPI_Wtime();
 			ComputeLayer<double> comptLayer("computLayer");
 			comptLayer.addRasterLayerSerial(&idwLayer);
-			comptLayer.initSerial(compuNeighbor, granularity);
+			comptLayer.init(compuNeighbor, granularity);
 			KrigingTransformation trans(&comptLayer, &krigingOper);
 			trans.run();
 			comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
 		    if (myRank == 0) cout << "dcmp-write time is " << MPI_Wtime() - starttime << endl;
 			if (writeLoadPath) {
-				comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
+				comptLayer.writeComputeIntensityFile(writeLoadPath);
 			}
 		}
 		cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;

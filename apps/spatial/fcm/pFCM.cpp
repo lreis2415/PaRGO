@@ -330,7 +330,7 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         if(readLoadPath) {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(vInputLayers,compuNeighbor,granularity);
+            comptLayer.init(vInputLayers,compuNeighbor,granularity);
             comptLayer.readComputeLoadFile(readLoadPath);
             comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
             if (myRank == 0)
@@ -338,11 +338,11 @@ int main(int argc, char* argv[]) {
         }
         else {
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.initSerial(vInputLayers,compuNeighbor,granularity);
+            comptLayer.init(vInputLayers,compuNeighbor,granularity);
             Transformation<double> transOper(nodataLoad, validLoad, &comptLayer); 
             transOper.run();
             if (writeLoadPath) {
-                comptLayer.writeComputeIntensityFileSerial(writeLoadPath);               
+                comptLayer.writeComputeIntensityFile(writeLoadPath);               
             }
             comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
             if (myRank == 0)

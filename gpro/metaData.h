@@ -50,9 +50,9 @@ namespace GPRO {
     public:
         string format; ///< format of data (GTiff etc.)
         string projection; ///< map projection
-        double *pTransform; ///< map transform
+        double* pTransform; ///< map transform
 
-		double noData; ///< noData value
+        double noData; ///< noData value
         float cellSize; ///< resolution
         int row; ///< row num of data
         int column; ///< column num of data
@@ -60,26 +60,26 @@ namespace GPRO {
         int myrank; ///< rank of this process
         int processor_number; ///< number of processors
 
-		GDALDataType dataType; ///< data type of GDAL
+        GDALDataType dataType; ///< data type of GDAL
         DomDcmpType _domDcmpType; ///< domain decomposition type. i.e. ROW, COL, BLOCK, NON
         SpaceDims _glbDims; ///< space dimension globally.
         CoordBR _MBR; ///< ACTUAL BR. this processor's MBR in global coordinates */
         SpaceDims _localdims; ///< space dimension locally
         CoordBR _localworkBR; ///< VIRTUAL BR. this processor's workBR in local coordinates
 
-	public:
+    public:
         MetaData() { pTransform = new double[6]; }
 
         ~MetaData() {
-            if ( pTransform ) {
+            if (pTransform) {
                 delete pTransform;
-                pTransform = 0;
+                pTransform = nullptr;
             }
         }
 
-        int LoctoGloRow( int i ) { return _MBR.minIRow() + i; }
+        int LoctoGloRow(int i) { return _MBR.minIRow() + i; }
 
-        int LoctoGloCol( int j ) { return _MBR.minICol() + j; }
+        int LoctoGloCol(int j) { return _MBR.minICol() + j; }
 
     };
 };

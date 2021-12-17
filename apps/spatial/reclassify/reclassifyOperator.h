@@ -19,6 +19,9 @@ public:
 
     void setInputLayer(RasterLayer<double>& inputLayer);
     void setOutputLayer(RasterLayer<double>& outputLayer){_outputLayer=&outputLayer;}
+    void setLevels(vector<double>* dLevels){levels=dLevels;}
+    vector<double>* levels;
+
 private:
     bool Operator(const CellCoord &coord, bool operFlag) OVERRIDE;
 

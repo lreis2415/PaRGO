@@ -15,7 +15,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<double>
 // Matrix multiplication
 
 std::vector<std::vector<double>> MatrixTimesMatrix(const std::vector<std::vector<double>>& A,
-	const std::vector<std::vector<double>>& B);
+                                                   const std::vector<std::vector<double>>& B);
 // Matrix times vector
 
 std::vector<double> MatrixTimesVector(const std::vector<std::vector<double>>& A, const std::vector<double>& x);
@@ -24,76 +24,74 @@ std::vector<double> MatrixTimesVector(const std::vector<std::vector<double>>& A,
 // 
 // Restricted to positive-definite matrices
 
-class CholeskyDecomposition
-{
+class CholeskyDecomposition {
 public:
 
-	// Constructor
+    // Constructor
 
-	// Matrix is decomposed in-place
+    // Matrix is decomposed in-place
 
-	CholeskyDecomposition(std::vector<std::vector<double>>& sourceMatrix);
+    CholeskyDecomposition(std::vector<std::vector<double>>& sourceMatrix);
 
-	// Destructor
+    // Destructor
 
-	~CholeskyDecomposition();
+    ~CholeskyDecomposition();
 
-	// Decomposition into triangular matrices
+    // Decomposition into triangular matrices
 
-	bool Decompose();
+    bool Decompose();
 
-	// Solve for x in form Ax = b.  A is the original input matrix.
+    // Solve for x in form Ax = b.  A is the original input matrix.
 
-	std::vector<double> Solve(const std::vector<double>& b);
+    std::vector<double> Solve(const std::vector<double>& b);
 
 protected:
-	// Input matrix
+    // Input matrix
 
-	std::vector<std::vector<double>>& decomposedMatrix;
+    std::vector<std::vector<double>>& decomposedMatrix;
 
 private:
-	CholeskyDecomposition(const CholeskyDecomposition&);
+    CholeskyDecomposition(const CholeskyDecomposition&);
 
-	void operator=(const CholeskyDecomposition&);
+    void operator=(const CholeskyDecomposition&);
 
 };
 
-class LUDecomposition
-{
+class LUDecomposition {
 public:
 
-	// Constructor
+    // Constructor
 
-	// Matrix is decomposed in-place
+    // Matrix is decomposed in-place
 
-	LUDecomposition(std::vector<std::vector<double>>& sourceMatrix);
+    LUDecomposition(std::vector<std::vector<double>>& sourceMatrix);
 
-	// Destructor
+    // Destructor
 
-	~LUDecomposition();
+    ~LUDecomposition();
 
-	// Decomposition into triangular matrices
+    // Decomposition into triangular matrices
 
-	bool Decompose();
+    bool Decompose();
 
-	// Solve for x in form Ax = b.  A is the original input matrix.
+    // Solve for x in form Ax = b.  A is the original input matrix.
 
-	std::vector<double> Solve(const std::vector<double>& b);
+    std::vector<double> Solve(const std::vector<double>& b);
 
 protected:
 
-	// Output matrix after decomposition
+    // Output matrix after decomposition
 
-	std::vector<std::vector<double>>& decomposedMatrix;
+    std::vector<std::vector<double>>& decomposedMatrix;
 
-	// Permutation of rows during pivoting
+    // Permutation of rows during pivoting
 
-	std::vector<int> rowPermutation;
+    std::vector<int> rowPermutation;
 
 private:
-	LUDecomposition(const LUDecomposition&);
+    LUDecomposition(const LUDecomposition&);
 
-	void operator=(const LUDecomposition&);
+    void operator=(const LUDecomposition&);
 };
 
 #endif
