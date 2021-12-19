@@ -138,6 +138,7 @@ Enter the root folder of the PaRGO project, and build it from the command line i
       ```
       msbuild ALL_BUILD.vcxproj /p:Configuration=Release
       msbuild INSTALL.vcxproj /p:Configuration=Release
+      
       ```
 
 Reference: [CMake and Visual Studio | Cognitive Waves (wordpress.com)](https://cognitivewaves.wordpress.com/cmake-and-visual-studio/)

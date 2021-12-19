@@ -24,7 +24,6 @@ std::ostream& operator<<(std::ostream& os, const std::vector<std::vector<double>
 	return os;
 }
 
-
 // Matrix multiplication
 
 std::vector<std::vector<double>> MatrixTimesMatrix(const std::vector<std::vector<double>>& A,

@@ -200,7 +200,7 @@ void FCMOperator::assignMaxMembershipDegrees() {
                     }
                 }
                 //if(!_writePreExpLoad)
-                    fcmL[i][j] = cNum;
+                fcmL[i][j] = cNum;
             } else {
                 //if(!_writePreExpLoad)
                     fcmL[i][j] = _noData;

@@ -56,28 +56,20 @@ namespace GPRO {
         /*
         * getters and setters
         */
-        int getComputeGrain() { return _comptGrain; }
+        double getComputeGrain() { return _comptGrain; }
         void setComputGrain(int comptGrain) { _comptGrain = comptGrain; }
 
         /**
          * \brief Init this compute layer. It should be called before solving the compute layer.
          *  
-         * Methods with suffix 'Serial' is safe to be called by all processes. It immediately returns when called by the work processes. Only the master process executes it.
+         * These functions are safe to be called by all processes. It immediately returns when called by the work processes. Only the master process executes it.
+         * Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
          * \param[in] dataLayers init the compute layer by the metadata of the dataLayer.By the way add this dataLayer as a source to solve the compute layer.
          * \param[in] neighborFile path of the neighborhood file (text file).
          * \param[in] comptGrain 1 computeLayer cell contains comptGrain^2 dataLayer cells.
          */
         bool init(vector<RasterLayer<elemType>*> dataLayers, const char* neighborFile, int comptGrain = 1);
         bool init(RasterLayer<elemType>* dataLayer, const char* neighborFile, int comptGrain = 1);
-
-        /**
-         * \brief Init this compute layer. It should be called before solving the compute layer.
-         *  
-         * Metadata is also initialized by the first element of _pDataLayers
-         *  Methods with suffix 'Serial' is safe to be called by all processes. It immediately returns when called by the work processes. Only the master process executes it.
-         * \param[in] neighborFile path of the neighborhood file (text file).
-         * \param[in] comptGrain 1 computeLayer cell contains comptGrain^2 dataLayer cells.
-         */
         bool init(const char* neighborFile, int comptGrain = 1);
 
         void cleanDataLayers();
@@ -348,7 +340,6 @@ template <class elemType>
 bool GPRO::ComputeLayer<elemType>::
 init(const char* neighborFile, int comptGrain) {
     // This function is safe to be called by all processes. Only the process 0 execute it.
-    // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
     if (GetRank() != 0) {
         return true;
     }
@@ -358,7 +349,6 @@ template <class elemType>
 bool GPRO::ComputeLayer<elemType>::
 init(vector<RasterLayer<elemType>*> dataLayers, const char* neighborFile, int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
-    // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
     if (GetRank() != 0) {
         return true;
     }
@@ -372,8 +362,6 @@ init(vector<RasterLayer<elemType>*> dataLayers, const char* neighborFile, int co
 template <class elemType>
 bool GPRO::ComputeLayer<elemType>::
 init(RasterLayer<elemType>* dataLayer, const char* neighborFile, int comptGrain) {
-    // It is a SERIAL function. Only invoked by process 0.
-    // Implicitly using members from base class is valid in Visual Studio but not allowed in gc++. i.e. _pMetaData = new MetaData() arises an error.
     if (GetRank() != 0) {
         return true;
     }

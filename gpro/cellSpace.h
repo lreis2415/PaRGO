@@ -24,6 +24,7 @@
 #include <iostream>
 #include "mpi.h"
 #include <gdal_priv.h>
+#include <iomanip>
 
 using namespace std;
 

@@ -94,3 +94,4 @@ pip-log.txt
 # Clion
 cmake-build*/
 .idea
+out/*

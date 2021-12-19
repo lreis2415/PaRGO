@@ -1019,9 +1019,8 @@ writeFile(const char* outputfile) {
         //done by master or not to support?
     }
     else {
-
+        return rowWriteFile(outputfile);
     }
-    return rowWriteFile(outputfile);
 }
 
 template <class elemType>
@@ -1034,8 +1033,7 @@ rowWriteFile(const char* outputfile) {
             << " Error: create file failed!" << endl;
         MPI_Finalize();
     }
-    GDALDataset* poDataset = nullptr;
-    poDataset = static_cast<GDALDataset*>(GDALOpen(outputfile, GA_Update));
+    GDALDataset* poDataset = static_cast<GDALDataset*>(GDALOpen(outputfile, GA_Update));
     if (poDataset == nullptr) {
         cout << "data file is not open correct" << endl;
         exit(1);
@@ -1055,28 +1053,42 @@ rowWriteFile(const char* outputfile) {
                              _pMetaData->dataType, 0, 0);
     }
     else {
+        int nXOff=0;
+        int nYOff;
+        int nXSize=_pMetaData->_glbDims.nCols();
+        int nYSize;
+        int nBufXSize=_pMetaData->_glbDims.nCols();
+        int nBufYSize;
+        elemType* pData;
         if (_pMetaData->myrank == 0) {
-            poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                                 _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                                 _pMetaData->dataType, 0, 0);
+            nYOff=0;
+            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            pData=_pCellSpace->_matrix;
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
         }
         else if (_pMetaData->myrank == (_pMetaData->processor_number - 1)) {
-            poBanddest->RasterIO(GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                                 _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + 1,
-                                 _pMetaData->dataType, 0, 0);
+            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
+            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
         }
         else {
-            poBanddest->RasterIO(GF_Write, 0, _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
-                                 _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nCols(), _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1,
-                                 _pMetaData->dataType, 0, 0);
+            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
+            nYSize= _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
         }
+        // cout<<*_pCellSpace;
+        poBanddest->RasterIO(GF_Write, nXOff, nYOff, nXSize, nYSize, pData, nBufXSize, nBufYSize, _pMetaData->dataType, 0, 0);
     }
 
     MPI_Barrier(MPI_COMM_WORLD); //if needed?
-    if (poDataset != nullptr) {
-        GDALClose(static_cast<GDALDatasetH>(poDataset));
-        poDataset = nullptr;
-    }
+    GDALClose(poDataset);
+    poDataset = nullptr;
+    // if (poDataset != nullptr) {
+    //     GDALClose(static_cast<GDALDatasetH>(poDataset));
+    //     poDataset = nullptr;
+    // }
     return true;
 }
 

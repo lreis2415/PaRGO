@@ -21,8 +21,8 @@ bool ReclassifyOperator::Operator(const CellCoord& coord, bool operFlag) {
     }
 
 
-    for (int i=0; i<levels.size()-1; i++) {
-        if(v>=levels[i]&&v<levels[i+1]) {
+    for (int i=0; i<levels->size()-1; i++) {
+        if(v>=(*levels)[i]&&v<(*levels)[i+1]) {
             result=i;
             break;
         }
