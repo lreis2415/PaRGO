@@ -245,6 +245,7 @@ operator<<(ostream& os, const CellSpace<elemType>& cellSpace) {
     int nCols = cellSpace.nCols();
     //os << nRows << " " << nCols << endl;
     for (int iRow = 0; iRow < nRows; iRow++) {
+        os << iRow << ": ";
         for (int iCol = 0; iCol < nCols; iCol++) {
             os << cellSpace[iRow][iCol] << " ";
         } // End of iCol loop

@@ -973,9 +973,9 @@ createFile(const char* outputfile) {
             return false;
         }
         char** papszMetadata = nullptr;
-        papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKXSIZE", "256");
-        papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKYSIZE", "1");
-        papszMetadata = CSLSetNameValue(papszMetadata, "COMPRESS", "LZW");
+        // papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKXSIZE", "256");
+        // papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKYSIZE", "1");
+        // papszMetadata = CSLSetNameValue(papszMetadata, "COMPRESS", "LZW");
 
         if (CSLFetchBoolean(papszMetadata, GDAL_DCAP_CREATE, FALSE));
         //cout<< "This format driver supports Create() method."<<endl;
@@ -1069,6 +1069,7 @@ rowWriteFile(const char* outputfile) {
         else if (_pMetaData->myrank == (_pMetaData->processor_number - 1)) {
             nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
             nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            int mirow= _pNbrhood->minIRow();
             pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
             nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
         }
@@ -1078,7 +1079,7 @@ rowWriteFile(const char* outputfile) {
             pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
             nBufYSize=_pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
         }
-        // cout<<*_pCellSpace;
+        cout<<*_pCellSpace;
         poBanddest->RasterIO(GF_Write, nXOff, nYOff, nXSize, nYSize, pData, nBufXSize, nBufYSize, _pMetaData->dataType, 0, 0);
     }
 
