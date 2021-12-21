@@ -196,9 +196,13 @@ Now you can open Visual Studio and start to program in the PaRGO way!
 
 PaRGO encapsulates lots of parallel details (MPI functions) to provide serial programming experience. If you are unfamiliar with MPI and parallel programming,  you will find it relatively easy to use PaRGO. If you are familiar with MPI, you will also find it convenient to make parallel program.
 
+### Write a local algorithm
+
+To write a simple parallel local algorithm, you don't have to know any parallel programming knowledge. Please refer to the `reclassify` algorithm for a simple local algorithm.
+
 ### MPI basics
 
-MPI is the Message Passing Interface. By using MPI functions, multiple processes are assigned with each others' computation tasks, and communicate with each other to exchange intermediate results. Algorithms in PaRGO almost all include the following mostly used functions. While it's fine to copy some of the functions from an existing algorithm in PaRGO (e.g., the `reclassify` algorithm) to write a simple local geocomputation algorithm, it's better to understand some basic functions before coding. W
+MPI is the Message Passing Interface. By using MPI functions, multiple processes are assigned with each others' computation tasks, and communicate with each other to exchange intermediate results. Algorithms in PaRGO almost all include the following mostly used functions. While it's fine to copy some of the functions from an existing algorithm in PaRGO (e.g., the `reclassify` algorithm) to write a simple local geocomputation algorithm, it's better to understand some basic functions before coding. 
 
 1. `MPI_Init(int argc, char* argv[])` 
 2. `MPI_Finalize()`
@@ -209,9 +213,7 @@ MPI is the Message Passing Interface. By using MPI functions, multiple processes
 
 Full API document please see [MPI Reference - Message Passing Interface | Microsoft Docs](https://docs.microsoft.com/en-us/message-passing-interface/mpi-reference).
 
-### Write a local algorithm
 
-Please refer to the `reclassify` algorithm for a simple local algorithm
 
 ### Write a focal algorithm
 
