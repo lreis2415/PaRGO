@@ -442,14 +442,19 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     int iCol = coord.iCol();
     CellSpace<double>& idwL = *_pIDWLayer->cellSpace();
 
-    int maskRow = _pIDWLayer->rowAtOtherLayer(_pMaskLayer, iRow);
-    int maskCol = _pIDWLayer->colAtOtherLayer(_pMaskLayer, iCol);
-    double mask = (*_pMaskLayer->cellSpace())[maskRow][maskCol];
-    double maskNoData = _pMaskLayer->metaData()->noData;
-    if (mask == maskNoData) {
-        (*_pIDWLayer->cellSpace())[iRow][iCol] = _noData;
+    bool isSkip=false;
+    if(_pMaskLayer) {
+        int maskRow = _pIDWLayer->rowAtOtherLayer(_pMaskLayer, iRow);
+        int maskCol = _pIDWLayer->colAtOtherLayer(_pMaskLayer, iCol);
+        int mask = (*_pMaskLayer->cellSpace())[maskRow][maskCol];
+        int maskNoData = _pMaskLayer->metaData()->noData;
+        if(mask == 0 | mask == maskNoData) {
+            isSkip=true;
+        }
+    }
+    if (isSkip) {
+        idwL[iRow][iCol] = _noData;
         if (_writePreExpLoad) {
-            //(*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
             idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
         }
         return true;
@@ -471,21 +476,9 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     }
     for (int i = 0; i < sampleNum; ++i) {
         double value = pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
-        //idwL[iRow][iCol] += pNbrSamples[i * 2 + 1] * pWeight[i] / weightSum;
         idwL[iRow][iCol] += value;
     }
 
-    //for test.
-    //idwL[iRow][iCol] = minRow;
-    //int blockRow = getBlockRowIndexByCellIndex(iRow+minRow);
-    //int blockCol = getBlockColIndexByCellIndex(iCol);
-    //int blockCols = _blockCols;
-    ////idwL[iRow][iCol] = blockRow*blockCols+blockCol;
-    //idwL[iRow][iCol] = sampleNum;
-
-    //if(_pComptLayer) {
-    //    (*_pComptLayer->cellSpace())[iRow][iCol] += (MPI_Wtime()-startTime) * 1000;
-    //}
     if (_writePreExpLoad) {
         idwL[iRow][iCol] = (MPI_Wtime() - startTime) * 1000;
     }

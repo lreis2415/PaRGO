@@ -37,12 +37,12 @@ class IDWOperator : public RasterOperator<double>
 public:
 	IDWOperator()
 		:RasterOperator<double>(),
-		 _iterNum(0), flag(true), _sample_nums(0)
+		 _iterNum(0), flag(true), _sample_nums(0), _pMaskLayer(nullptr)
 		{}
 
 	IDWOperator( float cellsize, int nbrPoints, int idw_power, double bufferSize, double blockSize )
 		:RasterOperator<double>(),
-		_iterNum(0), flag(true), _sample_nums(0), _cellSize(cellsize), _nbrPoints(nbrPoints), _idw_power(idw_power), _idw_buffer(bufferSize), _blockSize(blockSize), _noData(NODATA_DEFINE)
+		_iterNum(0), flag(true), _sample_nums(0), _cellSize(cellsize), _nbrPoints(nbrPoints), _idw_power(idw_power), _idw_buffer(bufferSize), _blockSize(blockSize), _noData(NODATA_DEFINE), _pMaskLayer(nullptr)
 	{}
 
 	~IDWOperator();

@@ -33,10 +33,10 @@ namespace GPRO {
          * \param[in] argc same as the main function
          * \param[in] argv same as the main function
          */
-        static bool START( ProgramType programType, int argc, char *argv[] );
-         /**
-         * \brief finalize outside framework
-         */
+        static bool START(ProgramType programType, int argc, char* argv[]);
+        /**
+        * \brief finalize outside framework
+        */
         static bool END();
 
     public:

@@ -14,13 +14,16 @@ bool IdwTransformation::Operator(const CellCoord &coord) {
     
     CellSpace<double>& comptL = *_pComptLayer->cellSpace();
 
-    int maskRow= _pComptLayer->rowAtOtherLayer(_idwOperator->getMaskLayer(),cRow);
-    int maskCol= _pComptLayer->colAtOtherLayer(_idwOperator->getMaskLayer(),cCol);
-    int mask = (*_idwOperator->getMaskLayer()->cellSpace())[maskRow][maskCol];
-    if(mask==0) {
-        comptL[cRow][cCol]=_noData;
-        return true;
+    if(_idwOperator->getMaskLayer()) {
+        int maskRow= _pComptLayer->rowAtOtherLayer(_idwOperator->getMaskLayer(),cRow);
+        int maskCol= _pComptLayer->colAtOtherLayer(_idwOperator->getMaskLayer(),cCol);
+        int mask = (*_idwOperator->getMaskLayer()->cellSpace())[maskRow][maskCol];
+        if(mask==0 | mask == _idwOperator->getMaskLayer()->metaData()->noData) {
+            comptL[cRow][cCol]=_noData;
+            return true;
+        }
     }
+
     int blockRow = _idwOperator->getBlockRowIndexByCellIndex(cRow,_pComptLayer->_pMetaData->cellSize);
     int blockCol = _idwOperator->getBlockColIndexByCellIndex(cCol,_pComptLayer->_pMetaData->cellSize);
     int blockCols = _idwOperator->getBlockCols();

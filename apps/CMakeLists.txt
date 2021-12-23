@@ -6,6 +6,7 @@ geo_include_directories(${GPRO_DIR} ${GDAL_INCLUDE_DIR} ${MPI_INCLUDE_PATH})
 ADD_SUBDIRECTORY(./hydrology)
 ADD_SUBDIRECTORY(./morphology)
 ADD_SUBDIRECTORY(./spatial)
+ADD_SUBDIRECTORY(./demo)
 
 ### For CLion to implement the "make install" command
 ADD_CUSTOM_TARGET(install_${PROJECT_NAME}

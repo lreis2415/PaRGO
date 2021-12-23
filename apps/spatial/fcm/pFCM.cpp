@@ -249,12 +249,13 @@ int main(int argc, char* argv[]) {
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-
+    
+#ifdef _DEBUG
     int name_len = MPI_MAX_PROCESSOR_NAME;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(processor_name,&name_len);
     if (myRank == 0) {
-        cout<<"PaRGO-FCM. "<<process_nums<<" core(s)"<<endl;
+        cout<<"PaRGO-FCM. "<<process_nums<< " core(s) by "<<processor_name << endl;
         for (int i = 0; i < argc; ++i) {
             cout<<argv[i];
             if(argv[i][0]=='-') 
@@ -264,6 +265,7 @@ int main(int argc, char* argv[]) {
         }
         cout<<endl;
     }
+#endif
 
     double starttime;
     double endtime;
@@ -290,9 +292,9 @@ int main(int argc, char* argv[]) {
         vDegreeLayer.push_back(pLayer);
     }
 
-    if (decomposeBySapce) {
+    if (decomposeBySapce) {//equal-area strategy
         for (int i = 0; i < vInputnames.size(); i++) {
-            vInputLayers[i]->readNeighborhood(dataNeighbor);
+            vInputLayers[i]->newLocalNbrhood();
             vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
         }
         fcmLayer.copyLayerInfo(*vInputLayers[0]);
@@ -307,54 +309,52 @@ int main(int argc, char* argv[]) {
         fcmOper.degLayer(vDegreeLayer);
 
         ComputeLayer<double> comptLayer("copmtLayer");
-        //if(writeLoadPath) {
-        //    comptLayer.initSerial(vInputLayers,compuNeighbor);
-        //    fcmOper.comptLayer(comptLayer);
-        //}
+
+        //if record execution time for preliminary experiment.
+        //if true, the output file will be replaced by the time-recorded layer.
         if (writeLoadPath) {
             fcmOper._writePreExpLoad=true;
         }
         starttime = MPI_Wtime();
         fcmOper.Run();
-        //if(writeLoadPath)
-        //    comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
+#ifdef _DEBUG
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
         cout<< "rank" <<myRank<<" reduce time: "<<fcmOper.reduceTime<<"s"<<endl;
+#endif
     }
-    else{
+    else{//the proposed load-balancing strategy
+
+         //Fill the spatial computational domain. This is a serial procedure.
     	for (int i = 0; i < vInputnames.size(); i++) {
-            vInputLayers[i]->readNeighborhoodSerial(dataNeighbor);
             vInputLayers[i]->readGlobalFileSerial(vInputnames[i]);
 		}
         CoordBR subWorkBR;
         starttime = MPI_Wtime();
-        if(readLoadPath) {
+        if(readLoadPath) {//preliminary experiment mode, read the raster layer with recorded execution time.
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.init(vInputLayers,compuNeighbor,granularity);
+            comptLayer.init(vInputLayers,nullptr,granularity);
             comptLayer.readComputeLoadFile(readLoadPath);
-            comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR );
+            comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR ); // Decompose the spatial computational domain.
             if (myRank == 0)
                 cout << "compute-read-dcmp time is " << MPI_Wtime() - starttime << endl;
         }
-        else {
+        else {//estimate function mode
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.init(vInputLayers,compuNeighbor,granularity);
+            comptLayer.init(vInputLayers,nullptr,granularity);
             Transformation<double> transOper(nodataLoad, validLoad, &comptLayer); 
             transOper.run();
             if (writeLoadPath) {
                 comptLayer.writeComputeIntensityFile(writeLoadPath);               
             }
-            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
             if (myRank == 0)
                 cout << "compute-write-dcmp time is " << MPI_Wtime() - starttime << endl;
         }
         cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows()
             << endl;
-        if (myRank == 0)
-            cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
 
+        // Decompose the data domain using the extent of spatial computational subdomains
         for (int i = 0; i < vInputnames.size(); i++) {
-            vInputLayers[i]->readNeighborhood(dataNeighbor);
             vInputLayers[i]->readFile(vInputnames[i], subWorkBR, ROWWISE_DCMP);
         }
         fcmLayer.copyLayerInfo(*vInputLayers[0]);
@@ -368,8 +368,11 @@ int main(int argc, char* argv[]) {
         fcmOper.degLayer(vDegreeLayer);
         starttime = MPI_Wtime();
         fcmOper.Run();
+#ifdef _DEBUG
         cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
         cout<< "rank" <<myRank<<" reduce time: "<<fcmOper.reduceTime<<"s"<<endl;
+#endif
+
     }
     MPI_Barrier(MPI_COMM_WORLD);
     endtime = MPI_Wtime();

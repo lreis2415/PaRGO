@@ -103,12 +103,6 @@ void FCMOperator::createRandomIdx(int nums, int range, int* randomIdx) {
             i--; //generate a new one if repeated
         }
     }
-    ////fixed cluster center for test.
-    //centerIndex[0] = (range/5)+(_ySize/3)*2;
-    //centerIndex[1] = (range/3)+(_ySize/3);
-    //centerIndex[2] = (range/3)+(_ySize/3)*2;
-    //centerIndex[3] = (range/3)*2+(_ySize/3);
-    //centerIndex[4] = (range/3)*2+(_ySize/3)*2;
 }
 
 void FCMOperator::fnDistance(int curRow, int curCol, double* pInputVal) {
@@ -199,21 +193,23 @@ void FCMOperator::assignMaxMembershipDegrees() {
                         }
                     }
                 }
-                //if(!_writePreExpLoad)
-                fcmL[i][j] = cNum;
+                if(!_writePreExpLoad) {
+                    fcmL[i][j] = cNum;
+                }
             } else {
-                //if(!_writePreExpLoad)
+                if(!_writePreExpLoad){
                     fcmL[i][j] = _noData;
+                }
                 for (int p = 0; p < clusterNum; p++) {
                     (*_vDegLayer[p]->cellSpace())[i][j] = _noData;
                 }
             }
-            //if (_writePreExpLoad){
-            //    if (fcmL[i][j] < 0) {
-            //        fcmL[i][j] = 0;
-            //    }
-            //    fcmL[i][j] += (MPI_Wtime() - time) * 1000;
-            //} 
+            if (_writePreExpLoad){
+                if (fcmL[i][j] < 0) {
+                    fcmL[i][j] = 0;
+                }
+                fcmL[i][j] += (MPI_Wtime() - time) * 1000;
+            } 
         }
     }
 }

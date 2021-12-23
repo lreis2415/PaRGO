@@ -1,5 +1,5 @@
-#ifndef IDWOPERATOR_H
-#define IDWOPERATOR_H
+#ifndef DEMO1_H
+#define DEMO1_H
 
 #include "cellSpace.h"
 #include "neighborhood.h"
@@ -15,7 +15,6 @@ class ReclassifyOperator : public RasterOperator<double>
 public:
 	ReclassifyOperator()
 		:RasterOperator<double>(){};
-
 
     void setInputLayer(RasterLayer<double>& inputLayer);
     void setOutputLayer(RasterLayer<double>& outputLayer){_outputLayer=&outputLayer;}

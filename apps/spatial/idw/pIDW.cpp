@@ -32,8 +32,6 @@ void Usage(const string& error_msg = "") {
     }
 
     cout << " Usage: idw -sample <sample points file> " << endl
-        << "-dataNbr <data layer neighbor file> " << endl
-        << "-computeNbr <compute layer neighbor file>" << endl
         << "-out <output raster file>" << endl
         << "-resolution <output resolution (length of one cell)(meter)>" << endl
         << "-fieldIndex <index of the field to be calculated>" << endl
@@ -56,20 +54,13 @@ void Usage(const string& error_msg = "") {
     cout << "(optional)'readLoad' is the path to load file to guide decomposition. Only needed when decompose set to 'compute'" << endl;
 
 
-    //cout << "Example.1. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif" << endl;
-    //cout << "Example.2. slope -elev /path/to/elev.tif -nbr /path/to/moore.nbr -slp /path/to/slp.tif -mtd SD" << endl;
-    //cout << "Example.3. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif" << endl;
-    //cout << "Example.4. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif TFD" << endl;
-
     exit(1);
 }
 
 int main(int argc, char* argv[]) {
-    char* inputFileName;
-    char* maskFileName;
-    char* outputFileName;
-    char* dataNeighbor;
-    char* compuNeighbor;
+    char* inputFileName=nullptr;
+    char* maskFileName=nullptr;
+    char* outputFileName=nullptr;
     float cellSize;
     int fldIdx;
     int idw_nbrPoints;
@@ -104,28 +95,6 @@ int main(int argc, char* argv[]) {
             }
             else {
                 Usage("No argument followed '-mask'!");
-            }
-        }
-        else if (strcmp(argv[i], "-dataNbr") == 0) {
-            simpleusage = false;
-            i++;
-            if (argc > i) {
-                dataNeighbor = argv[i];
-                i++;
-            }
-            else {
-                Usage("No argument followed '-dataNbr'!");
-            }
-        }
-        else if (strcmp(argv[i], "-computeNbr") == 0) {
-            simpleusage = false;
-            i++;
-            if (argc > i) {
-                compuNeighbor = argv[i];
-                i++;
-            }
-            else {
-                Usage("No argument followed '-computeNbr'!");
             }
         }
         else if (strcmp(argv[i], "-out") == 0) {
@@ -259,11 +228,13 @@ int main(int argc, char* argv[]) {
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
+    
+#ifdef _DEBUG
     int name_len = MPI_MAX_PROCESSOR_NAME;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(processor_name, &name_len);
     if (myRank == 0) {
-        cout << "PaRGO-IDW. " << process_nums << " core(s)" << endl;
+        cout << "PaRGO-IDW. " << process_nums << " core(s) by "<<processor_name << endl;
         for (int i = 0; i < argc; ++i) {
             cout << argv[i];
             if (argv[i][0] == '-')
@@ -273,7 +244,7 @@ int main(int argc, char* argv[]) {
         }
         cout << endl;
     }
-    // cout << "process " << myRank << " on " << processor_name << endl;
+#endif
 
     double starttime;
 
@@ -289,63 +260,72 @@ int main(int argc, char* argv[]) {
     vTemp.swap(samples);
 
     RasterLayer<int> maskLayer("maskLayer");
-    maskLayer.readNeighborhood(dataNeighbor);
+    maskLayer.newLocalNbrhood();
     RasterLayer<double> idwLayer("idwLayer");
-    idwLayer.readNeighborhood(dataNeighbor);
+    idwLayer.newLocalNbrhood();
 
-    if (decomposeBySapce) {
+    if (decomposeBySapce) {//equal-area strategy
         idwOper.idwLayer(idwLayer, &spatialrefWkt);
-        maskLayer.readFile(maskFileName, ROWWISE_DCMP);
-        idwOper.maskLayer(maskLayer);
+        if(maskFileName){
+            maskLayer.readFile(maskFileName, ROWWISE_DCMP);
+            idwOper.maskLayer(maskLayer);
+        }
         ComputeLayer<double> comptLayer("computeLayer");
+
+        //if record execution time for preliminary experiment.
+        //if true, the output file will be replaced by the time-recorded layer.
         if (writeLoadPath) {
             idwOper._writePreExpLoad = true;
         }
-        //if (writeLoadPath) {
-        //    comptLayer.addRasterLayerSerial(&idwLayer);
-        //    comptLayer.initSerial(compuNeighbor, 1);
-        //    idwOper.comptLayer(comptLayer);
-        //}
         if (myRank == 0) cout << "start computing" << endl;
         starttime = MPI_Wtime();
         idwOper.Run(); //fill idwLayer
-        //if (writeLoadPath)
-        //    comptLayer.writeComputeIntensityFileSerial(writeLoadPath);
     }
-    else {
+    else {//the proposed load-balancing strategy
+
+         //Fill the spatial computational domain. This is a serial procedure.
         idwOper.idwLayerSerial(idwLayer, &spatialrefWkt);
         CoordBR subWorkBR;
 
         if (myRank == 0) cout << "start dcmp" << endl;
-        if (readLoadPath) {
+        if (readLoadPath) {//preliminary experiment mode, read the raster layer with recorded execution time.
             starttime = MPI_Wtime();
             ComputeLayer<double> comptLayer("computLayer");
             comptLayer.addRasterLayerSerial(&idwLayer);
-            comptLayer.init(compuNeighbor, granularity);
+            comptLayer.init(nullptr, granularity);
             comptLayer.readComputeLoadFile(readLoadPath);
-            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
         }
-        else {
+        else {//estimate function mode
             RasterLayer<int> fullMaskLayer("fullMaskLayer");
-            fullMaskLayer.readNeighborhood(dataNeighbor);
-            fullMaskLayer.readGlobalFileSerial(maskFileName);
-            idwOper.maskLayer(fullMaskLayer);
+            if(maskFileName) {
+                fullMaskLayer.newLocalNbrhood();
+                fullMaskLayer.readGlobalFileSerial(maskFileName);
+                idwOper.maskLayer(fullMaskLayer);
+            }
             starttime = MPI_Wtime();
             ComputeLayer<double> comptLayer("computLayer");
             comptLayer.addRasterLayerSerial(&idwLayer);
-            comptLayer.init(compuNeighbor, granularity);
+            comptLayer.init(nullptr, granularity);
             IdwTransformation idwTrans(&comptLayer, &idwOper);
             idwTrans.run();
-            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR);
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
             if (writeLoadPath) {
                 comptLayer.writeComputeIntensityFile(writeLoadPath);
             }
         }
+
         if (myRank == 0) cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
         cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
+
+        // Decompose the data domain using the extent of spatial computational subdomains
         idwOper.idwLayer(idwLayer, &spatialrefWkt, subWorkBR);
-        maskLayer.readFile(maskFileName, subWorkBR, ROWWISE_DCMP);
-        idwOper.maskLayer(maskLayer);
+
+        if(maskFileName) {
+            maskLayer.readFile(maskFileName, subWorkBR, ROWWISE_DCMP);
+            idwOper.maskLayer(maskLayer);
+        }
 
         if (myRank == 0) cout << "start computing" << endl;
         starttime = MPI_Wtime();
@@ -356,7 +336,7 @@ int main(int argc, char* argv[]) {
     idwLayer.writeFile(outputFileName);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    //cout << "write done." << endl;
+    cout << "write done." << endl;
 
     Application::END();
     return 0;

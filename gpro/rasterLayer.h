@@ -822,36 +822,30 @@ layerDcmp(DomDcmpType dcmpType) {
     if (ROWWISE_DCMP == _pMetaData->_domDcmpType) {
         deComp.rowDcmp(*_pMetaData, _pMetaData->processor_number);
     }
+    else if (COLWISE_DCMP == _pMetaData->_domDcmpType) {
+        deComp.colDcmp(*_pMetaData, _pMetaData->processor_number);
+    }
+    else if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
+        cout << __FILE__ << " " << __FUNCTION__
+            << "Error: not support this dcmpType_" << dcmpType
+            << " right now" << endl; //TODO
+        return false;
+    }
+    else if (NON_DCMP == _pMetaData->_domDcmpType) {
+        _pMetaData->_localdims = _pMetaData->_glbDims;
+        CoordBR _glbWorkBR;
+        _pNbrhood->calcWorkBR(_glbWorkBR, _pMetaData->_glbDims);
+        _pMetaData->_localworkBR = _glbWorkBR;
+        CellCoord nwCorner(0, 0);
+        CellCoord seCorner(_pMetaData->_glbDims.nRows() - 1, _pMetaData->_glbDims.nCols() - 1);
+        CoordBR subMBR(nwCorner, seCorner);
+        _pMetaData->_MBR = subMBR;
+    }
     else {
-        if (COLWISE_DCMP == _pMetaData->_domDcmpType) {
-            deComp.colDcmp(*_pMetaData, _pMetaData->processor_number);
-        }
-        else {
-            if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
-                cout << __FILE__ << " " << __FUNCTION__
-                    << "Error: not support this dcmpType_" << dcmpType
-                    << " right now" << endl; //TODO
-                return false;
-            }
-            else {
-                if (NON_DCMP == _pMetaData->_domDcmpType) {
-                    _pMetaData->_localdims = _pMetaData->_glbDims;
-                    CoordBR _glbWorkBR;
-                    _pNbrhood->calcWorkBR(_glbWorkBR, _pMetaData->_glbDims);
-                    _pMetaData->_localworkBR = _glbWorkBR;
-                    CellCoord nwCorner(0, 0);
-                    CellCoord seCorner(_pMetaData->_glbDims.nRows() - 1, _pMetaData->_glbDims.nCols() - 1);
-                    CoordBR subMBR(nwCorner, seCorner);
-                    _pMetaData->_MBR = subMBR;
-                }
-                else {
-                    cout << __FILE__ << " " << __FUNCTION__
-                        << "Error: not support this dcmpType_" << dcmpType
-                        << " right now" << endl;
-                    return false;
-                }
-            }
-        }
+        cout << __FILE__ << " " << __FUNCTION__
+            << "Error: not support this dcmpType_" << dcmpType
+            << " right now" << endl;
+        return false;
     }
     newCellSpace(_pMetaData->_localdims);
     return true;
@@ -966,15 +960,14 @@ createFile(const char* outputfile) {
     GDALAllRegister();
 
     if (_pMetaData->myrank == 0) {
-        GDALDriver* poDriver = nullptr;
-        poDriver = GetGDALDriverManager()->GetDriverByName(_pMetaData->format.c_str());
+        GDALDriver* poDriver = GetGDALDriverManager()->GetDriverByName(_pMetaData->format.c_str());
         if (poDriver == nullptr) {
             cout << "poDriver is NULL." << endl;
             return false;
         }
         char** papszMetadata = nullptr;
-        // papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKXSIZE", "256");
-        // papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKYSIZE", "1");
+        papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKXSIZE", "256");
+        papszMetadata = CSLSetNameValue(papszMetadata, "BLOCKYSIZE", "1");
         // papszMetadata = CSLSetNameValue(papszMetadata, "COMPRESS", "LZW");
 
         if (CSLFetchBoolean(papszMetadata, GDAL_DCAP_CREATE, FALSE));
@@ -1017,6 +1010,7 @@ writeFile(const char* outputfile) {
     }
     else if (NON_DCMP == _pMetaData->_domDcmpType) {
         //done by master or not to support?
+        return false;
     }
     else {
         return rowWriteFile(outputfile);
@@ -1069,7 +1063,6 @@ rowWriteFile(const char* outputfile) {
         else if (_pMetaData->myrank == (_pMetaData->processor_number - 1)) {
             nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
             nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
-            int mirow= _pNbrhood->minIRow();
             pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
             nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
         }
@@ -1079,7 +1072,7 @@ rowWriteFile(const char* outputfile) {
             pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
             nBufYSize=_pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
         }
-        cout<<*_pCellSpace;
+        // cout<<*_pCellSpace;
         poBanddest->RasterIO(GF_Write, nXOff, nYOff, nXSize, nYSize, pData, nBufXSize, nBufYSize, _pMetaData->dataType, 0, 0);
     }
 
@@ -1296,28 +1289,30 @@ template <class elemType>
 int GPRO::RasterLayer<elemType>::
 rowAtOtherLayer(RasterLayer<double>* layer, int row) {
     double scale = static_cast<double>(layer->metaData()->_glbDims.nRows()) / _pMetaData->_glbDims.nRows();
-    return scale * row;
+    return min(scale * row, layer->_pMetaData->_localworkBR.maxIRow());
 }
 
 template <class elemType>
 int GPRO::RasterLayer<elemType>::
 rowAtOtherLayer(RasterLayer<int>* layer, int row) {
+    int a=layer->metaData()->_glbDims.nRows();
+    int b=_pMetaData->_glbDims.nRows();
     double scale = static_cast<double>(layer->metaData()->_glbDims.nRows()) / _pMetaData->_glbDims.nRows();
-    return scale * row;
+    return min(scale * row, layer->_pMetaData->_localworkBR.maxIRow());
 }
 
 template <class elemType>
 int GPRO::RasterLayer<elemType>::
 colAtOtherLayer(RasterLayer<double>* layer, int col) {
     double scale = static_cast<double>(layer->metaData()->_glbDims.nCols()) / _pMetaData->_glbDims.nCols();
-    return scale * col;
+    return min(scale * col, layer->_pMetaData->_localworkBR.maxICol());
 }
 
 template <class elemType>
 int GPRO::RasterLayer<elemType>::
 colAtOtherLayer(RasterLayer<int>* layer, int col) {
     double scale = static_cast<double>(layer->metaData()->_glbDims.nCols()) / _pMetaData->_glbDims.nCols();
-    return scale * col;
+    return min(scale * col, layer->_pMetaData->_localworkBR.maxICol());
 }
 
 #endif

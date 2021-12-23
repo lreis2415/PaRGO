@@ -16,12 +16,9 @@
 #define RASTEROPERATOR_H
 
 #include "basicTypes.h"
-#include "basicCell.h"
-#include "metaData.h"
 #include "rasterLayer.h"
 #include "communication.h"
 #include "application.h"
-#include <string>
 #include <iostream>
 #include <typeinfo>
 #include <vector>

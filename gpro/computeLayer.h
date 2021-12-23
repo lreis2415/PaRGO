@@ -71,6 +71,7 @@ namespace GPRO {
         bool init(vector<RasterLayer<elemType>*> dataLayers, const char* neighborFile, int comptGrain = 1);
         bool init(RasterLayer<elemType>* dataLayer, const char* neighborFile, int comptGrain = 1);
         bool init(const char* neighborFile, int comptGrain = 1);
+        bool pInit(const char* neighborFile, int comptGrain = 1);
 
         void cleanDataLayers();
         vector<RasterLayer<elemType>*>* dataLayers();
@@ -264,77 +265,77 @@ _init(const char* neighborFile, int comptGrain) {
     return true;
 }
 
-////parallel init not completed
-// template <class elemType>
-// bool GPRO::ComputeLayer<elemType>::
-// init(const char* neighborFile, int comptGrain) {
-//     if (_vDataLayers.empty()) {
-//         return false;
-//     }
-//
-//     RasterLayer<elemType>::readNeighborhood(neighborFile);
-//     const MetaData& rhs = *(_vDataLayers[0]->_pMetaData);
-//     RasterLayer<elemType>::_pMetaData = new MetaData();
-//     MetaData*& pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
-//
-//     _comptGrain = comptGrain;
-//     pMetaData->cellSize = rhs.cellSize * comptGrain;
-//     pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
-//     pMetaData->row += (rhs._localworkBR.nRows() % comptGrain) ? 1 : 0;
-//     pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
-//     pMetaData->column += (rhs._localworkBR.nCols() % comptGrain) ? 1 : 0;
-//     pMetaData->format = rhs.format;
-//     pMetaData->projection = rhs.projection;
-//     pMetaData->noData = rhs.noData;
-//     pMetaData->myrank = rhs.myrank;
-//     pMetaData->processor_number = GetRank();
-//     pMetaData->_domDcmpType = NON_DCMP;
-//     SpaceDims sdim(pMetaData->row, pMetaData->column);
-//     pMetaData->_glbDims = sdim;
-//     if (pMetaData->_domDcmpType == NON_DCMP) {
-//         CoordBR _glbWorkBR;
-//         RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
-//         pMetaData->_localworkBR = _glbWorkBR;
-//         CellCoord nwCorner(0, 0);
-//         CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
-//         CoordBR subMBR(nwCorner, seCorner);
-//         pMetaData->_MBR = subMBR;
-//         pMetaData->_localdims = pMetaData->_glbDims;
-//     }
-//     else {
-//         CoordBR _glbWorkBR;
-//         RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
-//         pMetaData->_localworkBR = _glbWorkBR;
-//
-//         //关键就是这里MBR要缩放，还要保证范围加起来能一样，目前还不对
-//         pMetaData->row = rhs._MBR.nRows() / comptGrain;
-//         pMetaData->row += (rhs._MBR.nRows() % comptGrain) ? 1 : 0;
-//         pMetaData->column = rhs._MBR.nCols() / comptGrain;
-//         pMetaData->column += (rhs._MBR.nCols() % comptGrain) ? 1 : 0;
-//
-//         CellCoord nwCorner(0, 0);
-//         CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
-//         CoordBR subMBR(nwCorner, seCorner);
-//         pMetaData->_MBR = subMBR;
-//
-//
-//         pMetaData->_localdims = pMetaData->_glbDims;
-//     }
-//
-//     pMetaData->dataType = RasterLayer<elemType>::getGDALType();
-//
-//     for (int i = 0; i < 6; i++) {
-//         pMetaData->pTransform[i] = rhs.pTransform[i];
-//     }
-//     pMetaData->pTransform[0] += rhs._localworkBR.minICol() * rhs.cellSize;
-//     pMetaData->pTransform[3] -= rhs._localworkBR.minIRow() * rhs.cellSize;
-//     pMetaData->pTransform[1] *= comptGrain; //one-pixel distance in the we/ns direction, need update
-//     pMetaData->pTransform[5] *= comptGrain;
-//
-//     RasterLayer<elemType>::newCellSpace(pMetaData->_localdims, 0); //allocate
-//
-//     return true;
-// }
+//parallel init not completed
+ template <class elemType>
+ bool GPRO::ComputeLayer<elemType>::
+ pInit(const char* neighborFile, int comptGrain) {
+     if (_vDataLayers.empty()) {
+         return false;
+     }
+
+     RasterLayer<elemType>::readNeighborhood(neighborFile);
+     const MetaData& rhs = *(_vDataLayers[0]->_pMetaData);
+     RasterLayer<elemType>::_pMetaData = new MetaData();
+     MetaData*& pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
+
+     _comptGrain = comptGrain;
+     pMetaData->cellSize = rhs.cellSize * comptGrain;
+     pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
+     pMetaData->row += (rhs._localworkBR.nRows() % comptGrain) ? 1 : 0;
+     pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
+     pMetaData->column += (rhs._localworkBR.nCols() % comptGrain) ? 1 : 0;
+     pMetaData->format = rhs.format;
+     pMetaData->projection = rhs.projection;
+     pMetaData->noData = rhs.noData;
+     pMetaData->myrank = rhs.myrank;
+     pMetaData->processor_number = GetRank();
+     pMetaData->_domDcmpType = NON_DCMP;
+     SpaceDims sdim(pMetaData->row, pMetaData->column);
+     pMetaData->_glbDims = sdim;
+     if (pMetaData->_domDcmpType == NON_DCMP) {
+         CoordBR _glbWorkBR;
+         RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
+         pMetaData->_localworkBR = _glbWorkBR;
+         CellCoord nwCorner(0, 0);
+         CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
+         CoordBR subMBR(nwCorner, seCorner);
+         pMetaData->_MBR = subMBR;
+         pMetaData->_localdims = pMetaData->_glbDims;
+     }
+     else {
+         CoordBR _glbWorkBR;
+         RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
+         pMetaData->_localworkBR = _glbWorkBR;
+
+         //关键就是这里MBR要缩放，还要保证范围加起来能一样，目前还不对
+         pMetaData->row = rhs._MBR.nRows() / comptGrain;
+         pMetaData->row += (rhs._MBR.nRows() % comptGrain) ? 1 : 0;
+         pMetaData->column = rhs._MBR.nCols() / comptGrain;
+         pMetaData->column += (rhs._MBR.nCols() % comptGrain) ? 1 : 0;
+
+         CellCoord nwCorner(0, 0);
+         CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
+         CoordBR subMBR(nwCorner, seCorner);
+         pMetaData->_MBR = subMBR;
+
+
+         pMetaData->_localdims = pMetaData->_glbDims;
+     }
+
+     pMetaData->dataType = RasterLayer<elemType>::getGDALType();
+
+     for (int i = 0; i < 6; i++) {
+         pMetaData->pTransform[i] = rhs.pTransform[i];
+     }
+     pMetaData->pTransform[0] += rhs._localworkBR.minICol() * rhs.cellSize;
+     pMetaData->pTransform[3] -= rhs._localworkBR.minIRow() * rhs.cellSize;
+     pMetaData->pTransform[1] *= comptGrain; //one-pixel distance in the we/ns direction, need update
+     pMetaData->pTransform[5] *= comptGrain;
+
+     RasterLayer<elemType>::newCellSpace(pMetaData->_localdims, 0); //allocate
+
+     return true;
+ }
 
 template <class elemType>
 bool GPRO::ComputeLayer<elemType>::

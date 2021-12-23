@@ -1,10 +1,8 @@
-#include <ogrsf_frmts.h>
-#include "utility.h"
 #include "reclassifyOperator.h"
 
 void ReclassifyOperator::setInputLayer(RasterLayer<double>& inputLayer) {
     _inputLayer=&inputLayer;
-    _inputLayer->newLocalNbrhood();
+    //_inputLayer->newLocalNbrhood();
     Configure(_inputLayer, false);
 }
 

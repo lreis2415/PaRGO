@@ -19,7 +19,7 @@ using std::endl;
 
 int GetRank() {
     int myRank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     return myRank;
 }
 
@@ -33,7 +33,7 @@ string& Trim(string& s) {
 
 string GetUpper(const string& str) {
     string str_tmp1 = string(str);
-    for (int j = 0; j < int(str_tmp1.length()); j++) str_tmp1[j] = char(toupper(str_tmp1[j]));
+    for (int j = 0; j < static_cast<int>(str_tmp1.length()); j++) str_tmp1[j] = static_cast<char>(toupper(str_tmp1[j]));
     return str_tmp1;
 }
 
@@ -127,7 +127,8 @@ int FindFiles(const char* lp_path, const char* expression, vector<string>& vec_f
         stringcat(fullpath, find_file_data.cFileName);
 
         vec_files.emplace_back(fullpath);
-    } while (::FindNextFile(h_find, &find_file_data));
+    }
+    while (::FindNextFile(h_find, &find_file_data));
 #else
     DIR *dir = opendir(newlp_path);
     //cout<<"Find existed files ..."<<endl;
@@ -179,7 +180,8 @@ bool CleanDirectory(const string& dirpath) {
             for (auto it = existed_files.begin(); it != existed_files.end(); ++it) {
                 remove((*it).c_str());
             }
-        } else {
+        }
+        else {
             /// create new directory
 #ifdef WINDOWS
             LPSECURITY_ATTRIBUTES att = nullptr;
@@ -189,7 +191,8 @@ bool CleanDirectory(const string& dirpath) {
 #endif /* WINDOWS */
         }
         return true;
-    } catch (...) {
+    }
+    catch (...) {
         cout << "Create or clean directory: " << abspath << " failed!" << endl;
         return false;
     }
@@ -199,8 +202,8 @@ bool DeleteDirectory(const string& dirpath, bool del_subdirs/* = true */) {
     string abspath = GetAbsolutePath(dirpath);
     if (!DirectoryExists(abspath)) return true;
 #ifdef WINDOWS
-    bool b_subdirectory = false;      // Flag, indicating whether subdirectories have been found
-    string str_file_path;             // Filepath
+    bool b_subdirectory = false; // Flag, indicating whether subdirectories have been found
+    string str_file_path; // Filepath
     WIN32_FIND_DATA file_information; // File information
 
     string str_pattern = abspath + SEP + "*.*";
@@ -215,8 +218,10 @@ bool DeleteDirectory(const string& dirpath, bool del_subdirs/* = true */) {
                         // Delete subdirectory
                         bool i_rc = DeleteDirectory(str_file_path, del_subdirs);
                         if (!i_rc) return false;
-                    } else b_subdirectory = true;
-                } else {
+                    }
+                    else b_subdirectory = true;
+                }
+                else {
                     // Set file attributes
                     if (::SetFileAttributes(str_file_path.c_str(), FILE_ATTRIBUTE_NORMAL) == FALSE) {
                         return false;
@@ -227,11 +232,12 @@ bool DeleteDirectory(const string& dirpath, bool del_subdirs/* = true */) {
                     }
                 }
             }
-        } while (::FindNextFile(h_file, &file_information) == TRUE);
+        }
+        while (::FindNextFile(h_file, &file_information) == TRUE);
         // Close handle
-        ::FindClose(h_file);
+        FindClose(h_file);
 
-        DWORD dw_error = ::GetLastError();
+        DWORD dw_error = GetLastError();
         if (dw_error != ERROR_NO_MORE_FILES) {
             return false;
         }
@@ -280,7 +286,7 @@ string GetAppPath() {
 #ifdef WINDOWS
     TCHAR buffer[PATH_MAX];
     GetModuleFileName(nullptr, buffer, PATH_MAX);
-    root_path = string(static_cast<char *>(buffer));
+    root_path = string(static_cast<char*>(buffer));
 #elif defined MACOSX
     /// http://stackoverflow.com/a/8149380/4837280
     int ret;
@@ -382,7 +388,8 @@ bool LoadPlainTextFile(const string& filepath, vector<string>& content_strs) {
             vector<string>(content_strs).swap(content_strs);
             // content_strs.shrink_to_fit();
         }
-    } catch (...) {
+    }
+    catch (...) {
         myfile.close();
         cout << "Load plain text file: " << filepath << " failed!" << endl;
     }
