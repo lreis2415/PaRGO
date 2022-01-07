@@ -36,7 +36,7 @@ foreach (c_target ${DEMO_TARGETS})
     install(TARGETS ${c_target} DESTINATION ${INSTALL_DIR})
     LIST(APPEND APP_TARGETS ${c_target})
     IF (MSVC_VERSION GREATER 1600 OR (MSVC_VERSION EQUAL 1600 AND NOT USE_MPI_DEBUGGER) OR XCODE)
-        SET_PROPERTY(TARGET ${c_target} PROPERTY FOLDER "Spatial")
+        SET_PROPERTY(TARGET ${c_target} PROPERTY FOLDER "Demo")
     ENDIF ()
 endforeach (c_target ${DEMO_TARGETS})
 

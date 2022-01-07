@@ -95,3 +95,4 @@ pip-log.txt
 cmake-build*/
 .idea
 out/*
+!out/.gitkeep
