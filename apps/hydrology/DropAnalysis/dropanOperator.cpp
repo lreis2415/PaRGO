@@ -21,20 +21,16 @@ ssaLayer(RasterLayer<double>& layerD) {
 
 void DropanOperator::demLayer(RasterLayer<double>& layerD) {
     _pDEMLayer = &layerD;
-	_pssaNbrhood = layerD.nbrhood();
     Configure(_pDEMLayer, false);
 }
 
-
-
 void DropanOperator::dirLayer(RasterLayer<double>& layerD) {
     _pDirLayer = &layerD;
-	_pssaNbrhood = layerD.nbrhood();
     Configure(_pDirLayer, false);
 }
+
 void DropanOperator::areaLayer(RasterLayer<double>& layerD) {
     _pareaLayer = &layerD;
-	_pssaNbrhood = layerD.nbrhood();
 	_cellSize = _pareaLayer->_pMetaData->cellSize;
     Configure(_pareaLayer, false);
 }
@@ -44,7 +40,6 @@ bool DropanOperator::isTermination() {
     //return num > 0;
 	return true;
 }
-
 
 //does the appropriate updates when a junction is found
 void updateAtJunction(short oOut,long i, long ni,long j, long nj, CellSpace<double>& dir,
@@ -111,7 +106,6 @@ short newOrder(short nOrder[9], bool &junction, bool &source){
 	}
 	return oOut;
 }
-
 
 bool DropanOperator::Operator(const CellCoord& coord, bool operFlag) {
     CellSpace<double>& dem = *(_pDEMLayer->cellSpace());
@@ -195,7 +189,6 @@ bool DropanOperator::Operator(const CellCoord& coord, bool operFlag) {
 	if (contribs[iRow][iCol] < 0 && !(iRow == _maxrow && iCol == _maxcol)) {
         return true;
     }
-
 
 	if(num>=2){
 		if(!contribs[iRow][iCol]){
