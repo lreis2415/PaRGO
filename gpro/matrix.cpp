@@ -45,8 +45,7 @@ CholeskyDecomposition::CholeskyDecomposition(std::vector<std::vector<double>>& s
 }
 
 // Destructor
-CholeskyDecomposition::~CholeskyDecomposition() {
-}
+CholeskyDecomposition::~CholeskyDecomposition() {}
 
 // Decomposition into triangular matrices
 bool CholeskyDecomposition::Decompose() {
@@ -107,8 +106,7 @@ LUDecomposition::LUDecomposition(std::vector<std::vector<double>>& sourceMatrix)
 }
 
 // Destructor
-LUDecomposition::~LUDecomposition() {
-}
+LUDecomposition::~LUDecomposition() {}
 
 // Decomposition into triangular matrices
 bool LUDecomposition::Decompose() {

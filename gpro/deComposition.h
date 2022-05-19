@@ -36,13 +36,11 @@ namespace GPRO {
     class DeComposition {
     public:
         DeComposition()
-            : _pNbrhood(nullptr) {
-        }
+            : _pNbrhood(nullptr) { }
 
         DeComposition(const SpaceDims& cellSpaceDims, const Neighborhood<elemType>& nbrhood);
 
-        ~DeComposition() {
-        }
+        ~DeComposition() { }
 
         bool rowDcmp(MetaData& metaData, int nSubSpcs) const;
         bool colDcmp(MetaData& metaData, int nSubSpcs) const;

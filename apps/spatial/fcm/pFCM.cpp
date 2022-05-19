@@ -36,7 +36,7 @@ void Usage(const string& error_msg = "") {
     if (!error_msg.empty()) {
         cout << "FAILURE: " << error_msg << endl << endl;
     }
-    
+
     cout << " Usage: fcm -srcData <elevation grid file> " << endl
         << "-dataNbr <data layer neighbor file> " << endl
         << "-computeNbr <compute layer neighbor file>" << endl
@@ -53,16 +53,16 @@ void Usage(const string& error_msg = "") {
 
     cout << "'dcmp' available options:" << endl;
     cout << "\t space: (default) compute layer is decomposed equally by space, so it needs no evaluation." << endl;
-    cout << "\t compute: compute layer is decomposed by computing load. To decide the load by running estimation before actual FCM algorithm"<< endl;
+    cout << "\t compute: compute layer is decomposed by computing load. To decide the load by running estimation before actual FCM algorithm" << endl;
 
-    cout << "(optional)'writeLoad' to create/rewrite time-cost load file to represent computing load. It"<< endl;
+    cout << "(optional)'writeLoad' to create/rewrite time-cost load file to represent computing load. It" << endl;
     cout << "\t either captures time cost if decompose set to 'space'" << endl;
     cout << "\t or estimates time cost if decompose set to 'compute'" << endl;
 
-    cout << "(optional)'readLoad' is the path to load file to guide decomposition. Only needed when decompose set to 'compute'"<< endl;
+    cout << "(optional)'readLoad' is the path to load file to guide decomposition. Only needed when decompose set to 'compute'" << endl;
 
-    cout << "(optional)'nodataLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of NoData raster cells."<< endl;
-    cout << "(optional)'validLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of nonempty raster cells."<< endl;
+    cout << "(optional)'nodataLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of NoData raster cells." << endl;
+    cout << "(optional)'validLoad' is required when 'dcmp' set to compute and 'writeLoad' is switched on. It is the estimated load of nonempty raster cells." << endl;
 
 
     exit(1);
@@ -79,10 +79,10 @@ int main(int argc, char* argv[]) {
     int weight;
     int nodataLoad;
     int validLoad;
-    int granularity=10;
+    int granularity = 10;
     bool decomposeBySapce; /// decomp by compute load if false
-    char* writeLoadPath=nullptr;
-    char* readLoadPath=nullptr;
+    char* writeLoadPath = nullptr;
+    char* readLoadPath = nullptr;
     int i = 1;
     bool simpleusage = true;
     while (argc > i) {
@@ -249,21 +249,21 @@ int main(int argc, char* argv[]) {
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-    
+
 #ifdef _DEBUG
     int name_len = MPI_MAX_PROCESSOR_NAME;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
-    MPI_Get_processor_name(processor_name,&name_len);
+    MPI_Get_processor_name(processor_name, &name_len);
     if (myRank == 0) {
-        cout<<"PaRGO-FCM. "<<process_nums<< " core(s) by "<<processor_name << endl;
+        cout << "PaRGO-FCM. " << process_nums << " core(s) by " << processor_name << endl;
         for (int i = 0; i < argc; ++i) {
-            cout<<argv[i];
-            if(argv[i][0]=='-') 
-                cout<<" ";
+            cout << argv[i];
+            if (argv[i][0] == '-')
+                cout << " ";
             else
-                cout<<endl;
+                cout << endl;
         }
-        cout<<endl;
+        cout << endl;
     }
 #endif
 
@@ -272,11 +272,11 @@ int main(int argc, char* argv[]) {
 
     vector<const char *> vInputnames;
     vector<RasterLayer<double> *> vInputLayers;
-    vector<string> tokens = SplitString(inputFileName,',');
-    for(int i=0;i<tokens.size();i++) {
+    vector<string> tokens = SplitString(inputFileName, ',');
+    for (int i = 0; i < tokens.size(); i++) {
         vInputnames.push_back(tokens[i].c_str());
-    	vector<string> fileNameFrags=SplitString(tokens[i].c_str(),'\\');
-        RasterLayer<double>* pLayer = new RasterLayer<double>(fileNameFrags[fileNameFrags.size()-1]);
+        vector<string> fileNameFrags = SplitString(tokens[i].c_str(), '\\');
+        RasterLayer<double>* pLayer = new RasterLayer<double>(fileNameFrags[fileNameFrags.size() - 1]);
         vInputLayers.push_back(pLayer);
     }
     if (vInputnames.empty() || clusterNum == 0 || maxIteration == 0) {
@@ -292,7 +292,8 @@ int main(int argc, char* argv[]) {
         vDegreeLayer.push_back(pLayer);
     }
 
-    if (decomposeBySapce) {//equal-area strategy
+    if (decomposeBySapce) {
+        //equal-area strategy
         for (int i = 0; i < vInputnames.size(); i++) {
             vInputLayers[i]->newLocalNbrhood();
             vInputLayers[i]->readFile(vInputnames[i], ROWWISE_DCMP);
@@ -313,38 +314,41 @@ int main(int argc, char* argv[]) {
         //if record execution time for preliminary experiment.
         //if true, the output file will be replaced by the time-recorded layer.
         if (writeLoadPath) {
-            fcmOper._writePreExpLoad=true;
+            fcmOper._writePreExpLoad = true;
         }
         starttime = MPI_Wtime();
         fcmOper.Run();
 #ifdef _DEBUG
-        cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
-        cout<< "rank" <<myRank<<" reduce time: "<<fcmOper.reduceTime<<"s"<<endl;
+        cout << "rank" << myRank << " Membership degree compute time: " << fcmOper.computeTimeExceptLastCell << "s" << endl;
+        cout << "rank" << myRank << " reduce time: " << fcmOper.reduceTime << "s" << endl;
 #endif
     }
-    else{//the proposed load-balancing strategy
+    else {
+        //the proposed load-balancing strategy
 
-         //Fill the spatial computational domain. This is a serial procedure.
-    	for (int i = 0; i < vInputnames.size(); i++) {
+        //Fill the spatial computational domain. This is a serial procedure.
+        for (int i = 0; i < vInputnames.size(); i++) {
             vInputLayers[i]->readGlobalFileSerial(vInputnames[i]);
-		}
+        }
         CoordBR subWorkBR;
         starttime = MPI_Wtime();
-        if(readLoadPath) {//preliminary experiment mode, read the raster layer with recorded execution time.
+        if (readLoadPath) {
+            //preliminary experiment mode, read the raster layer with recorded execution time.
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.init(vInputLayers,nullptr,granularity);
+            comptLayer.init(vInputLayers, nullptr, granularity);
             comptLayer.readComputeLoadFile(readLoadPath);
-            comptLayer.getCompuLoad( ROWWISE_DCMP, process_nums, subWorkBR ); // Decompose the spatial computational domain.
+            comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
             if (myRank == 0)
                 cout << "compute-read-dcmp time is " << MPI_Wtime() - starttime << endl;
         }
-        else {//estimate function mode
+        else {
+            //estimate function mode
             ComputeLayer<double> comptLayer("computLayer");
-            comptLayer.init(vInputLayers,nullptr,granularity);
-            Transformation<double> transOper(nodataLoad, validLoad, &comptLayer); 
+            comptLayer.init(vInputLayers, nullptr, granularity);
+            Transformation<double> transOper(nodataLoad, validLoad, &comptLayer);
             transOper.run();
             if (writeLoadPath) {
-                comptLayer.writeComputeIntensityFile(writeLoadPath);               
+                comptLayer.writeComputeIntensityFile(writeLoadPath);
             }
             comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
             if (myRank == 0)
@@ -369,15 +373,15 @@ int main(int argc, char* argv[]) {
         starttime = MPI_Wtime();
         fcmOper.Run();
 #ifdef _DEBUG
-        cout<< "rank" <<myRank<<" Membership degree compute time: "<<fcmOper.computeTimeExceptLastCell<<"s"<<endl;
-        cout<< "rank" <<myRank<<" reduce time: "<<fcmOper.reduceTime<<"s"<<endl;
+        cout << "rank" << myRank << " Membership degree compute time: " << fcmOper.computeTimeExceptLastCell << "s" << endl;
+        cout << "rank" << myRank << " reduce time: " << fcmOper.reduceTime << "s" << endl;
 #endif
 
     }
     MPI_Barrier(MPI_COMM_WORLD);
     endtime = MPI_Wtime();
     if (myRank == 0)
-        cout << "compute time is " << endtime - starttime << endl<<endl;
+        cout << "compute time is " << endtime - starttime << endl << endl;
 
     fcmLayer.writeFile(outputFileName);
     cout << "write done." << endl;

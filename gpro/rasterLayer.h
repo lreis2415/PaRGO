@@ -626,9 +626,7 @@ getMPIType() {
     if (typeid(style) == typeid(char)) {
         return MPI_CHAR;
     }
-    else {
-        return MPI_BYTE;
-    }
+    return MPI_BYTE;
 }
 
 template <class elemType>
@@ -926,7 +924,7 @@ newUpscaleFile(const char* inputfile, int g, DomDcmpType dcmpType) {
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
 readFile(const char* inputfile, const CoordBR& subWorkBR, DomDcmpType dcmpType) {
-    //why cleanMetaData crashes£¿
+    //why cleanMetaData crashes?
     if (_pMetaData) {
         cleanMetaData();
     } // to overwrite instead of clean is ok ?
@@ -1002,19 +1000,17 @@ writeFile(const char* outputfile) {
     if (COLWISE_DCMP == _pMetaData->_domDcmpType) {
         return colWriteFile(outputfile);
     }
-    else if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
+    if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
         cout << __FILE__ << " " << __FUNCTION__
             << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType
             << " right now" << endl; //unfinished
         return false;
     }
-    else if (NON_DCMP == _pMetaData->_domDcmpType) {
+    if (NON_DCMP == _pMetaData->_domDcmpType) {
         //done by master or not to support?
         return false;
     }
-    else {
-        return rowWriteFile(outputfile);
-    }
+    return rowWriteFile(outputfile);
 }
 
 template <class elemType>
@@ -1047,30 +1043,30 @@ rowWriteFile(const char* outputfile) {
                              _pMetaData->dataType, 0, 0);
     }
     else {
-        int nXOff=0;
+        int nXOff = 0;
         int nYOff;
-        int nXSize=_pMetaData->_glbDims.nCols();
+        int nXSize = _pMetaData->_glbDims.nCols();
         int nYSize;
-        int nBufXSize=_pMetaData->_glbDims.nCols();
+        int nBufXSize = _pMetaData->_glbDims.nCols();
         int nBufYSize;
         elemType* pData;
         if (_pMetaData->myrank == 0) {
-            nYOff=0;
-            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
-            pData=_pCellSpace->_matrix;
-            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            nYOff = 0;
+            nYSize = _pMetaData->_localworkBR.maxIRow() + 1;
+            pData = _pCellSpace->_matrix;
+            nBufYSize = _pMetaData->_localworkBR.maxIRow() + 1;
         }
         else if (_pMetaData->myrank == (_pMetaData->processor_number - 1)) {
-            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
-            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
-            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
-            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            nYOff = _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
+            nYSize = _pMetaData->_localworkBR.maxIRow() + 1;
+            pData = _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize = _pMetaData->_localworkBR.maxIRow() + 1;
         }
         else {
-            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
-            nYSize= _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
-            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
-            nBufYSize=_pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+            nYOff = _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
+            nYSize = _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+            pData = _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize = _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
         }
         // cout<<*_pCellSpace;
         poBanddest->RasterIO(GF_Write, nXOff, nYOff, nXSize, nYSize, pData, nBufXSize, nBufYSize, _pMetaData->dataType, 0, 0);
@@ -1295,8 +1291,8 @@ rowAtOtherLayer(RasterLayer<double>* layer, int row) {
 template <class elemType>
 int GPRO::RasterLayer<elemType>::
 rowAtOtherLayer(RasterLayer<int>* layer, int row) {
-    int a=layer->metaData()->_glbDims.nRows();
-    int b=_pMetaData->_glbDims.nRows();
+    int a = layer->metaData()->_glbDims.nRows();
+    int b = _pMetaData->_glbDims.nRows();
     double scale = static_cast<double>(layer->metaData()->_glbDims.nRows()) / _pMetaData->_glbDims.nRows();
     return min(scale * row, layer->_pMetaData->_localworkBR.maxIRow());
 }

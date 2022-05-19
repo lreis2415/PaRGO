@@ -30,59 +30,57 @@
 using namespace std;
 using namespace GPRO;
 
-int main(int argc, char *argv[]) 
-{
-	/*  enum ProgramType{MPI_Type = 0,
-				   MPI_OpenMP_Type,
-				   CUDA_Type};*/
-	Application::START(MPI_Type, argc, argv); //init初始化，选择mpi版本
+int main(int argc, char* argv[]) {
+    /*  enum ProgramType{MPI_Type = 0,
+                   MPI_OpenMP_Type,
+                   CUDA_Type};*/
+    Application::START(MPI_Type, argc, argv); //init初始化，选择mpi版本
 
-	char* inputfilename0;
-	char* inputfilename1;
-	char* neighborfile;
-	char* outputfilename;
+    char* inputfilename0;
+    char* inputfilename1;
+    char* neighborfile;
+    char* outputfilename;
 
-	if( argc!=5 ){
-		cerr<<"please input right parameter.";
-		return 0;
-	}else{
-		inputfilename0 = argv[1];	//slope layer
-		inputfilename1 = argv[2];	//SCA layer
-		neighborfile = argv[3]; 
-		outputfilename = argv[4];
-		//threadNUM = atoi(argv[5]);
-	}
+    if (argc != 5) {
+        cerr << "please input right parameter.";
+        return 0;
+    }
+    inputfilename0 = argv[1]; //slope layer
+    inputfilename1 = argv[2]; //SCA layer
+    neighborfile = argv[3];
+    outputfilename = argv[4];
+    //threadNUM = atoi(argv[5]);
 
-	RasterLayer<double> slopeLayer("slopeLayer");
-	slopeLayer.readNeighborhood(neighborfile);
-	slopeLayer.readFile(inputfilename0);
+    RasterLayer<double> slopeLayer("slopeLayer");
+    slopeLayer.readNeighborhood(neighborfile);
+    slopeLayer.readFile(inputfilename0);
 
-	RasterLayer<double> scaLayer("scaLayer");
-	scaLayer.readNeighborhood(neighborfile);
-	scaLayer.readFile(inputfilename1);
+    RasterLayer<double> scaLayer("scaLayer");
+    scaLayer.readNeighborhood(neighborfile);
+    scaLayer.readFile(inputfilename1);
 
-	RasterLayer<double> twiLayer("twiLayer");
-	twiLayer.copyLayerInfo(slopeLayer);
+    RasterLayer<double> twiLayer("twiLayer");
+    twiLayer.copyLayerInfo(slopeLayer);
 
-	double starttime;
-	double endtime;
-	MPI_Barrier(MPI_COMM_WORLD);
-	starttime = MPI_Wtime();
+    double starttime;
+    double endtime;
+    MPI_Barrier(MPI_COMM_WORLD);
+    starttime = MPI_Wtime();
 
-	TWIOperator twiOper;
-	
-	twiOper.SCALayer(scaLayer);
-	twiOper.slopeLayer(slopeLayer);
-	twiOper.twiLayer(twiLayer);
-	
-	twiOper.Run();
+    TWIOperator twiOper;
 
-	MPI_Barrier(MPI_COMM_WORLD);
-	endtime = MPI_Wtime();
-	cout<<"run time is "<<endtime-starttime<<endl;
+    twiOper.SCALayer(scaLayer);
+    twiOper.slopeLayer(slopeLayer);
+    twiOper.twiLayer(twiLayer);
 
-	twiLayer.writeFile(outputfilename);
+    twiOper.Run();
 
-	Application::END();
-	return 0;
+    MPI_Barrier(MPI_COMM_WORLD);
+    endtime = MPI_Wtime();
+    cout << "run time is " << endtime - starttime << endl;
+
+    twiLayer.writeFile(outputfilename);
+
+    Application::END();
+    return 0;
 }

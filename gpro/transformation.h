@@ -50,8 +50,7 @@ namespace GPRO {
          */
         Transformation(elemType nodataLoad, elemType validLoad, ComputeLayer<elemType>* pLayer);
 
-        virtual ~Transformation() {
-        } //virtual Destructor
+        virtual ~Transformation() { } //virtual Destructor
 
         virtual bool isTermination(bool isIter = false) { return isIter; } // confusing.
         bool Configure(ComputeLayer<elemType>* pLayer, bool isCommunication);
@@ -79,21 +78,19 @@ namespace GPRO {
         CoordBR* _pWorkBR; ///< workBR of this Transformation
         int Termination; ///< if it terminates after this round of traverse
     };
-};
 
 template <class elemType>
-GPRO::Transformation<elemType>::
+Transformation<elemType>::
 Transformation()
     : _nodataLoad(0),
       _validLoad(0),
       _pComptLayer(nullptr),
       _pWorkBR(nullptr),
-      Termination(1) {
-}
+      Termination(1) {}
 
 
 template <class elemType>
-GPRO::Transformation<elemType>::
+Transformation<elemType>::
 Transformation(ComputeLayer<elemType>* pLayer)
     : _nodataLoad(0),
       _validLoad(0),
@@ -108,7 +105,7 @@ Transformation(ComputeLayer<elemType>* pLayer)
 
 
 template <class elemType>
-GPRO::Transformation<elemType>::
+Transformation<elemType>::
 Transformation(elemType nodataLoad, elemType validLoad, ComputeLayer<elemType>* pLayer)
     : _nodataLoad(nodataLoad),
       _validLoad(validLoad),
@@ -123,7 +120,7 @@ Transformation(elemType nodataLoad, elemType validLoad, ComputeLayer<elemType>* 
 
 
 template <class elemType>
-bool GPRO::Transformation<elemType>::
+bool Transformation<elemType>::
 Configure(ComputeLayer<elemType>* pLayer, bool isCommunication) {
     //It is simple for the moment, may have more members or communications yet.
     if (_pWorkBR == nullptr && &pLayer->_pMetaData != NULL) {
@@ -137,7 +134,7 @@ Configure(ComputeLayer<elemType>* pLayer, bool isCommunication) {
 }
 
 template <class elemType>
-bool GPRO::Transformation<elemType>::
+bool Transformation<elemType>::
 paramInit() {
     if (_pComptLayer->_vDataLayers.empty()) {
         cerr << "Datalayers used for calculating compute layer should not be null." << endl;
@@ -153,7 +150,7 @@ paramInit() {
 }
 
 template <class elemType>
-bool GPRO::Transformation<elemType>::
+bool Transformation<elemType>::
 Operator(const CellCoord& coord) {
     int cRow = coord.iRow();
     int cCol = coord.iCol();
@@ -197,7 +194,7 @@ Operator(const CellCoord& coord) {
 }
 
 template <class elemType>
-bool GPRO::Transformation<elemType>::
+bool Transformation<elemType>::
 run() {
     if (Application::_programType != MPI_Type && Application::_programType != MPI_OpenMP_Type) {
         cerr << "not supported yet." << endl;
@@ -226,6 +223,6 @@ run() {
     }
     return flag;
 }
-
+};
 
 #endif
