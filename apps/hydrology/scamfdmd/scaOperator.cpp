@@ -16,7 +16,7 @@ mfdLayer(vector<RasterLayer<double>*>& layerV) {
     _maxRow = layerV[0]->_pMetaData->_localworkBR.maxIRow();
     _maxCol = layerV[0]->_pMetaData->_localworkBR.maxICol();
     Neighborhood<double>& nbrhoodD = *(_pNbrhood);
-    _iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
+    _iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
 
     _degreeLayer.copyLayerInfo(*layerV[0]);
     Configure(&_degreeLayer, true);

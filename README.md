@@ -9,7 +9,7 @@ Parallel Raster-based Geocomputation Operators (PaRGO) is a C++ parallel program
 
 1. support for one parallel program running on different parallel platforms/models: MPI and MPI+OpenMP for CPU in Beowulf and SMP clusters, and CUDA for GPU.
 2. support for implementation of raster-based geocomputation algorithms with different characteristics: local, focal, zonal, and global.
-3. enables flexible, practical, and effective load-balancing strategy in multiple modes: the intensity ratio mode, the estimate function mode, and the preliminary experiment mode, for uniform or nonuniform data and computation spatial distribution.
+3. enable flexible, practical, and effective load-balancing strategy in multiple modes: the intensity ratio mode, the estimate function mode, and the preliminary experiment mode, for uniform or nonuniform data and computation spatial distribution.
 
 Usage on Windows is documented below.
 
@@ -27,7 +27,7 @@ Any newly released version of CMake is fine. You can download the installer from
 
 ## 2.3 GDAL
 
-`GDAL 1.x` and `GDAL 2.x` are both supported. 
+GDAL `1.x`,  `2.x`, and `3.x` are all supported. 
 
 Take GDAL 2.4.4 as an example:
 
@@ -38,17 +38,15 @@ Take GDAL 2.4.4 as an example:
    - [release-1900-x64-gdal-2-4-4-mapserver-7-4-3-libs.zip](http://download.gisinternals.com/sdk/downloads/release-1900-x64-gdal-2-4-4-mapserver-7-4-3-libs.zip)
 
 
-2. Unzip them into **the same folder** (e.g., D:\lib\gdal\2-4-4-vs2015x6)
+2. Unzip them into **the same folder** (e.g., C:\lib\gdal\2-4-4-vs2015x6)
 
-3. Modify system environmental variables: (replace “D:\lib\gdal\2-4-4-vs2015x64” to your path)
+3. Modify system environmental variables: (replace “C:\lib\gdal\2-4-4-vs2015x64” with your path)
 
    - `GDAL_ROOT`= `C:\lib\gdal\2-4-4-vs2015x64`
-
    - `GDAL_DATA`= `C:\lib\gdal\2-4-4-vs2015x64\bin\gdal-data`
-
    - `GDAL_PATHS`= `C:\lib\gdal\2-4-4-vs2015x64\bin; C:\lib\gdal\2-4-4-vs2015x64\bin\gdal\apps; C:\lib\gdal\2-4-4-vs2015x64\bin\proj\apps; C:\lib\gdal\2-4-4-vs2015x64\bin\curl;`
-
    - Add `%GDAL_PATHS%` to `PATH`
+   - For GDAL 3.x, an additional variable should be added: `PROJ_LIB`= `C:\lib\gdal\3-3-3-vs2019x64\bin\proj\share`
 
 To test if the GDAL is installed successfully, open the command line (CMD) and type:
 
@@ -60,9 +58,13 @@ The CMD would print the usages of `gdalinfo` if success.
 
 ## 2.4 MS-MPI
 
-Download `MS-MPI v6 or later versions` from [GitHub (v10 or later)](https://github.com/microsoft/Microsoft-MPI/releases) or [Microsoft Archived Websites (v8.1)](https://www.microsoft.com/en-us/download/details.aspx?id=55494). 
+Download `MS-MPI v6 or later versions` from
 
-**To choose a suitable version**: note that `VS2010` supports up to `MS-MPI v8.x`. So please install `v8.1` if you want to develop new algorithms with PaRGO.
+ [GitHub (v10 or later)](https://github.com/microsoft/Microsoft-MPI/releases)  or  
+
+[Microsoft Archived Websites (v8.1)](https://www.microsoft.com/en-us/download/details.aspx?id=55494). 
+
+**To choose a suitable version**: note that `VS2010` supports up to `MS-MPI v8.x`. So it is recommended to install `v8.1` if you want to develop new algorithms with PaRGO.
 
 Then:
 
@@ -108,16 +110,31 @@ Enter the root directory of the PaRGO project, and build it from the command lin
     If you are using VS2010, use
 
     ```
-    cmake .. -G "Visual Studio 10 2010 Win64" ../PaRGO -DUSE_MPI_DEBUGGER=1
+    cmake .. -G "Visual Studio 10 2010 Win64" ../PaRGO
     ```
 
     If you are using VS2015, use
 
     ```
-    cmake .. -G "Visual Studio 14 2015 Win64" ../PaRGO -DUSE_MPI_DEBUGGER=1
+    cmake .. -G "Visual Studio 14 2015 Win64" ../PaRGO
     ```
 
-    By default, the install directory is /path/to/source/bin, which can also be specified by adding `-DINSTALL_PREFIX` argument, e.g.:
+    It can also be like:
+
+    ```
+    cmake .. -G "Visual Studio 11 2012 Win64" ../PaRGO
+    cmake .. -G "Visual Studio 12 2013 Win64" ../PaRGO
+    cmake .. -G "Visual Studio 15 2017 Win64" ../PaRGO
+    cmake .. -G "Visual Studio 16 2019" ../PaRGO
+    ```
+
+    **Optional CMake argument:**
+
+    `-DINSTALL_PREFIX=......`: By default, the install directory is /path/to/source/bin, which can also be specified by adding this argument. 
+
+    `-DUSE_MPI_DEBUGGER=1`: Please add this argument if you want to use the MPI Cluster Debugger in VS2010, which will be enabled by making each program in separate folders.
+
+    The arguments can be specified as follows:
 
     ```
     cmake .. -G "Visual Studio 10 2010 Win64" ../PaRGO -DUSE_MPI_DEBUGGER=1 -DINSTALL_PREFIX=D:/compile/bin/pargo
@@ -131,11 +148,11 @@ Enter the root directory of the PaRGO project, and build it from the command lin
 
    2. using command line:
 
-      Build in the visual studio command line prompt. You can find it in the Windows startup menu, in the Visual Studio folder. Note to choose the x64 version if your Windows is x64.
+      Build in the visual studio command line prompt. You can find it in the Windows startup menu, in the Visual Studio folder. Note to choose the x64 version if your Windows is 64-bit.
 
       For VS2010, the folder is named "Microsoft Visual studio 2010". It also can be found in the path like `"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Visual Studio 2010\Visual Studio Tools\Visual Studio x64 Win64 command prompt (2010).lnk"`
 
-      For VS2015 (and later), the folder is named "Visual Studio 2010".
+      For VS2015 (and later), the folder is named "Visual Studio 2015". The corresponding path is like `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio 2015\Visual Studio Tools\Developer Command Prompt for VS2015.lnk`
 
       In the command prompt, `cd` to the "build" directory and use
 
@@ -183,6 +200,8 @@ Take the `Reclassify` algorithm in `\PaRGO\apps\demo\demo1` as an example, here 
       
     SET(DEMO_TARGETS demo1_reclassify)
 
+3. re-compile the PaRGO project using the `cmake` command in Section 3.2.
+
 Now you can open Visual Studio and start to program in the PaRGO way!
 
 ## 5.2 Write a local geocomputation algorithm
@@ -191,7 +210,7 @@ To write a simple local algorithm, you don't have to know any parallel programmi
 
 ## 5.3 Write a focal geocomputation algorithm
 
-The main difference between local and focal algorithms is the focal ones require neighborhood calculation. Please refer to the `slope`  algorithm in `\PaRGO\apps\demo\demo2` for a simple focal algorithm.
+The main difference between local and focal algorithms is that the focal ones require neighborhood calculation. Please refer to the `slope`  algorithm in `\PaRGO\apps\demo\demo2` as a simple focal algorithm.
 
 ## 5.4 MPI basics
 
@@ -201,19 +220,19 @@ MPI is the Message Passing Interface. By using MPI functions, multiple processes
 
 1. `MPI_Init(int* argc, char*** argv)` 
 
-   Initializes the calling MPI process’s execution environment.
+   Initialize the calling MPI process’s execution environment.
 
 2. `MPI_Finalize()`
 
-   Initializes the calling MPI process’s execution environment.
+   Terminate the calling MPI process’s execution environment.
 
 3. `MPI_Comm_size(MPI_Comm comm, int *size)`
 
-   Retrieves the total number of processes available.
+   Retrieve the total number of processes available.
 
 4. `MPI_Comm_rank(MPI_Comm comm, int *rank)`
 
-   Retrieves the rank of the calling process.
+   Retrieve the rank of the calling process.
 
 5. `MPI_Barrier(MPI_Comm comm)`
 
@@ -221,7 +240,7 @@ MPI is the Message Passing Interface. By using MPI functions, multiple processes
 
 6. `MPI_Wtime()`
 
-   returns high-resolution elapsed time (second).
+   Return high-resolution elapsed time (second).
 
 Some inter-process communication functions may be necessary when an algorithm needs to exchange intermediate result between processes.
 
@@ -314,14 +333,31 @@ Example.4. slope /path/to/elev.tif /path/to/moore.nbr /path/to/slp.tif TFD
 
 # 7. Common Problems
 
-1. I cannot compile my MPI project in Visual Studio.
+1. Fatal error when running operators of PaRGO.
 
-   Errors like `cannot open source file "mpi.h"` and `error LNK2019: unresolve external symbol...` may be due to the wrong configuration of VS. VS needs manual configuration for a new MPI-based project.
+   Error message like
 
-   Right click the project in the "Solution Explorer" and click "properties":
+   ```log
+   Aborting: mpi appplication on DESKTOP-XXXXXX is unable to connect to the smpd manager on (null):60490 error 1722
+   
+   job aborted:
+   [ranks] message
+   
+   [1] fatal error
+   Fatal error in MPI_Init: Other MPI error, error stack:
+   MPI_Init(argc_p=0x00000045F051F548, argv_p=0x00000045F051F550) failed
+   RPC XXXXXX (errno 1722)
+   ```
+
+   may be due to wrong configuration of MPI, or using different MPI versions for compiling and running. This reason may also cause building errors in Visual Studio like `cannot open source file "mpi.h"` and `error LNK2019: unresolve external symbol...` . To solve this problem:
+
+   Firstly check if the system environment variables regarding MPI are set correctly (see Section 2.4 MS-MPI). Do not mix the MPIs from different distributions. Especially, do not use the MPI from Microsoft HPC pack. 
+
+   You can check the configuration of your program in VS to see if the MPI configurations are matched. Right click the project in the "Solution Explorer" and click "properties":
 
    - In **Configuration Properties -> C/C++ -> General -> Additional Include Directories**, append `C:\Program Files (x86)\Microsoft SDKs\MPI\Include`. 
    - In **Configuration Properties -> Linker ->**
      -  **General -> Additional Library Directories**, append `C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x86`
      -  **Input -> Additional Dependencies**, append `msmpi.lib`
 
+   Secondly check if the compiling and running environments matches. The same MPI versions should be used for both compile (Section 3.2) and running (Section 4). The same VS versions should be used for both compile (section 3.2) and build (Section 3.3).

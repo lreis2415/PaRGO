@@ -4,7 +4,7 @@
 * Project: GPRO_D8_SCA
 * Purpose: Calculation of SCA based on D8 flow direction; Demonstration program for GPRO. 
 *
-* Author:  Ai Beibei
+* Author:  Ai Beibei;Fan Xingchen
 * E-mail:  aibb@lreis.ac.cn
 ****************************************************************************
 * Copyright (c) 2017. Ai Beibei
@@ -31,35 +31,56 @@
 using namespace std;
 using namespace GPRO;
 
+
 int main(int argc, char* argv[]) {
     /*  enum ProgramType{MPI_Type = 0,
                    MPI_OpenMP_Type,
                    CUDA_Type,
                    Serial_Type};*/
-    Application::START(MPI_Type, argc, argv); //init
+
 
     char* inputfilename;
     char* neighborfile;
     char* outputfilename;
+    char* weightfile; //add weightfile
+    bool usew;
     //int threadNUM;
-    if (argc != 4) {
+    if (argc != 4 && argc != 5) {
         cerr << "please input right parameter.";
         return 0;
+    }
+    if (argc == 4) {
+        inputfilename = argv[1];
+        neighborfile = argv[2];
+        outputfilename = argv[3];
+        weightfile = "";
+        usew = false;
+        //threadNUM = atoi(argv[5]);
     }
     else {
         inputfilename = argv[1];
         neighborfile = argv[2];
-        outputfilename = argv[3];
-        //threadNUM = atoi(argv[5]);
+        weightfile = argv[3];
+        outputfilename = argv[4];
+        usew = true;
+
     }
     //omp_set_num_threads(threadNUM);
 
+
+    Application::START(MPI_Type, argc, argv); //init
     RasterLayer<double> d8Layer("d8Layer");
     d8Layer.readNeighborhood(neighborfile);
-    d8Layer.readFile(inputfilename);
+    d8Layer.readFile(inputfilename, ROWWISE_DCMP); //add rowwise_dcmp
 
     RasterLayer<double> scaLayer("scaLayer");
     scaLayer.copyLayerInfo(d8Layer);
+    RasterLayer<double> weiLayer("weiLayer");
+    if (usew) {
+        weiLayer.readNeighborhood(neighborfile);
+        weiLayer.readFile(weightfile, ROWWISE_DCMP);
+    }
+
 
     double starttime;
     double endtime;
@@ -69,6 +90,11 @@ int main(int argc, char* argv[]) {
     SCAOperator scaOper;
     scaOper.d8Layer(d8Layer);
     scaOper.scaLayer(scaLayer);
+    scaOper.usew = usew;
+    if (usew)
+        scaOper.weiLayer(weiLayer);
+
+
     scaOper.Run();
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -78,5 +104,6 @@ int main(int argc, char* argv[]) {
     scaLayer.writeFile(outputfilename);
 
     Application::END();
-    return 0;
+    //system("pause");
+    return 10;
 }

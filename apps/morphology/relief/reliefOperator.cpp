@@ -24,9 +24,7 @@ bool reliefOperator::isTermination() {
     if (num > 0) {
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 //计算起伏度的算法实现 
@@ -41,7 +39,7 @@ bool reliefOperator::Operator(const CellCoord& coord) {
     int iCol = coord.iCol();
 
     double d[9]; //存放3*3邻域窗口 
-    int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
+    int iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
     int dCellSize = _pDEMLayer->_pMetaData->cellSize; //DEM格网长度 
     int nodata = _pDEMLayer->_pMetaData->noData;
 
@@ -61,18 +59,16 @@ bool reliefOperator::Operator(const CellCoord& coord) {
         relief[iRow][iCol] = nodata;
         return true;
     }
-    else {
-        //起伏度（高差）算法 
-        double max, min;
-        max = d[0];
-        min = d[0];
-        for (int m = 1; m < 9; m++) {
-            if (d[m] > max)
-                max = d[m];
-            else if (d[m] < min)
-                min = d[m];
-        }
-        relief[iRow][iCol] = max - min;
-        return true;
+    //起伏度（高差）算法 
+    double max, min;
+    max = d[0];
+    min = d[0];
+    for (int m = 1; m < 9; m++) {
+        if (d[m] > max)
+            max = d[m];
+        else if (d[m] < min)
+            min = d[m];
     }
+    relief[iRow][iCol] = max - min;
+    return true;
 }

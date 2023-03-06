@@ -34,60 +34,57 @@
 using namespace std;
 using namespace GPRO;
 
-int main(int argc, char *argv[]) 
-{
-	/*  enum ProgramType{MPI_Type = 0,
-				   MPI_OpenMP_Type,
-				   CUDA_Type,
-				   Serial_Type};*/
-	Application::START(MPI_Type, argc, argv); //init
-	//...
-	char* inputfilename;
-	char* neighborfile;
-	char* outputfilename;
-	char* steplength;
-	//char* outputfile2name;
-	int threadNUM;
-	if (argc < 6)
-	{
-		inputfilename = argv[1];
-		neighborfile = argv[2]; 
-		outputfilename = argv[3];
-		steplength = argv[4];
-	}
-	RasterLayer<double> demLayer("demLayer"); //创建图层
-	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
-	demLayer.readFile(inputfilename);  //读取栅格数据
+int main(int argc, char* argv[]) {
+    /*  enum ProgramType{MPI_Type = 0,
+                   MPI_OpenMP_Type,
+                   CUDA_Type,
+                   Serial_Type};*/
+    Application::START(MPI_Type, argc, argv); //init
+    //...
+    char* inputfilename;
+    char* neighborfile;
+    char* outputfilename;
+    char* steplength;
+    //char* outputfile2name;
+    int threadNUM;
+    if (argc < 6) {
+        inputfilename = argv[1];
+        neighborfile = argv[2];
+        outputfilename = argv[3];
+        steplength = argv[4];
+    }
+    RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
+    demLayer.readNeighborhood(neighborfile); //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+    demLayer.readFile(inputfilename); //璇诲彇鏍呮牸鏁版嵁
 
 
-    RasterLayer<double> demLayer2("demLayer2"); //创建图层
-    demLayer2.readNeighborhood(neighborfile);  //读取分析窗口文件
-    demLayer2.readFile(inputfilename);  //读取栅格数据
+    RasterLayer<double> demLayer2("demLayer2"); //鍒涘缓鍥惧眰
+    demLayer2.readNeighborhood(neighborfile); //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+    demLayer2.readFile(inputfilename); //璇诲彇鏍呮牸鏁版嵁
 
-	RasterLayer<double> LELayer("LELayer");
+    RasterLayer<double> LELayer("LELayer");
 
-	LELayer.copyLayerInfo(demLayer);
+    LELayer.copyLayerInfo(demLayer);
 
-	double starttime;
-	double endtime;
+    double starttime;
+    double endtime;
 
-	MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
     starttime = MPI_Wtime();
-    cout <<"program start:"<< endl;
-	LEOperator LEOper;
+    cout << "program start:" << endl;
+    LEOperator LEOper;
 
-	LEOper.demLayer(demLayer);
-	LEOper.LELayer(LELayer);
-	
+    LEOper.demLayer(demLayer);
+    LEOper.LELayer(LELayer);
+
     int steplengthint = atoi(steplength);
-    for (int i = 0; i < LEOper.GetRowNum() - 2; i = i + steplengthint)
-    {
+    for (int i = 0; i < LEOper.GetRowNum() - 2; i = i + steplengthint) {
         LELayer.copyLayerInfo(demLayer2);
         LEOper.SetCurrentScale(i);
         LEOper.Run();
         MPI_Barrier(MPI_COMM_WORLD);
         string fileNameStr = string(outputfilename);
-        string fileNameAtCurrentScale = fileNameStr.insert(fileNameStr.find_last_of('.'), "_" + std::to_string((long long)i + 1)); // out.tif => out_1.tif
+        string fileNameAtCurrentScale = fileNameStr.insert(fileNameStr.find_last_of('.'), "_" + std::to_string(static_cast<long long>(i) + 1)); // out.tif => out_1.tif
         MPI_Barrier(MPI_COMM_WORLD);
         LELayer.writeFile(fileNameAtCurrentScale.data());
 
@@ -95,9 +92,9 @@ int main(int argc, char *argv[])
         cout << i << " run time is " << endtime - starttime << endl;
     }
 
-	endtime = MPI_Wtime();
-	cout<<"total run time is "<<endtime-starttime<<endl;
-	
-	Application::END();
-	return 0;
+    endtime = MPI_Wtime();
+    cout << "total run time is " << endtime - starttime << endl;
+
+    Application::END();
+    return 0;
 }

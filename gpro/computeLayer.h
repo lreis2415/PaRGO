@@ -121,25 +121,20 @@ namespace GPRO {
         vector<RasterLayer<elemType>*> _vDataLayers; ///< trans from this data domain to compute domain
     private:
         double _comptGrain; ///< granularity
-
-
     };
-};
 
 template <class elemType>
-GPRO::ComputeLayer<elemType>::
+ComputeLayer<elemType>::
 ComputeLayer()
-    : RasterLayer<elemType>(), _comptGrain(0) {
-}
+    : RasterLayer<elemType>(), _comptGrain(0) {}
 
 template <class elemType>
-GPRO::ComputeLayer<elemType>::
+ComputeLayer<elemType>::
 ComputeLayer(const string RasterLayerName)
-    : RasterLayer<elemType>(RasterLayerName), _comptGrain(0) {
-}
+    : RasterLayer<elemType>(RasterLayerName), _comptGrain(0) {}
 
 template <class elemType>
-GPRO::ComputeLayer<elemType>::
+ComputeLayer<elemType>::
 ComputeLayer(RasterLayer<elemType>* dataLayer, const int tmpGrain, const string RasterLayerName)
     : RasterLayer<elemType>(RasterLayerName), _comptGrain(tmpGrain) {
     _vDataLayers.push_back(dataLayer);
@@ -147,21 +142,20 @@ ComputeLayer(RasterLayer<elemType>* dataLayer, const int tmpGrain, const string 
 }
 
 template <class elemType>
-GPRO::ComputeLayer<elemType>::
+ComputeLayer<elemType>::
 ComputeLayer(vector<RasterLayer<elemType>*> dataLayers, const int tmpGrain, const string RasterLayerName)
     : RasterLayer<elemType>(RasterLayerName),
-      _vDataLayers(dataLayers), _comptGrain(tmpGrain) {
-}
+      _vDataLayers(dataLayers), _comptGrain(tmpGrain) {}
 
 template <class elemType>
-GPRO::ComputeLayer<elemType>::
+ComputeLayer<elemType>::
 ~ComputeLayer() {
     //Destructor of base class is called implicitly. Only need to delete _pDataLayers.
     cleanDataLayers();
 }
 
 template <class elemType>
-void GPRO::ComputeLayer<elemType>::
+void ComputeLayer<elemType>::
 cleanDataLayers() {
     //dataLayers store the pointers to the layers. Deleting this vector does not influence the layers to which is pointed.
     //These layers persist for further use, until the computation finishes and they are destructed.
@@ -170,25 +164,25 @@ cleanDataLayers() {
 }
 
 template <class elemType>
-vector<GPRO::RasterLayer<elemType>*>* GPRO::ComputeLayer<elemType>::
+vector<RasterLayer<elemType>*>* ComputeLayer<elemType>::
 dataLayers() {
     return &_vDataLayers;
 }
 
 template <class elemType>
-void GPRO::ComputeLayer<elemType>::
+void ComputeLayer<elemType>::
 addRasterLayer(RasterLayer<elemType>* dataLayer) {
     _vDataLayers.push_back(dataLayer);
 }
 
 template <class elemType>
-void GPRO::ComputeLayer<elemType>::
+void ComputeLayer<elemType>::
 addRasterLayers(vector<RasterLayer<elemType>*> dataLayers) {
     _vDataLayers = dataLayers;
 }
 
 template <class elemType>
-void GPRO::ComputeLayer<elemType>::
+void ComputeLayer<elemType>::
 addRasterLayerSerial(RasterLayer<elemType>* dataLayer) {
     if (GetRank() != 0) {
         return;
@@ -197,7 +191,7 @@ addRasterLayerSerial(RasterLayer<elemType>* dataLayer) {
 }
 
 template <class elemType>
-void GPRO::ComputeLayer<elemType>::
+void ComputeLayer<elemType>::
 addRasterLayersSerial(vector<RasterLayer<elemType>*> dataLayers) {
     if (GetRank() != 0) {
         return;
@@ -206,7 +200,7 @@ addRasterLayersSerial(vector<RasterLayer<elemType>*> dataLayers) {
 }
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 _init(const char* neighborFile, int comptGrain) {
     if (_vDataLayers.empty()) {
         return false;
@@ -266,88 +260,89 @@ _init(const char* neighborFile, int comptGrain) {
 }
 
 //parallel init not completed
- template <class elemType>
- bool GPRO::ComputeLayer<elemType>::
- pInit(const char* neighborFile, int comptGrain) {
-     if (_vDataLayers.empty()) {
-         return false;
-     }
+template <class elemType>
+bool ComputeLayer<elemType>::
+pInit(const char* neighborFile, int comptGrain) {
+    if (_vDataLayers.empty()) {
+        return false;
+    }
 
-     RasterLayer<elemType>::readNeighborhood(neighborFile);
-     const MetaData& rhs = *(_vDataLayers[0]->_pMetaData);
-     RasterLayer<elemType>::_pMetaData = new MetaData();
-     MetaData*& pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
+    RasterLayer<elemType>::readNeighborhood(neighborFile);
+    const MetaData& rhs = *(_vDataLayers[0]->_pMetaData);
+    RasterLayer<elemType>::_pMetaData = new MetaData();
+    MetaData*& pMetaData = RasterLayer<elemType>::_pMetaData; //Pointer as a reference. No need to delete/free.
 
-     _comptGrain = comptGrain;
-     pMetaData->cellSize = rhs.cellSize * comptGrain;
-     pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
-     pMetaData->row += (rhs._localworkBR.nRows() % comptGrain) ? 1 : 0;
-     pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
-     pMetaData->column += (rhs._localworkBR.nCols() % comptGrain) ? 1 : 0;
-     pMetaData->format = rhs.format;
-     pMetaData->projection = rhs.projection;
-     pMetaData->noData = rhs.noData;
-     pMetaData->myrank = rhs.myrank;
-     pMetaData->processor_number = GetRank();
-     pMetaData->_domDcmpType = NON_DCMP;
-     SpaceDims sdim(pMetaData->row, pMetaData->column);
-     pMetaData->_glbDims = sdim;
-     if (pMetaData->_domDcmpType == NON_DCMP) {
-         CoordBR _glbWorkBR;
-         RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
-         pMetaData->_localworkBR = _glbWorkBR;
-         CellCoord nwCorner(0, 0);
-         CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
-         CoordBR subMBR(nwCorner, seCorner);
-         pMetaData->_MBR = subMBR;
-         pMetaData->_localdims = pMetaData->_glbDims;
-     }
-     else {
-         CoordBR _glbWorkBR;
-         RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
-         pMetaData->_localworkBR = _glbWorkBR;
+    _comptGrain = comptGrain;
+    pMetaData->cellSize = rhs.cellSize * comptGrain;
+    pMetaData->row = rhs._localworkBR.nRows() / comptGrain;
+    pMetaData->row += (rhs._localworkBR.nRows() % comptGrain) ? 1 : 0;
+    pMetaData->column = rhs._localworkBR.nCols() / comptGrain;
+    pMetaData->column += (rhs._localworkBR.nCols() % comptGrain) ? 1 : 0;
+    pMetaData->format = rhs.format;
+    pMetaData->projection = rhs.projection;
+    pMetaData->noData = rhs.noData;
+    pMetaData->myrank = rhs.myrank;
+    pMetaData->processor_number = GetRank();
+    pMetaData->_domDcmpType = NON_DCMP;
+    SpaceDims sdim(pMetaData->row, pMetaData->column);
+    pMetaData->_glbDims = sdim;
+    if (pMetaData->_domDcmpType == NON_DCMP) {
+        CoordBR _glbWorkBR;
+        RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
+        pMetaData->_localworkBR = _glbWorkBR;
+        CellCoord nwCorner(0, 0);
+        CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
+        CoordBR subMBR(nwCorner, seCorner);
+        pMetaData->_MBR = subMBR;
+        pMetaData->_localdims = pMetaData->_glbDims;
+    }
+    else {
+        CoordBR _glbWorkBR;
+        RasterLayer<elemType>::_pNbrhood->calcWorkBR(_glbWorkBR, pMetaData->_glbDims);
+        pMetaData->_localworkBR = _glbWorkBR;
 
-         //¹Ø¼ü¾ÍÊÇÕâÀïMBRÒªËõ·Å£¬»¹Òª±£Ö¤·¶Î§¼ÓÆðÀ´ÄÜÒ»Ñù£¬Ä¿Ç°»¹²»¶Ô
-         pMetaData->row = rhs._MBR.nRows() / comptGrain;
-         pMetaData->row += (rhs._MBR.nRows() % comptGrain) ? 1 : 0;
-         pMetaData->column = rhs._MBR.nCols() / comptGrain;
-         pMetaData->column += (rhs._MBR.nCols() % comptGrain) ? 1 : 0;
+        //å…³é”®å°±æ˜¯è¿™é‡ŒMBRè¦ç¼©æ”¾ï¼Œè¿˜è¦ä¿è¯èŒƒå›´åŠ èµ·æ¥èƒ½ä¸€æ ·ï¼Œç›®å‰è¿˜ä¸å¯¹
+        pMetaData->row = rhs._MBR.nRows() / comptGrain;
+        pMetaData->row += (rhs._MBR.nRows() % comptGrain) ? 1 : 0;
+        pMetaData->column = rhs._MBR.nCols() / comptGrain;
+        pMetaData->column += (rhs._MBR.nCols() % comptGrain) ? 1 : 0;
 
-         CellCoord nwCorner(0, 0);
-         CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
-         CoordBR subMBR(nwCorner, seCorner);
-         pMetaData->_MBR = subMBR;
+        CellCoord nwCorner(0, 0);
+        CellCoord seCorner(pMetaData->_glbDims.nRows() - 1, pMetaData->_glbDims.nCols() - 1);
+        CoordBR subMBR(nwCorner, seCorner);
+        pMetaData->_MBR = subMBR;
 
 
-         pMetaData->_localdims = pMetaData->_glbDims;
-     }
+        pMetaData->_localdims = pMetaData->_glbDims;
+    }
 
-     pMetaData->dataType = RasterLayer<elemType>::getGDALType();
+    pMetaData->dataType = RasterLayer<elemType>::getGDALType();
 
-     for (int i = 0; i < 6; i++) {
-         pMetaData->pTransform[i] = rhs.pTransform[i];
-     }
-     pMetaData->pTransform[0] += rhs._localworkBR.minICol() * rhs.cellSize;
-     pMetaData->pTransform[3] -= rhs._localworkBR.minIRow() * rhs.cellSize;
-     pMetaData->pTransform[1] *= comptGrain; //one-pixel distance in the we/ns direction, need update
-     pMetaData->pTransform[5] *= comptGrain;
+    for (int i = 0; i < 6; i++) {
+        pMetaData->pTransform[i] = rhs.pTransform[i];
+    }
+    pMetaData->pTransform[0] += rhs._localworkBR.minICol() * rhs.cellSize;
+    pMetaData->pTransform[3] -= rhs._localworkBR.minIRow() * rhs.cellSize;
+    pMetaData->pTransform[1] *= comptGrain; //one-pixel distance in the we/ns direction, need update
+    pMetaData->pTransform[5] *= comptGrain;
 
-     RasterLayer<elemType>::newCellSpace(pMetaData->_localdims, 0); //allocate
+    RasterLayer<elemType>::newCellSpace(pMetaData->_localdims, 0); //allocate
 
-     return true;
- }
+    return true;
+}
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 init(const char* neighborFile, int comptGrain) {
     // This function is safe to be called by all processes. Only the process 0 execute it.
     if (GetRank() != 0) {
         return true;
     }
-    return _init(neighborFile,comptGrain);
+    return _init(neighborFile, comptGrain);
 }
+
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 init(vector<RasterLayer<elemType>*> dataLayers, const char* neighborFile, int comptGrain) {
     // It is a SERIAL function. Only invoked by process 0.
     if (GetRank() != 0) {
@@ -357,11 +352,11 @@ init(vector<RasterLayer<elemType>*> dataLayers, const char* neighborFile, int co
         return false;
     }
     addRasterLayers(dataLayers);
-    return _init(neighborFile,comptGrain);
+    return _init(neighborFile, comptGrain);
 }
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 init(RasterLayer<elemType>* dataLayer, const char* neighborFile, int comptGrain) {
     if (GetRank() != 0) {
         return true;
@@ -372,11 +367,11 @@ init(RasterLayer<elemType>* dataLayer, const char* neighborFile, int comptGrain)
     vector<RasterLayer<elemType>*> inputLayers;
     inputLayers.emplace_back(dataLayer);
 
-    return init(inputLayers,neighborFile,comptGrain);
+    return init(inputLayers, neighborFile, comptGrain);
 }
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 getCompuLoad(DomDcmpType dcmpType, const int nSubSpcs, CoordBR& subWorkBR) {
     int myRank = 0, process_nums = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -443,7 +438,7 @@ getCompuLoad(DomDcmpType dcmpType, const int nSubSpcs, CoordBR& subWorkBR) {
 }
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 readComputeLoadFile(const char* loadFile) {
     if (GetRank() != 0) {
         //MPI_Barrier( MPI_COMM_WORLD );
@@ -455,7 +450,7 @@ readComputeLoadFile(const char* loadFile) {
 }
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 writeComputeIntensityFile(const char* outputfile) {
     // This function is safe to be called by all processes. Only the process 0 execute it.
     if (GetRank() != 0) {
@@ -466,7 +461,7 @@ writeComputeIntensityFile(const char* outputfile) {
 }
 
 template <class elemType>
-bool GPRO::ComputeLayer<elemType>::
+bool ComputeLayer<elemType>::
 _writeComputeIntensityFile(const char* outputfile) {
     GDALAllRegister();
     if (!RasterLayer<elemType>::createFile(outputfile)) {
@@ -511,4 +506,5 @@ _writeComputeIntensityFile(const char* outputfile) {
 
     return true;
 }
+};
 #endif

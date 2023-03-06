@@ -1,21 +1,28 @@
+root=true
 # EditorConfig is awesome: http://EditorConfig.org
 
 # top-most EditorConfig file
-root = true
 
 # Unix-style newlines with a newline ending every source file
 [*]
-end_of_line = lf
-trim_trailing_whitespace = true
-insert_final_newline = true
+end_of_line=lf
+trim_trailing_whitespace=true
+insert_final_newline=true
+
+# ReSharper properties
+resharper_anonymous_method_declaration_braces=end_of_line
+resharper_case_block_braces=end_of_line
+resharper_empty_block_style=together_same_line
+resharper_namespace_declaration_braces=end_of_line
+resharper_type_declaration_braces=end_of_line
 
 # Matches multiple files with brace expansion notation
 # Set default charset
 [{*.py,*.h,*.cpp,*.hpp, *.c, *.cc}]
-charset = utf-8
-indent_style = space
-indent_size = 4
+charset=utf-8
+indent_style=space
+indent_size=4
 
 [{package.json,.travis.yml}]
-indent_style = space
-indent_size = 2
+indent_style=space
+indent_size=2

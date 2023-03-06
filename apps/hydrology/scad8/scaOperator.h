@@ -15,14 +15,15 @@ class SCAOperator : public RasterOperator<double>
   public:
     SCAOperator()
       :RasterOperator<double>(),
-       _pD8Layer(0), _pSCALayer(0), num(0), _maxRow(0), _maxCol(0),
+       _pD8Layer(0), _pSCALayer(0),_pWEILayer(0), num(0), _maxRow(0), _maxCol(0),
 	   _degreeLayer("degreeLayer") {}
  
     ~SCAOperator() {}
-
+	bool usew;
   
     void d8Layer(RasterLayer<double> &layerD);
 	void scaLayer(RasterLayer<double> &layerD);
+	void weiLayer(RasterLayer<double> &layerD);
 
 	virtual bool isTermination();
     virtual bool Operator(const CellCoord &coord,bool operFlag);
@@ -37,6 +38,7 @@ class SCAOperator : public RasterOperator<double>
 	RasterLayer<double> _degreeLayer;
 	RasterLayer<double> *_pD8Layer;
 	RasterLayer<double> *_pSCALayer;
+	RasterLayer<double> *_pWEILayer;
 	Neighborhood<double> *_pD8Nbrhood;
 };
 

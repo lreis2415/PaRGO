@@ -31,7 +31,7 @@ bool PitRemoveOperator::Operator(const CellCoord& coord, bool operFlag) {
     int iCol = coord.iCol();
 
     Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);
-    int iNeighborCells = (int)sqrt((double)nbrhoodD.size()) / 2;
+    int iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
 
     double gap = 0.0005;
 
@@ -59,7 +59,8 @@ bool PitRemoveOperator::Operator(const CellCoord& coord, bool operFlag) {
                 if ((dem[iRow][iCol] >= (wdem[i][j] + gap)) || fabs(wdem[i][j] - noData) < Eps) {
                     wdem[iRow][iCol] = dem[iRow][iCol];
                     Termination = 0;
-                }else if (wdem[iRow][iCol] > (wdem[i][j] + gap)) {
+                }
+                else if (wdem[iRow][iCol] > (wdem[i][j] + gap)) {
                     wdem[iRow][iCol] = wdem[i][j] + gap;
                     Termination = 0;
                 }

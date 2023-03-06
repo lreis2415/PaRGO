@@ -30,12 +30,12 @@ void Usage(const string& error_msg = "") {
         cout << "FAILURE: " << error_msg << endl << endl;
     }
     cout <<
-            " Usage: flowdirmfdmd -elev <elevation grid file> -nbr <neighbor definition file> -out <output flow direction file> -exp <slope exponent>"
-            << endl;
+        " Usage: flowdirmfdmd -elev <elevation grid file> -nbr <neighbor definition file> -out <output flow direction file> -exp <slope exponent>"
+        << endl;
     cout << " the default slope exponent is 1.1. For more details please see Qin 2007 or SimDTA manual" << endl << endl;
     cout <<
-            " Or use the Simple Usage: flow <elevation grid file> <neighbor definition file> <output flow direction file> <slope exponent>"
-            << endl << endl;
+        " Or use the Simple Usage: flow <elevation grid file> <neighbor definition file> <output flow direction file> <slope exponent>"
+        << endl << endl;
     cout << "Example.1. flowdirmfdmd -elev /path/to/elev.tif -nbr /path/to/moore.nbr -out /path/to/mfdmd.tif" << endl;
     cout << "Example.4. flowdirmfdmd /path/to/elev.tif /path/to/moore.nbr /path/to/mfdmd.tif" << endl;
 
@@ -66,28 +66,34 @@ int main(int argc, char* argv[]) {
             if (argc > i) {
                 inputfilename = argv[i];
                 i++;
-            } else {
+            }
+            else {
                 Usage("No argument followed '-elev'!");
             }
-        } else if (strcmp(argv[i], "-nbr") == 0) {
+        }
+        else if (strcmp(argv[i], "-nbr") == 0) {
             simpleusage = false;
             i++;
             if (argc > i) {
                 neighborfile = argv[i];
                 i++;
-            } else {
+            }
+            else {
                 Usage("No argument followed '-nbr'!");
             }
-        } else if (strcmp(argv[i], "-out") == 0) {
+        }
+        else if (strcmp(argv[i], "-out") == 0) {
             simpleusage = false;
             i++;
             if (argc > i) {
                 outputfilename = argv[i];
                 i++;
-            } else {
+            }
+            else {
                 Usage("No argument followed '-out'!");
             }
-        } else if (strcmp(argv[i], "-exp") == 0) {
+        }
+        else if (strcmp(argv[i], "-exp") == 0) {
             simpleusage = false;
             i++;
             if (argc > i) {
@@ -95,10 +101,12 @@ int main(int argc, char* argv[]) {
                 // slpExp = atof(argv[i]);
                 slpExp = strtod(argv[4], &slpExpStrErr);
                 i++;
-            } else {
+            }
+            else {
                 Usage("No argument followed '-exp'!");
             }
-        } else {
+        }
+        else {
             // Simple Usage
             if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
             inputfilename = argv[1];
@@ -119,8 +127,8 @@ int main(int argc, char* argv[]) {
     Application::START(MPI_Type, argc, argv); // init MPI environment
 
     RasterLayer<double> demLayer("demLayer"); // create raster layer (DEM)
-    demLayer.readNeighborhood(neighborfile);  // read analysing neighbor window for raster layer
-    demLayer.readFile(inputfilename);         // read data of layer (DEM)
+    demLayer.readNeighborhood(neighborfile); // read analysing neighbor window for raster layer
+    demLayer.readFile(inputfilename); // read data of layer (DEM)
 
     // creat output filenamme for weight matrix layers
     vector<RasterLayer<double>*> weightLayers;
@@ -159,9 +167,9 @@ int main(int argc, char* argv[]) {
     //if (myrank == 0)
     //    cout << "run time is " << endtime - starttime << endl;
     double t_all_rank = endtime - starttime;
-    
-    double t_all;  ///< Maximum time-consuming of parallel tasks in all ranks
-    
+
+    double t_all; ///< Maximum time-consuming of parallel tasks in all ranks
+
     MPI_Reduce(&t_all_rank, &t_all, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     if (myrank == 0) {
         cout << "run time is " << t_all << endl;

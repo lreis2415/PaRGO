@@ -61,9 +61,9 @@ int main(int argc, char* argv[]) {
     recOper.setLevels(&dLevels); //pass other parameters the operator needs.
 
     recOper.Run(); //run the operator.
-    
+
     outputLayer.writeFile(outputFileName); // write output.
-    cout<<"write done."<<endl;
+    cout << "write done." << endl;
 
     Application::END(); //finish the PaRGO application. Release resources.
 

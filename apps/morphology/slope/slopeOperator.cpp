@@ -52,7 +52,7 @@ bool SlopeOperator::Operator(const CellCoord& coord, bool operFlag) {
     CellSpace<double>& dem = *(_pDEMLayer->cellSpace());
     CellSpace<double>& slope = *(_pSlopeLayer->cellSpace());
     Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);
-    int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
+    int iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
 
     int iRow = coord.iRow();
     int iCol = coord.iCol();
@@ -80,15 +80,20 @@ bool SlopeOperator::Operator(const CellCoord& coord, bool operFlag) {
     double dx;
     double dy;
 
-    if (calcAlgor == FD) { // Third-order finite difference weighted by reciprocal of squared distance
+    if (calcAlgor == FD) {
+        // Third-order finite difference weighted by reciprocal of squared distance
         dx = (d[8] + 2 * d[5] + d[2] - d[6] - 2 * d[3] - d[0]) / (8.0 * cellSize);
         dy = (d[2] + 2 * d[1] + d[0] - d[6] - 2 * d[7] - d[8]) / (8.0 * cellSize);
         slope[iRow][iCol] = sqrt(dx * dx + dy * dy);
-    } else if (calcAlgor == FFD) { //Frame finite difference
+    }
+    else if (calcAlgor == FFD) {
+        //Frame finite difference
         dx = (d[8] - d[6] + d[2] - d[0]) / (4.0 * cellSize);
         dy = (d[0] - d[6] + d[2] - d[8]) / (4.0 * cellSize);
         slope[iRow][iCol] = sqrt(dx * dx + dy * dy);
-    } else if (calcAlgor == MD) { // Maximum downslope
+    }
+    else if (calcAlgor == MD) {
+        // Maximum downslope
         double max_diff = 0.;
         double hori_dist = cellSize;
         for (int tmpr = iRow - iNeighborCells; tmpr <= iRow + iNeighborCells; tmpr++) {
@@ -118,19 +123,27 @@ bool SlopeOperator::Operator(const CellCoord& coord, bool operFlag) {
         double dmax58 = MAX(dmax56, dmax78);
         double dmax = MAX(dmax03, dmax58);
         slope[iRow][iCol] = dmax / cellSize;*/
-    } else if (calcAlgor == SD) { // Simple difference
+    }
+    else if (calcAlgor == SD) {
+        // Simple difference
         dx = (d[4] - d[3]) / cellSize;
         dy = (d[4] - d[7]) / cellSize;
         slope[iRow][iCol] = sqrt(dx * dx + dy * dy);
-    } else if (calcAlgor == SFD) { // Second-order finite difference
+    }
+    else if (calcAlgor == SFD) {
+        // Second-order finite difference
         dx = (d[5] - d[3]) / (2.0 * cellSize);
         dy = (d[1] - d[7]) / (2.0 * cellSize);
         slope[iRow][iCol] = sqrt(dx * dx + dy * dy);
-    } else if (calcAlgor == TFD) { // Third-order finite difference
+    }
+    else if (calcAlgor == TFD) {
+        // Third-order finite difference
         dx = (d[8] + d[5] + d[2] - d[0] - d[3] - d[6]) / (6.0 * cellSize);
         dy = (d[2] + d[1] + d[0] - d[6] - d[7] - d[6]) / (6.0 * cellSize);
         slope[iRow][iCol] = sqrt(dx * dx + dy * dy);
-    } else if (calcAlgor == TFDW) { // Third-order finite difference weighted by reciprocal of distance)
+    }
+    else if (calcAlgor == TFDW) {
+        // Third-order finite difference weighted by reciprocal of distance)
         dx = (d[8] + sqrt(2.0) * d[5] + d[2] - d[6] - sqrt(2.0) * d[3] - d[0]) / ((4.0 + sqrt(8.0)) * cellSize);
         dy = (d[2] + sqrt(2.0) * d[1] + d[0] - d[6] - sqrt(2.0) * d[7] - d[8]) / ((4.0 + sqrt(8.0)) * cellSize);
         slope[iRow][iCol] = sqrt(dx * dx + dy * dy);
