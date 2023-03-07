@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
 
     RasterLayer<double> demLayer("demLayer"); // create raster layer (DEM)
     demLayer.readNeighborhood(neighborfile); // read analysing neighbor window for raster layer
-    demLayer.readFile(inputfilename); // read data of layer (DEM)
+    demLayer.readFile(inputfilename,ROWWISE_DCMP); // read data of layer (DEM)
 
     // creat output filenamme for weight matrix layers
     vector<RasterLayer<double>*> weightLayers;
