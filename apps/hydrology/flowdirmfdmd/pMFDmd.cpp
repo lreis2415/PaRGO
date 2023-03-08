@@ -119,8 +119,8 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
-    if (!(slpExp >= 0 || slpExp <= 1)) {
-        cerr << "please input slope exponent between 0-1.";
+    if (!(slpExp >= 0 && slpExp <= 10)) {
+        cerr << "please input slope exponent between 0-10.";
         return 0;
     }
 

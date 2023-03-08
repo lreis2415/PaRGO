@@ -85,8 +85,8 @@ bool MFDOperator::Operator(const CellCoord& coord, bool operFlag) {
                 }
                 else {
                     if (dir == 0 || dir == 2 || dir == 6 || dir == 8) {
-                        diffVal[dir] = (demL[iRow][iCol] - demL[tRow][tCol]) / (1.414 * _cellSize);
-                        l[dir] = 0.354 * _cellSize; //? -- sqrt(2)/4  Should be precisely predefined! --LJ
+                        diffVal[dir] = (demL[iRow][iCol]-demL[tRow][tCol])/(((double)sqrt((double)2)) * _cellSize);//1.41->sqrt(2) --FXC
+                            l[dir] = ((double)sqrt((double)2)) / 4 * _cellSize; //? -- sqrt(2)/4  Should be precisely predefined! --LJ
                     }
                     else {
                         diffVal[dir] = (demL[iRow][iCol] - demL[tRow][tCol]) / _cellSize;
@@ -101,7 +101,7 @@ bool MFDOperator::Operator(const CellCoord& coord, bool operFlag) {
     }
     if (maxDiffVal > 1)
         maxDiffVal = 1;
-    pe = (1 - slpExp) * maxDiffVal + slpExp;
+    pe = (10 - slpExp) * maxDiffVal + slpExp;//1->10 --FXC   
     double sum = 0.0;
     for (int i = 0; i < 9; i++) {
         sum += pow(diffVal[i], pe) * l[i];
