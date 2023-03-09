@@ -48,12 +48,12 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
 
     if (num == 0) {
         if (fabs((*weightLs[0])[iRow][iCol] - _noData) < Eps) {
-            degreeL[iRow][iCol] = -1; //init
+            degreeL[iRow][iCol] = -2; //init
             scaL[iRow][iCol] = _noData;
         }
         else {
             degreeL[iRow][iCol] = 0; //init
-            scaL[iRow][iCol] = 1;
+            scaL[iRow][iCol] = 1.;
         }
 
         if (iRow == _maxRow && iCol == _maxCol) {
@@ -84,10 +84,15 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
         return true;
     }
+	/*
     if (iRow == _maxRow && iCol == _maxCol) {
         Termination = 1;
     }
     if (degreeL[iRow][iCol] <= 0) {
+        return true;
+    }
+	*/
+	if (degreeL[iRow][iCol] <= 0 && !(iRow == _maxRow && iCol == _maxCol)) {
         return true;
     }
     int dir = 8;
@@ -98,16 +103,38 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
                 scaL[iRow][iCol] += scaL[tRow][tCol] * (*weightLs[dir - 1])[tRow][tCol];
                 degreeL[iRow][iCol]--;
                 (*weightLs[dir - 1])[tRow][tCol] = 0;
+				if (degreeL[iRow][iCol] == 0) 
+					degreeL[iRow][iCol] = -1;
             }
             if (dir < 4 && degreeL[tRow][tCol] == 0 && (*weightLs[dir])[tRow][tCol] > 0) {
                 scaL[iRow][iCol] += scaL[tRow][tCol] * (*weightLs[dir])[tRow][tCol];
                 degreeL[iRow][iCol]--;
                 (*weightLs[dir])[tRow][tCol] = 0;
+				if (degreeL[iRow][iCol] == 0) 
+					degreeL[iRow][iCol] = -1;
             }
 
             dir--;
         }
     }
-
+	if (iRow == _maxRow && iCol == _maxCol) {		
+        MPI_Barrier(MPI_COMM_WORLD);
+        int minRow = _weightLayerVec[0]->_pMetaData->_localworkBR.minIRow();
+        int minCol = _weightLayerVec[0]->_pMetaData->_localworkBR.minICol();
+		for (int i = minRow; i <= _maxRow; ++i) {
+            for (int j = minCol; j <= _maxCol; ++j) {
+				if (degreeL[i][j] == 0) {
+                    degreeL[i][j] = -2; //-2 means ending cal., -1 means finishing cal. this itermination
+					Termination = 0;
+                }
+                else {
+                    if (degreeL[i][j] == -1) {
+                        degreeL[i][j] = 0;
+						Termination = 0;
+                    }
+                }
+			}
+		}
+	}
     return true;
 }
