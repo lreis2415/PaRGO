@@ -40,7 +40,8 @@ namespace GPRO {
         template <class elemType2>
         Neighborhood(const Neighborhood<elemType2>& rhs);
 
-        ~Neighborhood() { }
+        ~Neighborhood() {
+        }
 
         WeightedCell<elemType>& operator[](int iNbr);
         const WeightedCell<elemType>& operator[](int iNbr) const;
@@ -227,7 +228,8 @@ _validNumDirects() const {
 template <class elemType>
 GPRO::Neighborhood<elemType>::
 Neighborhood()
-    : _specified(false) {}
+    : _specified(false) {
+}
 
 template <class elemType>
 GPRO::Neighborhood<elemType>::

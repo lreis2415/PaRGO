@@ -60,6 +60,8 @@ namespace GPRO {
         int bufsize;
     };
 
+};
+
 template <class elemType>
 GPRO::Communication<elemType>::
 Communication()
@@ -68,7 +70,8 @@ Communication()
     _pNbrhood(nullptr),
     _pMetadata(nullptr),
     buf(nullptr),
-    bufsize(10) {}
+    bufsize(10) {
+}
 
 template <class elemType>
 GPRO::Communication<elemType>::
@@ -306,5 +309,4 @@ colComm() {
     return true;
 }
 
-};
 #endif

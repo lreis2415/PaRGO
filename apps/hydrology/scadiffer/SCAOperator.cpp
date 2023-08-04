@@ -87,7 +87,7 @@ bool SCAOperator::Operator(const CellCoord& coord) {
 
     Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);
 
-    int iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
+    int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
 
 
     int xSize = _pDEMLayer->_pMetaData->_localdims.nRows(); //number of rows in this process
@@ -113,7 +113,7 @@ bool SCAOperator::Operator(const CellCoord& coord) {
 
         diff[iRow][iCol] = zq[iRow][iCol] - demL[iRow][iCol];
 
-        if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == (static_cast<int>(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
+        if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
 
 #pragma omp barrier
 
@@ -136,7 +136,7 @@ bool SCAOperator::Operator(const CellCoord& coord) {
 
             double relDiff = tmp < 1.0 ? diff[iRow][iCol] : (diff[iRow][iCol] / tmp);
 
-            if ((iCol == 1) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread) + 1)) || (((xSize - 2) % threadNum != 0) && (((iRow == (static_cast<int>(xSize - 2) / threadNum + 1) * mythread + 1)))))) {
+            if ((iCol == 1) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread) + 1)) || (((xSize - 2) % threadNum != 0) && (((iRow == ((int)(xSize - 2) / threadNum + 1) * mythread + 1)))))) {
 
                 relDiffMax[mythread] = relDiff;
 
@@ -159,7 +159,7 @@ bool SCAOperator::Operator(const CellCoord& coord) {
 
             }
 
-            if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == (static_cast<int>(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
+            if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
 
 #pragma omp barrier
 
@@ -243,7 +243,7 @@ bool SCAOperator::Operator(const CellCoord& coord) {
 
                 qb[iRow][iCol] = 9.0 / 16.0 * demL[iRow][iCol];
 
-                if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == (static_cast<int>(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
+                if ((iCol == ySize - 2) && ((((xSize - 2) % threadNum == 0) && (iRow == ((xSize - 2) / threadNum) * (mythread + 1))) || (((xSize - 2) % threadNum != 0) && (((mythread < (threadNum - 1)) && (iRow == ((int)(xSize - 2) / threadNum + 1) * (mythread + 1))) || ((mythread == (threadNum - 1)) && (iRow == xSize - 2)))))) {
 
 #pragma omp barrier
 
@@ -793,32 +793,32 @@ bool SCAOperator::Operator(const CellCoord& coord) {
 
                             if (upx < 0) {
 
-                                upCol = curCol - static_cast<int>(fabs(upx) / dCellSize) - 1;
+                                upCol = curCol - (int)(fabs(upx) / dCellSize) - 1;
 
                                 if (upy < 0) {
 
-                                    upRow = curRow + static_cast<int>(fabs(upy) / dCellSize) + 1;
+                                    upRow = curRow + (int)(fabs(upy) / dCellSize) + 1;
 
                                 }
                                 else {
 
-                                    upRow = curRow - static_cast<int>(upy / dCellSize);
+                                    upRow = curRow - (int)(upy / dCellSize);
 
                                 }
 
                             }
                             else {
 
-                                upCol = curCol + static_cast<int>(upx / dCellSize);
+                                upCol = curCol + (int)(upx / dCellSize);
 
                                 if (upy < 0) {
 
-                                    upRow = curRow + static_cast<int>(fabs(upy) / dCellSize) + 1;
+                                    upRow = curRow + (int)(fabs(upy) / dCellSize) + 1;
 
                                 }
                                 else {
 
-                                    upRow = curRow - static_cast<int>(upy / dCellSize);
+                                    upRow = curRow - (int)(upy / dCellSize);
 
                                 }
 

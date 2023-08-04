@@ -17,7 +17,8 @@ class DropanOperator : public RasterOperator<double>
   public:
     DropanOperator(double th,double &opt)
       :RasterOperator<double>(),
-       _noData(-9999.), num(0),maxval(0.),length(0.),_maxrow(0),_maxcol(0),_elevOut("elevOut"),_contribs("contribs"),_orderout("orderout"),
+
+       _noData(-9999.), num(0),maxval(0.),length(0.),runtime(0.),_maxrow(0),_maxcol(0),_elevOut("elevOut"),_contribs("contribs"),_orderout("orderout"),
        _pDirLayer(0), _pssaLayer(0),_pDEMLayer(0),thresh(th),s1(0.),s2(0.),s1sq(0.),s2sq(0.),n1(0),n2(0),totalarea(0.),opt(opt),
 		_pareaLayer(0){}
    
@@ -47,6 +48,8 @@ class DropanOperator : public RasterOperator<double>
 	long n1,n2;
 	double totalarea;
 	double &opt;
+	double runtime;
+
 
 	RasterLayer<double> *_pDEMLayer;
 	RasterLayer<double> *_pssaLayer;

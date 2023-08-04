@@ -126,6 +126,8 @@ namespace GPRO {
          */
         bool readFile(const char* inputfile, DomDcmpType dcmpType = NON_DCMP);
 
+		bool readFile(const char* inputfile,  long minICol,long minIRow,long nCol,long nRow,DomDcmpType dcmpType= NON_DCMP);
+
         bool newUpscaleFile(const char* inputfile, int g, DomDcmpType dcmpType = NON_DCMP);
 
         /**
@@ -174,6 +176,8 @@ namespace GPRO {
          */
         bool layerDcmp(const CoordBR& subWorkBR);
 
+		bool layerDcmp(const CoordBR& subWorkBR,DomDcmpType dcmpType);
+
         /**
          * \brief copy the metadata and cellspace of input.
          * \param[in] rhs The input RasterLayer. Abbr for 'right hand side'.
@@ -197,6 +201,7 @@ namespace GPRO {
          */
         bool writeFile(const char* outputfile);
 
+		bool writeFile(const char* outputfile,const CoordBR& subWorkBR) ;
 
         int rowAtOtherLayer(RasterLayer<double>* layer, int row);
         int rowAtOtherLayer(RasterLayer<int>* layer, int row);
@@ -219,7 +224,10 @@ namespace GPRO {
          */
         bool rowWriteFile(const char* outputfile);
 
-        /**
+		bool rowWriteFile(const char* outputfile, const CoordBR& subWorkBR) ;
+
+		bool nonWriteFile(const char* outputfile);
+        /**rowWriteFile()
          * \brief parallel IO, refer to Qin13_TransactionsInGIS
          * \param[in] outputfile The input RasterLayer.
          */
@@ -626,7 +634,9 @@ getMPIType() {
     if (typeid(style) == typeid(char)) {
         return MPI_CHAR;
     }
-    return MPI_BYTE;
+    else {
+        return MPI_BYTE;
+    }
 }
 
 template <class elemType>
@@ -771,7 +781,6 @@ readFileInfo(GDALDataset* poDatasetsrc, DomDcmpType dcmpType) {
     _pMetaData->dataType = getGDALType();
     SpaceDims sdim(_pMetaData->row, _pMetaData->column);
     _pMetaData->_glbDims = sdim;
-
     return poBandsrc;
 }
 
@@ -817,6 +826,7 @@ layerDcmp(DomDcmpType dcmpType) {
     MPI_Comm_size(MPI_COMM_WORLD, &_pMetaData->processor_number);
 
     DeComposition<elemType> deComp(_pMetaData->_glbDims, *_pNbrhood);
+
     if (ROWWISE_DCMP == _pMetaData->_domDcmpType) {
         deComp.rowDcmp(*_pMetaData, _pMetaData->processor_number);
     }
@@ -851,15 +861,55 @@ layerDcmp(DomDcmpType dcmpType) {
 
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
+layerDcmp(const CoordBR& subWorkBR,DomDcmpType dcmpType) {
+    MPI_Comm_rank(MPI_COMM_WORLD, &_pMetaData->myrank);
+    MPI_Comm_size(MPI_COMM_WORLD, &_pMetaData->processor_number);
+
+	int glbBegin = subWorkBR.nwCorner().iRow();
+    int glbEnd = subWorkBR.seCorner().iRow();
+
+    glbEnd = min(glbEnd, _pMetaData->_glbDims.nRows()-1);
+    CellCoord nwCorner(glbBegin + _pNbrhood->minIRow(), subWorkBR.nwCorner().iCol());
+    CellCoord seCorner(glbEnd + _pNbrhood->maxIRow(), subWorkBR.seCorner().iCol());
+    CoordBR subMBR(nwCorner, seCorner);
+	//cout<<"mbrrow:"<<_pMetaData->_MBR.minIRow();
+    //_pMetaData->_MBR = subMBR;
+	
+    SpaceDims dims(subMBR.nRows(), subMBR.nCols());
+
+	_pMetaData->row = subMBR.nRows();
+    _pMetaData->column = subMBR.nCols();
+    _pMetaData->_glbDims = dims;
+
+	//cout<<"acol:"<<_pMetaData->column;
+	//cout<<"aglbdim:"<<_pMetaData->_glbDims;
+	DeComposition<elemType> deComp(_pMetaData->_glbDims, *_pNbrhood);
+	
+    if (ROWWISE_DCMP == _pMetaData->_domDcmpType) {
+
+        deComp.rowDcmp(*_pMetaData, _pMetaData->processor_number, subWorkBR);
+    }
+
+
+    newCellSpace(_pMetaData->_localdims);
+    return true;
+}
+
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
+
 layerDcmp(const CoordBR& subWorkBR) {
     MPI_Comm_rank(MPI_COMM_WORLD, &_pMetaData->myrank);
     MPI_Comm_size(MPI_COMM_WORLD, &_pMetaData->processor_number);
 
-    int glbBegin = subWorkBR.nwCorner().iRow();
+
+	int glbBegin = subWorkBR.nwCorner().iRow();
     int glbEnd = subWorkBR.seCorner().iRow();
+	
     glbEnd = min(glbEnd, _pMetaData->_glbDims.nRows()-1);
-    CellCoord nwCorner(glbBegin + _pNbrhood->minIRow(), 0);
-    CellCoord seCorner(glbEnd + _pNbrhood->maxIRow(), _pMetaData->_glbDims.nCols() - 1);
+    CellCoord nwCorner(glbBegin + _pNbrhood->minIRow(), subWorkBR.nwCorner().iCol());
+    CellCoord seCorner(glbEnd + _pNbrhood->maxIRow(), subWorkBR.seCorner().iCol());
+
     CoordBR subMBR(nwCorner, seCorner);
     _pMetaData->_MBR = subMBR;
     SpaceDims dims(subMBR.nRows(), subMBR.nCols());
@@ -902,6 +952,29 @@ readFile(const char* inputfile, DomDcmpType dcmpType) {
 
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
+readFile(const char* inputfile, long minICol,long minIRow,long nCol,long nRow,DomDcmpType dcmpType) {
+    GDALAllRegister();
+    GDALDataset* poDatasetsrc = static_cast<GDALDataset*>(GDALOpen(inputfile, GA_ReadOnly));
+
+    GDALRasterBand* poBandsrc = readFileInfo(poDatasetsrc, dcmpType);
+
+    if (!layerDcmp(dcmpType)) return false;
+
+    poBandsrc->RasterIO(GF_Read,minICol, minIRow, nCol, nRow,
+                        _pCellSpace->_matrix, nCol, nRow,
+                        _pMetaData->dataType, 0, 0);
+
+    if (poDatasetsrc != nullptr) {
+        GDALClose(static_cast<GDALDatasetH>(poDatasetsrc));
+        poDatasetsrc = nullptr;
+    }
+    // MPI_Barrier( MPI_COMM_WORLD ); // wyj: maybe useless.
+
+    return true;
+}
+
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
 newUpscaleFile(const char* inputfile, int g, DomDcmpType dcmpType) {
     GDALAllRegister();
     GDALDataset* poDatasetsrc = static_cast<GDALDataset*>(GDALOpen(inputfile, GA_ReadOnly));
@@ -924,17 +997,19 @@ newUpscaleFile(const char* inputfile, int g, DomDcmpType dcmpType) {
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
 readFile(const char* inputfile, const CoordBR& subWorkBR, DomDcmpType dcmpType) {
-    //why cleanMetaData crashes?
+    //why cleanMetaData crashes£¿
     if (_pMetaData) {
         cleanMetaData();
     } // to overwrite instead of clean is ok ?
     GDALAllRegister();
     GDALDataset* poDatasetsrc = static_cast<GDALDataset*>(GDALOpen(inputfile, GA_ReadOnly));
     GDALRasterBand* poBandsrc = readFileInfo(poDatasetsrc, dcmpType);
+	
+	//cout<<subWorkBR.minICol();
+    if (!layerDcmp(subWorkBR,dcmpType)) return false;
+	//cout<<"mbrminrow"<<_pMetaData->_MBR.minIRow()<<_pMetaData->_localworkBR.minIRow()<<_pMetaData->_localdims.nCols()<<_pMetaData->_localworkBR.maxIRow()<<endl;
+    poBandsrc->RasterIO(GF_Read, _pMetaData->_MBR.minICol(), _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
 
-    if (!layerDcmp(subWorkBR)) return false;
-
-    poBandsrc->RasterIO(GF_Read, 0, _pMetaData->_MBR.minIRow(), _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
                         _pCellSpace->_matrix, _pMetaData->_localdims.nCols(), _pMetaData->_localdims.nRows(),
                         _pMetaData->dataType, 0, 0);
 
@@ -1000,21 +1075,91 @@ writeFile(const char* outputfile) {
     if (COLWISE_DCMP == _pMetaData->_domDcmpType) {
         return colWriteFile(outputfile);
     }
-    if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
+    else if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
         cout << __FILE__ << " " << __FUNCTION__
             << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType
             << " right now" << endl; //unfinished
         return false;
     }
-    if (NON_DCMP == _pMetaData->_domDcmpType) {
+    else if (NON_DCMP == _pMetaData->_domDcmpType) {
         //done by master or not to support?
-        return false;
+        return nonWriteFile(outputfile);
+
     }
-    return rowWriteFile(outputfile);
+    else {
+        return rowWriteFile(outputfile);
+    }
 }
 
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
+writeFile(const char* outputfile,const CoordBR& subWorkBR) {
+    if (COLWISE_DCMP == _pMetaData->_domDcmpType) {
+        return colWriteFile(outputfile);
+    }
+    else if (BLOCK_DCMP == _pMetaData->_domDcmpType) {
+        cout << __FILE__ << " " << __FUNCTION__
+            << "Error: not support this dcmpType_" << _pMetaData->_domDcmpType
+            << " right now" << endl; //unfinished
+        return false;
+    }
+    else if (NON_DCMP == _pMetaData->_domDcmpType) {
+        //done by master or not to support?
+        return nonWriteFile(outputfile);
+    }
+    else {
+        return rowWriteFile(outputfile,subWorkBR);
+    }
+}
+
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
+nonWriteFile(const char* outputfile) {
+    if (_pMetaData->myrank == 0) {
+	GDALAllRegister();
+	if (!FileExists(outputfile)){
+    if (!createFile(outputfile)) {
+        cout << __FILE__ << " " << __FUNCTION__
+            << " Error: create file failed!" << endl;
+        MPI_Finalize();
+    }
+	}
+	//cout<<"here"<<endl;
+    GDALDataset* poDataset = static_cast<GDALDataset*>(GDALOpen(outputfile, GA_Update));
+    if (poDataset == nullptr) {
+        cout << "data file is not open correct" << endl;
+        exit(1);
+    }
+
+    GDALRasterBand* poBanddest = poDataset->GetRasterBand(1);
+    if (poBanddest == nullptr) {
+        cout << "poBanddest is NULL" << endl;
+        exit(1);
+    }
+    if (_pMetaData->myrank == 0) {
+        poBanddest->SetNoDataValue(_pMetaData->noData); //why only master process does this
+    }
+    
+        poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                             _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                             _pMetaData->dataType, 0, 0);
+    
+	GDALClose(poDataset);
+    poDataset = nullptr;
+	}
+    
+
+    MPI_Barrier(MPI_COMM_WORLD); //if needed?
+    
+    // if (poDataset != nullptr) {
+    //     GDALClose(static_cast<GDALDatasetH>(poDataset));
+    //     poDataset = nullptr;
+    // }
+    return true;
+}
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
+
 rowWriteFile(const char* outputfile) {
     GDALAllRegister();
 
@@ -1043,30 +1188,101 @@ rowWriteFile(const char* outputfile) {
                              _pMetaData->dataType, 0, 0);
     }
     else {
-        int nXOff = 0;
+        int nXOff=0;
         int nYOff;
-        int nXSize = _pMetaData->_glbDims.nCols();
+        int nXSize=_pMetaData->_glbDims.nCols();
         int nYSize;
-        int nBufXSize = _pMetaData->_glbDims.nCols();
+        int nBufXSize=_pMetaData->_glbDims.nCols();
         int nBufYSize;
         elemType* pData;
         if (_pMetaData->myrank == 0) {
-            nYOff = 0;
-            nYSize = _pMetaData->_localworkBR.maxIRow() + 1;
-            pData = _pCellSpace->_matrix;
-            nBufYSize = _pMetaData->_localworkBR.maxIRow() + 1;
+            nYOff=0;
+            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            pData=_pCellSpace->_matrix;
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
         }
         else if (_pMetaData->myrank == (_pMetaData->processor_number - 1)) {
-            nYOff = _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
-            nYSize = _pMetaData->_localworkBR.maxIRow() + 1;
-            pData = _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
-            nBufYSize = _pMetaData->_localworkBR.maxIRow() + 1;
+            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
+            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
         }
         else {
-            nYOff = _pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
-            nYSize = _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
-            pData = _pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
-            nBufYSize = _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow();
+            nYSize= _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+        }
+        // cout<<*_pCellSpace;
+        poBanddest->RasterIO(GF_Write, nXOff, nYOff, nXSize, nYSize, pData, nBufXSize, nBufYSize, _pMetaData->dataType, 0, 0);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD); //if needed?
+    GDALClose(poDataset);
+    poDataset = nullptr;
+    // if (poDataset != nullptr) {
+    //     GDALClose(static_cast<GDALDatasetH>(poDataset));
+    //     poDataset = nullptr;
+    // }
+    return true;
+}
+
+template <class elemType>
+bool GPRO::RasterLayer<elemType>::
+rowWriteFile(const char* outputfile, const CoordBR& subWorkBR) {
+    GDALAllRegister();
+
+    if (!createFile(outputfile)) {
+        cout << __FILE__ << " " << __FUNCTION__
+            << " Error: create file failed!" << endl;
+        MPI_Finalize();
+    }
+    GDALDataset* poDataset = static_cast<GDALDataset*>(GDALOpen(outputfile, GA_Update));
+    if (poDataset == nullptr) {
+        cout << "data file is not open correct" << endl;
+        exit(1);
+    }
+
+    GDALRasterBand* poBanddest = poDataset->GetRasterBand(1);
+    if (poBanddest == nullptr) {
+        cout << "poBanddest is NULL" << endl;
+        exit(1);
+    }
+    if (_pMetaData->myrank == 0) {
+        poBanddest->SetNoDataValue(_pMetaData->noData); //why only master process does this
+    }
+    if (_pMetaData->processor_number == 1) {
+        poBanddest->RasterIO(GF_Write, 0, 0, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                             _pCellSpace->_matrix, _pMetaData->_glbDims.nCols(), _pMetaData->_glbDims.nRows(),
+                             _pMetaData->dataType, 0, 0);
+    }
+    else {
+        int nXOff=0;
+        int nYOff;
+        int nXSize= _pMetaData->_glbDims.nCols();
+        int nYSize;
+        int nBufXSize= _pMetaData->_glbDims.nCols();
+        int nBufYSize;
+        elemType* pData;
+        if (_pMetaData->myrank == 0) {
+            nYOff=0;
+            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            pData=_pCellSpace->_matrix;
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+			
+        }
+        else if (_pMetaData->myrank == (_pMetaData->processor_number - 1)) {
+            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow()-(subWorkBR.nwCorner().iRow()+_pNbrhood->minIRow());
+            nYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + 1;
+
+        }
+        else {
+            nYOff=_pMetaData->_MBR.minIRow() - _pNbrhood->minIRow()-(subWorkBR.nwCorner().iRow()+_pNbrhood->minIRow());
+            nYSize= _pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
+            pData=_pCellSpace->_matrix - _pNbrhood->minIRow() * _pMetaData->_glbDims.nCols();
+            nBufYSize=_pMetaData->_localworkBR.maxIRow() + _pNbrhood->minIRow() + 1;
         }
         // cout<<*_pCellSpace;
         poBanddest->RasterIO(GF_Write, nXOff, nYOff, nXSize, nYSize, pData, nBufXSize, nBufYSize, _pMetaData->dataType, 0, 0);
@@ -1291,8 +1507,8 @@ rowAtOtherLayer(RasterLayer<double>* layer, int row) {
 template <class elemType>
 int GPRO::RasterLayer<elemType>::
 rowAtOtherLayer(RasterLayer<int>* layer, int row) {
-    int a = layer->metaData()->_glbDims.nRows();
-    int b = _pMetaData->_glbDims.nRows();
+    int a=layer->metaData()->_glbDims.nRows();
+    int b=_pMetaData->_glbDims.nRows();
     double scale = static_cast<double>(layer->metaData()->_glbDims.nRows()) / _pMetaData->_glbDims.nRows();
     return min(scale * row, layer->_pMetaData->_localworkBR.maxIRow());
 }

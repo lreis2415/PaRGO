@@ -1,28 +1,28 @@
 #include "krigingTransformation.h"
 
-bool KrigingTransformation::Operator(const CellCoord& coord) {
-    int cRow = coord.iRow();
-    int cCol = coord.iCol();
-
-    if (cRow == _pWorkBR->minIRow() && cCol == _pWorkBR->minICol()) {
-        if (!paramInit()) {
-            return false;
-        }
-    }
-
-    const vector<SampleBlock>* sampleBlocks = _krigingOperator->getSampleBlocks();
-
+bool KrigingTransformation::Operator(const CellCoord &coord) {
+    int cRow=coord.iRow();
+    int cCol=coord.iCol();
+    
+    if( cRow == _pWorkBR->minIRow() && cCol == _pWorkBR->minICol() ){
+		if( !paramInit() ){
+			return false;
+		}
+	}
+    
+    const vector<SampleBlock> *sampleBlocks = _krigingOperator->getSampleBlocks();
+    
     CellSpace<double>& comptL = *_pComptLayer->cellSpace();
 
-    int maskRow = _pComptLayer->rowAtOtherLayer(_krigingOperator->getMaskLayer(), cRow);
-    int maskCol = _pComptLayer->colAtOtherLayer(_krigingOperator->getMaskLayer(), cCol);
+    int maskRow= _pComptLayer->rowAtOtherLayer(_krigingOperator->getMaskLayer(),cRow);
+    int maskCol= _pComptLayer->colAtOtherLayer(_krigingOperator->getMaskLayer(),cCol);
     int mask = (*_krigingOperator->getMaskLayer()->cellSpace())[maskRow][maskCol];
-    if (mask == 0) {
-        comptL[cRow][cCol] = _noData;
+    if(mask==0) {
+        comptL[cRow][cCol]=_noData;
         return true;
     }
-    int blockRow = _krigingOperator->getBlockRowIndexByCellIndex(cRow, _pComptLayer->_pMetaData->cellSize);
-    int blockCol = _krigingOperator->getBlockColIndexByCellIndex(cCol, _pComptLayer->_pMetaData->cellSize);
+    int blockRow = _krigingOperator->getBlockRowIndexByCellIndex(cRow,_pComptLayer->_pMetaData->cellSize);
+    int blockCol = _krigingOperator->getBlockColIndexByCellIndex(cCol,_pComptLayer->_pMetaData->cellSize);
     int blockCols = _krigingOperator->getBlockCols();
     int blockRows = _krigingOperator->getBlockRows();
 
@@ -30,7 +30,7 @@ bool KrigingTransformation::Operator(const CellCoord& coord) {
     int searchRadius = 0; //e.g. searchRadius=1 means search the 3*3 neighborhood but without central cell
     int searchBlockNums = 0; //count of blocks need to search for this cell in comptLayer
     int nbrNums = (*sampleBlocks)[blockRow * blockCols + blockCol].samplePoints.size();
-
+    
     while (nbrNums < _krigingOperator->getNbrPoints()) //nbrPoints is the K in Eq.(7)
     {
         //search the blocks with gap cells equal to searchRadius
@@ -55,6 +55,6 @@ bool KrigingTransformation::Operator(const CellCoord& coord) {
     double load_1 = searchBlockNums; //algorithms depend on specific application
     double load_2 = nbrNums * 2;
     //comptL[cRow][cCol] = 1;
-    comptL[cRow][cCol] = load_1 + load_2 + pow(static_cast<double>(_krigingOperator->getNbrPoints()), 3);
+    comptL[cRow][cCol] = load_1 + load_2 + pow((double)_krigingOperator->getNbrPoints(),3);
     return true;
 }

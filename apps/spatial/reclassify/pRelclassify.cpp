@@ -117,13 +117,13 @@ int main(int argc, char* argv[]) {
     int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-
+    
 #ifdef _DEBUG
     int name_len = MPI_MAX_PROCESSOR_NAME;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name(processor_name, &name_len);
     if (myRank == 0) {
-        cout << "PaRGO-Reclassify. " << process_nums << " core(s) by " << processor_name << endl;
+        cout << "PaRGO-Reclassify. " << process_nums << " core(s) by "<<processor_name << endl;
         for (int i = 0; i < argc; ++i) {
             cout << argv[i];
             if (argv[i][0] == '-')
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
         dLevels.emplace_back(stod(tokens[i]));
     }
     sort(dLevels.begin(), dLevels.end());
-
+    
 
     double starttime = MPI_Wtime();
     double endtime;

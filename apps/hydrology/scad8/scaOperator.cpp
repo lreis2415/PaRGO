@@ -15,15 +15,13 @@ d8Layer(RasterLayer<double>& layerD) {
     Configure(_pD8Layer, false);
     Configure(&_degreeLayer, true);
 }
-
 void SCAOperator::weiLayer(RasterLayer<double>& layerD) {
     _pWEILayer = &layerD;
-    //_pD8Nbrhood = layerD.nbrhood();
+	//_pD8Nbrhood = layerD.nbrhood();
     Configure(_pWEILayer, false);
 
 
 }
-
 void SCAOperator::scaLayer(RasterLayer<double>& layerD) {
     _pSCALayer = &layerD;
     Configure(_pSCALayer, true);
@@ -47,37 +45,36 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
     CellSpace<double>& scaL = *(_pSCALayer->cellSpace());
     CellSpace<double>& degreeL = *(_degreeLayer.cellSpace());
     Neighborhood<double>& nbrhoodD = *(_pD8Nbrhood);
-
+	
     int iRow = coord.iRow();
     int iCol = coord.iCol();
     if (num == 0) {
-        //optional weighted sca calculation
-        if (usew == true) {
-            CellSpace<double>& weight = *(_pWEILayer->cellSpace());
-            if (fabs(d8L[iRow][iCol] - _noData) < Eps) {
-                degreeL[iRow][iCol] = -2; //init
-                scaL[iRow][iCol] = _noData;
-            }
-            else if (!fabs(weight[iRow][iCol] - _noData) < Eps) {
-                scaL[iRow][iCol] = weight[iRow][iCol];
-                degreeL[iRow][iCol] = 0;
-            }
-            else {
-                scaL[iRow][iCol] = 0;
-                degreeL[iRow][iCol] = 0;
-            }
-        }
-        else {
+		//optional weighted sca calculation
+		if(usew==true)
+		{
+			CellSpace<double>& weight=*(_pWEILayer->cellSpace());
+			if (fabs(d8L[iRow][iCol] - _noData) < Eps) {
+				degreeL[iRow][iCol] = -2; //init
+				scaL[iRow][iCol] = _noData;
+			}else if(!fabs(weight[iRow][iCol]-_noData)<Eps){
+				scaL[iRow][iCol]=weight[iRow][iCol];
+				degreeL[iRow][iCol]=0;
+			}else
+			{
+				scaL[iRow][iCol]=0;
+				degreeL[iRow][iCol]=0;
+			}
+		}else{
 
-            if (fabs(d8L[iRow][iCol] - _noData) < Eps) {
-                degreeL[iRow][iCol] = -2; //init
-                scaL[iRow][iCol] = _noData;
-            }
-            else {
-                degreeL[iRow][iCol] = 0; //init
-                scaL[iRow][iCol] = 1;
-            }
-        }
+			if (fabs(d8L[iRow][iCol] - _noData) < Eps) {
+				degreeL[iRow][iCol] = -2; //init
+				scaL[iRow][iCol] = _noData;
+			}
+			else {
+				degreeL[iRow][iCol] = 0; //init
+				scaL[iRow][iCol] = 1;
+			}
+		}
 
         if (iRow == _maxRow && iCol == _maxCol) {
             MPI_Barrier(MPI_COMM_WORLD);
@@ -126,7 +123,6 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
                 if (degreeL[tRow][tCol] == -1) {
                     degreeL[tRow][tCol] = -2;
                 }
-
             }
             dir--;
         }
@@ -139,19 +135,19 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
             for (int j = minCol; j <= _maxCol; ++j) {
                 if (degreeL[i][j] == 0) {
                     degreeL[i][j] = -2; //-2 means ending cal., -1 means finishing cal. this itermination
-                    Termination = 0; //add Termination = 0;
+					Termination = 0;//add Termination = 0;
                 }
                 else {
                     if (degreeL[i][j] == -1) {
                         degreeL[i][j] = 0;
-                        Termination = 0; //add Termination = 0;
+						Termination = 0;//add Termination = 0;
                     }
                 }
-            }
+            }			
         }
-        //Termination = 1;
+		//Termination = 1;
     }
-
+	
     return true;
 }
 

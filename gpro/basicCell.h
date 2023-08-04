@@ -28,32 +28,39 @@ namespace GPRO {
     class BasicCell {
     public:
         ///< Constructor
-        BasicCell() { }
+        BasicCell() {
+        }
 
         ///< Construct with row&col value
         BasicCell(int iRow, int iCol)
-            : _coord(iRow, iCol) { }
+            : _coord(iRow, iCol) {
+        }
 
         ///< Constuct with row&col value and element
         BasicCell(int iRow, int iCol,
                   const elemType& val)
-            : _coord(iRow, iCol), _val(val) { }
+            : _coord(iRow, iCol), _val(val) {
+        }
 
         ///< Construct with coordinate
         BasicCell(const CellCoord& coord)
-            : _coord(coord) { }
+            : _coord(coord) {
+        }
 
         ///< Construct with coordinate and element
         BasicCell(const CellCoord& coord,
                   const elemType& val)
-            : _coord(coord), _val(val) { }
+            : _coord(coord), _val(val) {
+        }
 
         ///< Deep copy
         BasicCell(const BasicCell<elemType>& rhs)
-            : _coord(rhs._coord), _val(rhs._val) { }
+            : _coord(rhs._coord), _val(rhs._val) {
+        }
 
         ///< Destructor
-        ~BasicCell() { }
+        ~BasicCell() {
+        }
 
         ///< return the copy of the stored value
         const elemType& val() const {
@@ -132,6 +139,7 @@ namespace GPRO {
         CellCoord _coord; /// coordinate of this cell, including row and col value
         elemType _val; /// value in this cell
     };
+
 };
 
 #endif

@@ -52,9 +52,11 @@ namespace GPRO {
               _onlyUpdtCtrCell(onlyUpdtCtrCell),
               _needFinalize(needFinalize),
               _needExchange(needExchange),
-              _edgesFirst(edgesFirst) { }
+              _edgesFirst(edgesFirst) {
+        }
 
-        virtual ~Transition() { }
+        virtual ~Transition() {
+        }
 
         bool onlyUpdtCtrCell() const {
             return _onlyUpdtCtrCell;
@@ -230,6 +232,7 @@ namespace GPRO {
         SpaceDims _dims;
         map<elemType, IntVect> _mUpdtCells;
     };
+
 };
 
 /****************************************
@@ -333,7 +336,8 @@ clear() {
 template <class elemType>
 GPRO::CellSpace<elemType>::
 CellSpace()
-    : _matrix(nullptr) {}
+    : _matrix(nullptr) {
+}
 
 template <class elemType>
 GPRO::CellSpace<elemType>::

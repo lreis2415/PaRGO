@@ -18,7 +18,8 @@ class PDOperator : public RasterOperator<double>
     PDOperator()
       :RasterOperator<double>(),
        noData(-9999.), num(0),_maxRow(0), _maxCol(0),_smoLayer("smoLayer"),
-       _pDEMLayer(nullptr), _pucgLayer(nullptr),_pDEMNbrhood(nullptr){}
+       _pDEMLayer(nullptr), _pucgLayer(nullptr),_pDEMNbrhood(nullptr),runtime(0.){}
+
    
     ~PDOperator() DEFAULT;
   
@@ -33,6 +34,8 @@ class PDOperator : public RasterOperator<double>
 	int num;
 	int _maxRow;
 	int _maxCol;
+
+	double runtime;
 
 	RasterLayer<double> *_pDEMLayer;
 	RasterLayer<double> *_pucgLayer;//upward curved grid

@@ -44,9 +44,11 @@ namespace GPRO {
               commFlag(false),
               Termination(true),
               computeTimeExceptLastCell(0),
-              _writePreExpLoad(false) { }
+              _writePreExpLoad(false) {
+        }
 
-        virtual ~RasterOperator() { }
+        virtual ~RasterOperator() {
+        }
 
 
         /**
@@ -342,8 +344,10 @@ Work(const CoordBR* const pWBR) {
         //		cout<<"update matrix time:"<<tcount2<<endl;
         //		cout<<"iterative numerber is "<<itera<<endl;
     }
-    else if (Application::_programType == CUDA_Type) { }
-    else { }
+    else if (Application::_programType == CUDA_Type) {
+    }
+    else {
+    }
 
     return flag;
 }

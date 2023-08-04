@@ -15,10 +15,10 @@ void Usage(const string& error_msg = "") {
         cout << "FAILURE: " << error_msg << endl << endl;
     }
 
-    cout << "NOTE: This operator is for preliminary experiment mode. Only support upscaling by a specified granularity." << endl
-        << "e.g., -g 2 means one output cell is determined by 2*2 cells in the input (resolution from 10m to 20m). " << endl << endl
-        << "Usage: resample -input <input raster file> -output <resampled file> -g <granularity, 10 if not specified>" << endl
-        << "TODO: the output resolution (cellsize) in metadata is not changed yet." << endl;
+    cout << "NOTE: This operator is for preliminary experiment mode. Only support upscaling by a specified granularity."<<endl
+    <<"e.g., -g 2 means one output cell is determined by 2*2 cells in the input (resolution from 10m to 20m). "<<endl<<endl
+    <<"Usage: resample -input <input raster file> -output <resampled file> -g <granularity, 10 if not specified>" << endl
+    <<"TODO: the output resolution (cellsize) in metadata is not changed yet." << endl;
 
     exit(1);
 }
@@ -73,28 +73,28 @@ int main(int argc, char* argv[]) {
 
         int name_len = MPI_MAX_PROCESSOR_NAME;
         char processor_name[MPI_MAX_PROCESSOR_NAME];
-        MPI_Get_processor_name(processor_name, &name_len);
+        MPI_Get_processor_name(processor_name,&name_len);
         if (myRank == 0) {
-            cout << "PaRGO-Resample. " << process_nums << " core(s)" << endl;
+            cout<<"PaRGO-Resample. "<<process_nums<<" core(s)"<<endl;
             for (int i = 0; i < argc; ++i) {
-                cout << argv[i];
-                if (argv[i][0] == '-')
-                    cout << " ";
+                cout<<argv[i];
+                if(argv[i][0]=='-') 
+                    cout<<" ";
                 else
-                    cout << endl;
+                    cout<<endl;
             }
-            cout << endl;
+            cout<<endl;
         }
 
         double endtime;
-
+        
         RasterLayer<double> inputLayer("inputLayer");
-        inputLayer.newRectangleNbrhood(3 * g);
+        inputLayer.newRectangleNbrhood(3*g);
         inputLayer.readFile(inputFileName, ROWWISE_DCMP);
 
         RasterLayer<double> outputLayer("outputLayer");
         outputLayer.newLocalNbrhood();
-        outputLayer.newUpscaleFile(inputFileName, g, ROWWISE_DCMP);
+        outputLayer.newUpscaleFile(inputFileName,g,ROWWISE_DCMP);
 
         ResampleOperator reOper;
         reOper.setInputLayer(inputLayer);
@@ -103,11 +103,12 @@ int main(int argc, char* argv[]) {
         double starttime = MPI_Wtime();
         reOper.Run();
         MPI_Barrier(MPI_COMM_WORLD);
-        if (myRank == 0) {
-            cout << "run time is " << MPI_Wtime() - starttime << endl;
+        if(myRank==0) {
+	        cout<<"run time is "<<MPI_Wtime()-starttime<<endl;
         }
         outputLayer.writeFile(outputFileName);
 
+        
 
         Application::END();
         return 0;

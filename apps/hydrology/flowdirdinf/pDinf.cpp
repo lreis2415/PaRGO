@@ -25,7 +25,8 @@
 #include "application.h"
 #include "dinfOperator.h"
 #include "communication.h"
-
+#include "transformation.h"
+#include "computeLayer.h"
 using namespace GPRO;
 
 void Usage(const string& error_msg = "") {
@@ -41,106 +42,113 @@ void Usage(const string& error_msg = "") {
     exit(1);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) 
+{
 
-    /*!
-     * Parse input arguments.
-     * DO NOT start the application unless the required inputs are provided!
-     */
-    if (argc < 4) {
+	/*!
+	 * Parse input arguments.
+	 * DO NOT start the application unless the required inputs are provided!
+	 */
+	if (argc < 4) {
         Usage("Too few arguments to run this program.");
-    }
-    // Input arguments
-    char* inputfilename = nullptr;
-    char* neighborfile = nullptr;
-    char* outputfilename = nullptr;
-    //int dirType;
+	}
+	// Input arguments
+	char* inputfilename = nullptr;
+	char* neighborfile = nullptr;
+	char* outputfilename = nullptr;
+	//int dirType;
 
     int i = 1;
     bool simpleusage = true;
-    while (argc > i) {
-        if (strcmp(argv[i], "-elev") == 0) {
+	while (argc > i) {
+		if (strcmp(argv[i], "-elev") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 inputfilename = argv[i];
                 i++;
+            } else {
+	            Usage("No argument followed '-elev'!");
             }
-            else {
-                Usage("No argument followed '-elev'!");
-            }
-        }
-        else if (strcmp(argv[i], "-nbr") == 0) {
+		} else if (strcmp(argv[i], "-nbr") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 neighborfile = argv[i];
                 i++;
-            }
-            else {
-                Usage("No argument followed '-nbr'!");
-            }
-        }
-        else if (strcmp(argv[i], "-out") == 0) {
+			} else {
+				Usage("No argument followed '-nbr'!");
+			}
+        } else if (strcmp(argv[i], "-out") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 outputfilename = argv[i];
                 i++;
-            }
-            else {
+			} else {
                 Usage("No argument followed '-out'!");
-            }
-        }
-        else {
-            // Simple Usage
+			}
+        } else { // Simple Usage
             if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
             inputfilename = argv[1];
             neighborfile = argv[2];
             outputfilename = argv[3];
-            //dirType = atoi(argv[4]);
-            break;
+			//dirType = atoi(argv[4]);
+			break;
         }
-    }
-    if (!FileExists(inputfilename)) {
+	}
+	if (!FileExists(inputfilename)) {
         Usage("The input DEM file not exists");
     }
     if (!FileExists(neighborfile)) {
         Usage("neighbor file not exists");
     }
+	
+	Application::START(MPI_Type, argc, argv); //init
+	int myRank, process_nums;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
 
-    Application::START(MPI_Type, argc, argv); //init
+	RasterLayer<double> demLayer("demLayer"); //创建图层
+	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
+	demLayer.readFile(inputfilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_dcmp
+	
+	RasterLayer<double> dinfLayer("dinfLayer");
+	dinfLayer.copyLayerInfo(demLayer);
 
-    RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
-    demLayer.readNeighborhood(neighborfile); //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
-    demLayer.readFile(inputfilename, ROWWISE_DCMP); //璇诲彇鏍呮牸鏁版嵁//add rowwise_dcmp
+	RasterLayer<double> slpLayer("slpLayer");
+	slpLayer.copyLayerInfo(demLayer);
+	
+	double starttime;
+	double endtime;
+	MPI_Barrier(MPI_COMM_WORLD);
+	starttime = MPI_Wtime();
 
-    RasterLayer<double> dinfLayer("dinfLayer");
-    dinfLayer.copyLayerInfo(demLayer);
+	CoordBR subWorkBR;
+	ComputeLayer<double> comptLayer("computLayer");
+    comptLayer.addRasterLayerSerial(&demLayer);
+	comptLayer.init(nullptr, 10);
+    Transformation<double> transOper(0, 1, &comptLayer); 
+    transOper.run();
+    comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
+	if (myRank == 0) cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
+    cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
+	
+	DinfOperator dinfOper;	
+	dinfOper.demLayer(demLayer);
+	dinfOper.dinfLayer(dinfLayer);
+	dinfOper.slpLayer(slpLayer);
+	dinfOper.Run();
 
-    RasterLayer<double> slpLayer("slpLayer");
-    slpLayer.copyLayerInfo(demLayer);
-
-    double starttime;
-    double endtime;
-    MPI_Barrier(MPI_COMM_WORLD);
-    starttime = MPI_Wtime();
-
-    DinfOperator dinfOper;
-    dinfOper.demLayer(demLayer);
-    dinfOper.dinfLayer(dinfLayer);
-    dinfOper.slpLayer(slpLayer);
-    dinfOper.Run();
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    endtime = MPI_Wtime();
-    //int myrank;
-    //MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-    //if( myrank==0 )
-    cout << "run time is " << endtime - starttime << endl;
-    dinfLayer.writeFile(outputfilename);
-    //slpLayer.writeFile(outputfilename);
-    Application::END();
-    //system("pause");
-    return 0;
+	MPI_Barrier(MPI_COMM_WORLD);
+	endtime = MPI_Wtime();
+	//int myrank;
+	//MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+	//if( myrank==0 )
+	cout<<"run time is "<<endtime-starttime<<endl;
+	dinfLayer.writeFile(outputfilename);
+	//slpLayer.writeFile(outputfilename);
+	Application::END();
+	//system("pause");
+	return 0;
 }

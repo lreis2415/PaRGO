@@ -29,6 +29,7 @@
 using namespace std;
 
 namespace GPRO {
+
     /**
      * \ingroup gpro
      * \class MetaData 
@@ -79,6 +80,7 @@ namespace GPRO {
         int LoctoGloRow(int i) { return _MBR.minIRow() + i; }
 
         int LoctoGloCol(int j) { return _MBR.minICol() + j; }
+
     };
 };
 

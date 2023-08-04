@@ -40,160 +40,149 @@ void Usage(const string& error_msg = "") {
     exit(1);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) 
+{
 
-    /*!
-     * Parse input arguments.
-     * DO NOT start the application unless the required inputs are provided!
-     */
-    if (argc < 6) {
+	/*!
+	 * Parse input arguments.
+	 * DO NOT start the application unless the required inputs are provided!
+	 */
+	if (argc < 6) {
         Usage("Too few arguments to run this program.");
-    }
-    // Input arguments
-    char* demfilename = nullptr;
-    char* dirfilename = nullptr;
-    char* scafilename = nullptr;
-    char* ssafilename = nullptr;
-    char* neighborfile = nullptr;
-    double thresh;
+	}
+	// Input arguments
+	char* demfilename = nullptr;
+	char* dirfilename = nullptr;
+	char* scafilename = nullptr;
+	char* ssafilename = nullptr;
+	char* neighborfile = nullptr;
+	double thresh;
 
 
     int i = 1;
     bool simpleusage = true;
-    while (argc > i) {
-        if (strcmp(argv[i], "-elev") == 0) {
+	while (argc > i) {
+		if (strcmp(argv[i], "-elev") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 demfilename = argv[i];
                 i++;
+            } else {
+	            Usage("No argument followed '-elev'!");
             }
-            else {
-                Usage("No argument followed '-elev'!");
-            }
-        }
-        else if (strcmp(argv[i], "-dir") == 0) {
+		} else if (strcmp(argv[i], "-dir") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 dirfilename = argv[i];
                 i++;
-            }
-            else {
-                Usage("No argument followed '-dir'!");
-            }
-        }
-        else if (strcmp(argv[i], "-area") == 0) {
+			} else {
+				Usage("No argument followed '-dir'!");
+			}
+		}else if (strcmp(argv[i], "-area") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 scafilename = argv[i];
                 i++;
-            }
-            else {
-                Usage("No argument followed '-area'!");
-            }
-        }
-        else if (strcmp(argv[i], "-ssa") == 0) {
+			} else {
+				Usage("No argument followed '-area'!");
+			}
+		}else if (strcmp(argv[i], "-ssa") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 ssafilename = argv[i];
                 i++;
-            }
-            else {
-                Usage("No argument followed '-ssa'!");
-            }
-        }
-        else if (strcmp(argv[i], "-nbr") == 0) {
+			} else {
+				Usage("No argument followed '-ssa'!");
+			}
+		}else if (strcmp(argv[i], "-nbr") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 neighborfile = argv[i];
                 i++;
-            }
-            else {
-                Usage("No argument followed '-nbr'!");
-            }
-
-        }
-        else if (strcmp(argv[i], "-th") == 0) {
+			} else {
+				Usage("No argument followed '-nbr'!");
+			}
+		
+        } else if (strcmp(argv[i], "-th") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 thresh = atof(argv[i]);
                 i++;
-            }
-            else {
-                Usage("No argument followed '-th'!");
-            }
-        }
-        else {
-            // Simple Usage
+			} else {
+				Usage("No argument followed '-th'!");
+			}
+		}else { // Simple Usage
             if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
             demfilename = argv[1];
             dirfilename = argv[2];
             scafilename = argv[3];
-            ssafilename = argv[4];
-            neighborfile = argv[5];
-            thresh = atof(argv[6]);
-            break;
+			ssafilename = argv[4];
+			neighborfile = argv[5];
+			thresh = atof(argv[6]);
+			break;
         }
-    }
-    if (!FileExists(demfilename)) {
+	}
+	if (!FileExists(demfilename)) {
         Usage("The input DEM file not exists");
     }
     if (!FileExists(neighborfile)) {
         Usage("neighbor file not exists");
     }
+	
+	Application::START(MPI_Type, argc, argv); //init
 
-    Application::START(MPI_Type, argc, argv); //init
+	RasterLayer<double> demLayer("demLayer"); //创建图层
+	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
+	demLayer.readFile(demfilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_dcmp
+	
+	RasterLayer<double> ssaLayer("ssaLayer"); //创建图层
+	ssaLayer.readNeighborhood(neighborfile);
+	ssaLayer.readFile(ssafilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_dcmp
 
-    RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
-    demLayer.readNeighborhood(neighborfile); //璇诲彇鍒嗘瀽绐楀彛鏂囦欢
-    demLayer.readFile(demfilename, ROWWISE_DCMP); //璇诲彇鏍呮牸鏁版嵁//add rowwise_dcmp
+	RasterLayer<double> dirLayer("dirLayer"); //创建图层
+	dirLayer.readNeighborhood(neighborfile);
+	dirLayer.readFile(dirfilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_d
+	
+	RasterLayer<double> scaLayer("scaLayer"); //创建图层
+	scaLayer.readNeighborhood(neighborfile);
+	scaLayer.readFile(scafilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_dcmp
+	
+	
+	double opt;//t statistics
+	double starttime;
+	double endtime;
+	MPI_Barrier(MPI_COMM_WORLD);
+	starttime = MPI_Wtime();
+	
+	
+	//cout<<"thresh"<<thresh<<endl;
+	DropanOperator DPOper(thresh,opt);	
+		
+	DPOper.ssaLayer(ssaLayer);
+	DPOper.areaLayer(scaLayer);
+	DPOper.dirLayer(dirLayer);
+	DPOper.demLayer(demLayer);
+	DPOper.Run();
+	
+	
 
-    RasterLayer<double> ssaLayer("ssaLayer"); //鍒涘缓鍥惧眰
-    ssaLayer.readNeighborhood(neighborfile);
-    ssaLayer.readFile(ssafilename, ROWWISE_DCMP); //璇诲彇鏍呮牸鏁版嵁//add rowwise_dcmp
-
-    RasterLayer<double> dirLayer("dirLayer"); //鍒涘缓鍥惧眰
-    dirLayer.readNeighborhood(neighborfile);
-    dirLayer.readFile(dirfilename, ROWWISE_DCMP); //璇诲彇鏍呮牸鏁版嵁//add rowwise_d
-
-    RasterLayer<double> scaLayer("scaLayer"); //鍒涘缓鍥惧眰
-    scaLayer.readNeighborhood(neighborfile);
-    scaLayer.readFile(scafilename, ROWWISE_DCMP); //璇诲彇鏍呮牸鏁版嵁//add rowwise_dcmp
-
-
-    double opt; //t statistics
-    double starttime;
-    double endtime;
-    MPI_Barrier(MPI_COMM_WORLD);
-    starttime = MPI_Wtime();
-
-
-    //cout<<"thresh"<<thresh<<endl;
-    DropanOperator DPOper(thresh, opt);
-
-    DPOper.ssaLayer(ssaLayer);
-    DPOper.areaLayer(scaLayer);
-    DPOper.dirLayer(dirLayer);
-    DPOper.demLayer(demLayer);
-    DPOper.Run();
-
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    endtime = MPI_Wtime();
-    //int myrank;
-    //MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-    //if( myrank==0 )
-    cout << "run time is " << endtime - starttime << endl;
-    cout << "t-statistics:" << opt << endl;
-    Application::END();
-    int result = 2 - fabs(opt);
-    if (result >= 0 && result < 1)
-        cout << "optimal threshold:" << thresh << endl;
-    //system("pause");
-    return 0;
+	MPI_Barrier(MPI_COMM_WORLD);
+	endtime = MPI_Wtime();
+	//int myrank;
+	//MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+	//if( myrank==0 )
+	cout<<"run time is "<<endtime-starttime<<endl;
+	cout<<"t-statistics:"<<opt<<endl;
+	Application::END();
+	int result=2-fabs(opt);
+	if(result>=0&&result<1)
+	cout<<"optimal threshold:"<<thresh<<endl;
+	//system("pause");
+	return 0;
 }

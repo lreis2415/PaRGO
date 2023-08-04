@@ -9,8 +9,10 @@ START(ProgramType programType, int argc, char* argv[]) {
     if (_programType == MPI_Type || _programType == MPI_OpenMP_Type) {
         MPI_Init(&argc, &argv);
     }
-    else if (_programType == CUDA_Type) { }
-    else { }
+    else if (_programType == CUDA_Type) {
+    }
+    else {
+    }
 
     return true;
 }
@@ -20,8 +22,10 @@ END() {
     if (_programType == MPI_Type || _programType == MPI_OpenMP_Type) {
         MPI_Finalize();
     }
-    else if (_programType == CUDA_Type) { }
-    else { }
+    else if (_programType == CUDA_Type) {
+    }
+    else {
+    }
 
     return true;
 }

@@ -14,7 +14,6 @@ std::vector<std::vector<double>> MatrixTimesMatrix(const std::vector<std::vector
                                                    const std::vector<std::vector<double>>& B);
 // Matrix times vector
 std::vector<double> MatrixTimesVector(const std::vector<std::vector<double>>& A, const std::vector<double>& x);
-
 // Cholesky matrix decomposition to lower triangular matrix and its conjugate transpose
 // 
 // Restricted to positive-definite matrices

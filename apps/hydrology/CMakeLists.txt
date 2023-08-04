@@ -3,6 +3,10 @@
 FILE(GLOB PITREMFILES ./pitremove/*.cpp)
 SET(PITREMFILES ${PITREMFILES} ${GPRO_SRCS})
 
+# Remove pit and flat （Large Area）
+FILE(GLOB LPITREMFILES ./Largepitremove/*.cpp)
+SET(LPITREMFILES ${LPITREMFILES} ${GPRO_SRCS})
+
 # Single flow direction D8
 FILE(GLOB D8FILES ./flowdird8/*.cpp)
 SET(D8FILES ${D8FILES} ${GPRO_SRCS})
@@ -35,15 +39,38 @@ SET(SCADINFFILES ${SCADINFFILES} ${GPRO_SRCS})
 FILE(GLOB DROPANALYSISFILES ./DropAnalysis/*.cpp)
 SET(DROPANALYSISFILES ${DROPANALYSISFILES} ${GPRO_SRCS})
 
+
+# Stream Net algorithm
+FILE(GLOB STREAMNETFILES ./streamnet/*.cpp)
+SET(STREAMNETFILES ${STREAMNETFILES} ${GPRO_SRCS})
+
 # TWI algorithm
 FILE(GLOB TWIFILES ./twi/*.cpp)
 SET(TWIFILES ${TWIFILES} ${GPRO_SRCS})
 
-#PeukerDouglas algorithm
+
+# Largescad8 algorithm
+FILE(GLOB LSCAD8FILES ./Largearead8/*.cpp)
+SET(LSCAD8FILES ${LSCAD8FILES} ${GPRO_SRCS})
+
+# Stream algorithm
+FILE(GLOB STREAMFILES ./stream/*.cpp)
+SET(STREAMFILES ${STREAMFILES} ${GPRO_SRCS})
+
+# Threshold algorithm
+FILE(GLOB THRESHOLDFILES ./threshold/*.cpp)
+SET(THRESHOLDFILES ${THRESHOLDFILES} ${GPRO_SRCS})
+
+# Watershed algorithm
+FILE(GLOB WATERSHEDFILES ./watershed/*.cpp)
+SET(WATERSHEDFILES ${WATERSHEDFILES} ${GPRO_SRCS})
+
 FILE(GLOB PDFILES ./PeukerDouglas/*.cpp)
 SET(PDFILES ${PDFILES} ${GPRO_SRCS})
 
+ADD_EXECUTABLE(PeukerDouglas ${PDFILES})
 ADD_EXECUTABLE(pitremove ${PITREMFILES})
+ADD_EXECUTABLE(Largepitremove ${LPITREMFILES})
 ADD_EXECUTABLE(flowdird8 ${D8FILES})
 ADD_EXECUTABLE(flowdirmfdmd ${MFDMDFILES})
 ADD_EXECUTABLE(flowdirdinf ${DINFFILES})
@@ -53,7 +80,12 @@ ADD_EXECUTABLE(scamfdmd ${SCAMFDMDFILES})
 ADD_EXECUTABLE(twi ${TWIFILES})
 ADD_EXECUTABLE(scadinf ${SCADINFFILES})
 ADD_EXECUTABLE(DropAnalysis ${DROPANALYSISFILES})
-ADD_EXECUTABLE(PeukerDouglas ${PDFILES})
+ADD_EXECUTABLE(streamnet ${STREAMNETFILES})
+ADD_EXECUTABLE(Largearead8 ${LSCAD8FILES})
+ADD_EXECUTABLE(stream ${STREAMFILES})
+ADD_EXECUTABLE(threshold ${THRESHOLDFILES})
+ADD_EXECUTABLE(watershed ${WATERSHEDFILES})
+
 
 SET(HYDRO_TARGETS pitremove
                   flowdird8
@@ -65,6 +97,12 @@ SET(HYDRO_TARGETS pitremove
 	  DropAnalysis
 	  scadinf
 	  flowdirdinf
+	  streamnet
+	  Largearead8
+	  Largepitremove
+	  stream
+	  threshold
+	  watershed
 	  PeukerDouglas
                   )
 

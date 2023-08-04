@@ -26,10 +26,12 @@
 #include "application.h"
 #include "scaOperator.h"
 #include "communication.h"
-
+#include "transformation.h"
+#include "computeLayer.h"
 
 using namespace std;
 using namespace GPRO;
+
 
 
 int main(int argc, char* argv[]) {
@@ -37,64 +39,79 @@ int main(int argc, char* argv[]) {
                    MPI_OpenMP_Type,
                    CUDA_Type,
                    Serial_Type};*/
+	
 
+    
 
     char* inputfilename;
     char* neighborfile;
     char* outputfilename;
-    char* weightfile; //add weightfile
-    bool usew;
+	char* weightfile;//add weightfile
+	bool usew;
     //int threadNUM;
-    if (argc != 4 && argc != 5) {
+    if (argc != 4&&argc != 5) {
         cerr << "please input right parameter.";
         return 0;
     }
-    if (argc == 4) {
+    else if(argc==4){
         inputfilename = argv[1];
         neighborfile = argv[2];
         outputfilename = argv[3];
-        weightfile = "";
-        usew = false;
+		weightfile="";
+		usew=false;
         //threadNUM = atoi(argv[5]);
-    }
-    else {
-        inputfilename = argv[1];
+    }else{
+		inputfilename = argv[1];
         neighborfile = argv[2];
-        weightfile = argv[3];
+		weightfile=argv[3];
         outputfilename = argv[4];
-        usew = true;
-
-    }
+		usew=true;
+		
+	}
     //omp_set_num_threads(threadNUM);
 
 
-    Application::START(MPI_Type, argc, argv); //init
+	Application::START(MPI_Type, argc, argv); //init
+	int myRank, process_nums;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
     RasterLayer<double> d8Layer("d8Layer");
     d8Layer.readNeighborhood(neighborfile);
-    d8Layer.readFile(inputfilename, ROWWISE_DCMP); //add rowwise_dcmp
+    d8Layer.readFile(inputfilename,ROWWISE_DCMP);//add rowwise_dcmp
 
     RasterLayer<double> scaLayer("scaLayer");
     scaLayer.copyLayerInfo(d8Layer);
-    RasterLayer<double> weiLayer("weiLayer");
-    if (usew) {
-        weiLayer.readNeighborhood(neighborfile);
-        weiLayer.readFile(weightfile, ROWWISE_DCMP);
-    }
-
-
+	RasterLayer<double> weiLayer("weiLayer");
+	if(usew){
+		weiLayer.readNeighborhood(neighborfile);
+		weiLayer.readFile(weightfile,ROWWISE_DCMP);
+	}
+	
+		
+	
     double starttime;
     double endtime;
     MPI_Barrier(MPI_COMM_WORLD);
     starttime = MPI_Wtime();
 
+	CoordBR subWorkBR;
+	ComputeLayer<double> comptLayer("computLayer");
+    comptLayer.addRasterLayerSerial(&d8Layer);
+	comptLayer.init(nullptr, 10);
+    Transformation<double> transOper(0, 1, &comptLayer); 
+    transOper.run();
+    comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
+	if (myRank == 0) cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
+    cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
+	
     SCAOperator scaOper;
     scaOper.d8Layer(d8Layer);
     scaOper.scaLayer(scaLayer);
-    scaOper.usew = usew;
-    if (usew)
-        scaOper.weiLayer(weiLayer);
+	scaOper.usew=usew;
+	if(usew)
+		scaOper.weiLayer(weiLayer);
 
-
+	
     scaOper.Run();
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -104,6 +121,6 @@ int main(int argc, char* argv[]) {
     scaLayer.writeFile(outputfilename);
 
     Application::END();
-    //system("pause");
+	//system("pause");
     return 10;
 }

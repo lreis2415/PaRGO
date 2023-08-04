@@ -23,7 +23,7 @@ bool SlopeOperator::Operator(const CellCoord& coord, bool operFlag) {
     CellSpace<double>& dem = *(_pDEMLayer->cellSpace());
     CellSpace<double>& slope = *(_pSlopeLayer->cellSpace());
     Neighborhood<double>& nbrhoodD = *(_pDEMNbrhood);
-    int iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
+    int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
 
     int iRow = coord.iRow();
     int iCol = coord.iCol();

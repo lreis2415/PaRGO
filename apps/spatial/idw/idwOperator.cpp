@@ -442,14 +442,14 @@ bool IDWOperator::Operator(const CellCoord& coord, bool operFlag) {
     int iCol = coord.iCol();
     CellSpace<double>& idwL = *_pIDWLayer->cellSpace();
 
-    bool isSkip = false;
-    if (_pMaskLayer) {
+    bool isSkip=false;
+    if(_pMaskLayer) {
         int maskRow = _pIDWLayer->rowAtOtherLayer(_pMaskLayer, iRow);
         int maskCol = _pIDWLayer->colAtOtherLayer(_pMaskLayer, iCol);
         int mask = (*_pMaskLayer->cellSpace())[maskRow][maskCol];
         int maskNoData = _pMaskLayer->metaData()->noData;
-        if (mask == 0 | mask == maskNoData) {
-            isSkip = true;
+        if(mask == 0 | mask == maskNoData) {
+            isSkip=true;
         }
     }
     if (isSkip) {

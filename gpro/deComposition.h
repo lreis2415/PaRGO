@@ -36,13 +36,19 @@ namespace GPRO {
     class DeComposition {
     public:
         DeComposition()
-            : _pNbrhood(nullptr) { }
+            : _pNbrhood(nullptr) {
+        }
 
         DeComposition(const SpaceDims& cellSpaceDims, const Neighborhood<elemType>& nbrhood);
 
-        ~DeComposition() { }
+        ~DeComposition() {
+        }
 
         bool rowDcmp(MetaData& metaData, int nSubSpcs) const;
+
+		bool rowDcmp(MetaData& metaData, int nSubSpcs, const CoordBR& subWorkBR) const;
+		//bool rowDcmp(MetaData& metaData, int nSubSpcs, int glbBegin, int glbEnd) 
+
         bool colDcmp(MetaData& metaData, int nSubSpcs) const;
         /*bool blockDcmp(MetaData &metaData,
                        int nRowSubSpcs,
@@ -128,6 +134,7 @@ _smpl1DDcmp(int& subBegin, int& subEnd,
 template <class elemType>
 GPRO::DeComposition<elemType>::
 DeComposition(const SpaceDims& cellSpaceDims, const Neighborhood<elemType>& nbrhood) {
+
     if (!nbrhood.calcWorkBR(_glbWorkBR, cellSpaceDims)) {
         cerr << __FILE__ << " " << __FUNCTION__
             << " Error: invalid Neighborhood to construct a DeComposition"
@@ -135,6 +142,7 @@ DeComposition(const SpaceDims& cellSpaceDims, const Neighborhood<elemType>& nbrh
         exit(1);
     }
     _glbDims = cellSpaceDims;
+
     _pNbrhood = &nbrhood;
 }
 
@@ -167,6 +175,44 @@ rowDcmp(MetaData& metaData, int nSubSpcs) const {
 
     CellCoord nwCorner(subBegin + _pNbrhood->minIRow(), 0);
     CellCoord seCorner(subEnd + _pNbrhood->maxIRow(), _glbDims.nCols() - 1);
+    CoordBR subMBR(nwCorner, seCorner);
+    metaData._MBR = subMBR;
+    SpaceDims dims(subMBR.nRows(), subMBR.nCols());
+    metaData._localdims = dims;
+    CoordBR workBR;
+    if (!_pNbrhood->calcWorkBR(workBR, dims)) {
+        return false;
+    }
+    metaData._localworkBR = workBR;
+    return true;
+}
+
+template <class elemType>
+bool GPRO::DeComposition<elemType>::
+rowDcmp(MetaData& metaData, int nSubSpcs, const CoordBR& subWorkBR) const {
+	//_glbWorkBR=subWorkBR;
+    if (nSubSpcs < 1 || nSubSpcs > _glbWorkBR.nRows()) {
+        cerr << __FILE__ << " " << __FUNCTION__
+            << " Error: invalid number of SubSpaces (" << nSubSpcs << ")"
+            << " considering the global working bounding rectangle (" << _glbWorkBR << ")"
+            << endl;
+        return false;
+    }
+
+    //DomDcmpType dcmpType = ROWWISE_DCMP;
+    //metaData._domDcmpType = dcmpType;
+
+    int glbBegin = subWorkBR.nwCorner().iRow();
+    int glbEnd = subWorkBR.seCorner().iRow();
+	//cout<<glbBegin;
+    int iSubSpc = metaData.myrank;
+    int subBegin, subEnd;
+    _smpl1DDcmp(subBegin, subEnd,
+                glbBegin, glbEnd,
+                nSubSpcs, iSubSpc);
+
+    CellCoord nwCorner(subBegin + _pNbrhood->minIRow(), subWorkBR.nwCorner().iCol());
+    CellCoord seCorner(subEnd + _pNbrhood->maxIRow(), subWorkBR.seCorner().iCol());
     CoordBR subMBR(nwCorner, seCorner);
     metaData._MBR = subMBR;
     SpaceDims dims(subMBR.nRows(), subMBR.nCols());

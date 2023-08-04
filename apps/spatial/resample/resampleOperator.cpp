@@ -3,28 +3,27 @@
 #include "resampleOperator.h"
 
 void ResampleOperator::setInputLayer(RasterLayer<double>& inputLayer) {
-    _inputLayer = &inputLayer;
+    _inputLayer=&inputLayer;
 }
-
 void ResampleOperator::setOutputLayer(RasterLayer<double>& outputLayer) {
-    _outputLayer = &outputLayer;
+    _outputLayer=&outputLayer;
     Configure(_outputLayer, false);
 }
-
 //loop output layer
 bool ResampleOperator::Operator(const CellCoord& coord, bool operFlag) {
     int iRow = coord.iRow();
     int iCol = coord.iCol();
-    int myRank = GetRank();
+    int myRank=GetRank();
     CellSpace<double>& in = *_inputLayer->cellSpace();
     CellSpace<double>& out = *_outputLayer->cellSpace();
     double result = 0;
-    int globalRowInInputLayer = (iRow + _outputLayer->metaData()->_MBR.minIRow()) * _g;
-    int globalColInInputLayer = (iCol + _outputLayer->metaData()->_MBR.minICol()) * _g;
+    int globalRowInInputLayer = (iRow+_outputLayer->metaData()->_MBR.minIRow())*_g;
+    int globalColInInputLayer = (iCol+_outputLayer->metaData()->_MBR.minICol())*_g;
 
     int startLocalRowInInputLayer = globalRowInInputLayer - _inputLayer->metaData()->_MBR.minIRow();
     int startLocalColInInputLayer = globalColInInputLayer - _inputLayer->metaData()->_MBR.minICol();
-
+    
+    
 
     //1. average
     // vector<double> cells;
@@ -53,14 +52,13 @@ bool ResampleOperator::Operator(const CellCoord& coord, bool operFlag) {
     // result=sum/cells.size();
 
     //2. first
-    if (_inputLayer->isNodata(in[startLocalRowInInputLayer][startLocalColInInputLayer])) {
+    if(_inputLayer->isNodata(in[startLocalRowInInputLayer][startLocalColInInputLayer])) {
         result = _outputLayer->_pMetaData->noData;
-    }
-    else {
+    }else {
         result = in[startLocalRowInInputLayer][startLocalColInInputLayer];
     }
 
-    out[iRow][iCol] = result;
+    out[iRow][iCol]=result;
 
     return true;
 }

@@ -16,7 +16,7 @@ mfdLayer(vector<RasterLayer<double>*>& layerV) {
     _maxRow = layerV[0]->_pMetaData->_localworkBR.maxIRow();
     _maxCol = layerV[0]->_pMetaData->_localworkBR.maxICol();
     Neighborhood<double>& nbrhoodD = *(_pNbrhood);
-    _iNeighborCells = static_cast<int>(sqrt(static_cast<double>(nbrhoodD.size()))) / 2;
+    _iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
 
     _degreeLayer.copyLayerInfo(*layerV[0]);
     Configure(&_degreeLayer, true);
@@ -84,17 +84,12 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
         }
         return true;
     }
-	/*
-    if (iRow == _maxRow && iCol == _maxCol) {
-        Termination = 1;
-    }
-    if (degreeL[iRow][iCol] <= 0) {
-        return true;
-    }
-	*/
+
+
 	if (degreeL[iRow][iCol] <= 0 && !(iRow == _maxRow && iCol == _maxCol)) {
         return true;
     }
+
     int dir = 8;
     for (int tRow = iRow - 1; tRow <= iRow + 1; tRow++) {
         for (int tCol = iCol - 1; tCol <= iCol + 1; tCol++) {
@@ -103,8 +98,10 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
                 scaL[iRow][iCol] += scaL[tRow][tCol] * (*weightLs[dir - 1])[tRow][tCol];
                 degreeL[iRow][iCol]--;
                 (*weightLs[dir - 1])[tRow][tCol] = 0;
+
 				if (degreeL[iRow][iCol] == 0) 
 					degreeL[iRow][iCol] = -1;
+
             }
             if (dir < 4 && degreeL[tRow][tCol] == 0 && (*weightLs[dir])[tRow][tCol] > 0) {
                 scaL[iRow][iCol] += scaL[tRow][tCol] * (*weightLs[dir])[tRow][tCol];

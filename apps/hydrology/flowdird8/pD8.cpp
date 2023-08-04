@@ -44,103 +44,101 @@ void Usage(const string& error_msg = "") {
     exit(1);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) 
+{
 
-    /*!
-     * Parse input arguments.
-     * DO NOT start the application unless the required inputs are provided!
-     */
-    if (argc < 5) {
+	/*!
+	 * Parse input arguments.
+	 * DO NOT start the application unless the required inputs are provided!
+	 */
+	if (argc < 5) {
         Usage("Too few arguments to run this program.");
-    }
-    // Input arguments
-    char* inputfilename = nullptr;
-    char* neighborfile = nullptr;
-    char* outputfilename = nullptr;
-    int dirType;
+	}
+	// Input arguments
+	char* inputfilename = nullptr;
+	char* neighborfile = nullptr;
+	char* outputfilename = nullptr;
+	int dirType;
 
     int i = 1;
     bool simpleusage = true;
-    while (argc > i) {
-        if (strcmp(argv[i], "-elev") == 0) {
+	while (argc > i) {
+		if (strcmp(argv[i], "-elev") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 inputfilename = argv[i];
                 i++;
+            } else {
+	            Usage("No argument followed '-elev'!");
             }
-            else {
-                Usage("No argument followed '-elev'!");
-            }
-        }
-        else if (strcmp(argv[i], "-nbr") == 0) {
+		} else if (strcmp(argv[i], "-nbr") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 neighborfile = argv[i];
                 i++;
-            }
-            else {
-                Usage("No argument followed '-nbr'!");
-            }
-        }
-        else if (strcmp(argv[i], "-out") == 0) {
+			} else {
+				Usage("No argument followed '-nbr'!");
+			}
+        } else if (strcmp(argv[i], "-out") == 0) {
             simpleusage = false;
             i++;
-            if (argc > i) {
+			if (argc > i) {
                 outputfilename = argv[i];
                 i++;
-            }
-            else {
+			} else {
                 Usage("No argument followed '-out'!");
-            }
-        }
-        else {
-            // Simple Usage
+			}
+        } else { // Simple Usage
             if (!simpleusage) Usage("DO NOT mix the Full and Simple usages!");
             inputfilename = argv[1];
             neighborfile = argv[2];
             outputfilename = argv[3];
-            dirType = atoi(argv[4]);
-            break;
+			dirType = atoi(argv[4]);
+			break;
         }
+	}
+	if (!FileExists(inputfilename)) {
+        Usage("The input DEM file not exists");
+    }
+    if (!FileExists(neighborfile)) {
+        Usage("neighbor file not exists");
     }
 
+	Application::START(MPI_Type, argc, argv); //init
 
-    Application::START(MPI_Type, argc, argv); //init
+	if( !( dirType==8 || dirType==256 ) ){
+		cerr<<"please input right parameter.";
+		return 0;
+	}
 
-    if (!(dirType == 8 || dirType == 256)) {
-        cerr << "please input right parameter.";
-        return 0;
-    }
+	RasterLayer<double> demLayer("demLayer"); //创建图层
+	demLayer.readNeighborhood(neighborfile);  //读取分析窗口文件
+	demLayer.readFile(inputfilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_dcmp
+	RasterLayer<double> d8Layer("d8Layer");
+	d8Layer.copyLayerInfo(demLayer);
 
-    RasterLayer<double> demLayer("demLayer"); //创建图层
-    demLayer.readNeighborhood(neighborfile); //读取分析窗口文件
-    demLayer.readFile(inputfilename); //读取栅格数据
+	
+	double starttime;
+	double endtime;
+	MPI_Barrier(MPI_COMM_WORLD);
+	starttime = MPI_Wtime();
 
-    RasterLayer<double> sflowLayer("slopeLayer");
-    sflowLayer.copyLayerInfo(demLayer);
+	D8Operator SFlOper(dirType);	
+	SFlOper.demLayer(demLayer);
+	SFlOper.d8Layer(d8Layer);
+	SFlOper.Run();
 
-    double starttime;
-    double endtime;
-    MPI_Barrier(MPI_COMM_WORLD);
-    starttime = MPI_Wtime();
+	MPI_Barrier(MPI_COMM_WORLD);
+	endtime = MPI_Wtime();
 
-    D8Operator SFlOper(dirType);
-    SFlOper.demLayer(demLayer);
-    SFlOper.d8Layer(sflowLayer);
-    SFlOper.Run();
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    endtime = MPI_Wtime();
-    int myrank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-    if (myrank == 0)
-        cout << "run time is " << endtime - starttime << endl;
-
-    sflowLayer.writeFile(outputfilename);
-
-    Application::END();
-    //system("pause");
-    return 0;
+	//int myrank;
+	//MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+	//if( myrank==0 )
+	cout<<"run time is "<<endtime-starttime<<endl;
+	d8Layer.writeFile(outputfilename);
+	Application::END();
+	//system("pause");
+	return 0;
 }

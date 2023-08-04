@@ -34,10 +34,10 @@ bool D8Operator::Operator(const CellCoord &coord,bool operFlag)
 	int iRow = coord.iRow();
 	int iCol = coord.iCol();
 	int iNeighborCells = ((int)sqrt((double)nbrhoodD.size())) / 2;
-	
 	double d[9];
 	int k = 0;
 	bool tag = true;
+
 	for(int iRow1 = iRow - iNeighborCells; iRow1 <= iRow + iNeighborCells; iRow1++)
 	{
 		for(int iCol1 = iCol - iNeighborCells; iCol1 <= iCol + iNeighborCells; iCol1++)
@@ -96,7 +96,6 @@ bool D8Operator::Operator(const CellCoord &coord,bool operFlag)
 			d8L[iRow][iCol] = valid[5]*pow(2.0,0)+valid[8]*pow(2.0,1)+valid[7]*pow(2.0,2)+valid[6]*pow(2.0,3)
 								+valid[3]*pow(2.0,4)+valid[0]*pow(2.0,5)+valid[1]*pow(2.0,6)+valid[2]*pow(2.0,7);
 		}
-
 		return true;
 	}
 }
