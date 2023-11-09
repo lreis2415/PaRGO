@@ -354,7 +354,7 @@ title() const {
 template <class elemType>
 bool GPRO::RasterLayer<elemType>::
 isNodata(elemType value) {
-    return value - _pMetaData->noData < EPS;
+    return abs(value - _pMetaData->noData) < EPS;
 }
 
 template <class elemType>

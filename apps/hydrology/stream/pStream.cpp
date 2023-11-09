@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 	int myRank, process_nums;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
     MPI_Comm_size(MPI_COMM_WORLD, &process_nums);
-	RasterLayer<double> netLayer("ssaLayer"); //创建图层
+	RasterLayer<double> netLayer("netLayer"); //创建图层
 	netLayer.readNeighborhood(neighborfile);
 	netLayer.readFile(netfilename,ROWWISE_DCMP);  //读取栅格数据//add rowwise_dcmp
 
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 	if (myRank == 0) cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
     cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
 	
-	//cout<<"thresh"<<thresh<<endl;
+	//cout<<"hh"<<endl;
 	streamOperator DPOper;	
 	DPOper.netLayer(netLayer);
 	//DPOper.areaLayer(scaLayer);

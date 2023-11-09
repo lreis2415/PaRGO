@@ -125,8 +125,10 @@ bool SCAOperator::Operator(const CellCoord& coord, bool operFlag) {
                 }
             }
             dir--;
+			//cout<<iRow<<" "<<iCol<<" "<<tRow<<" "<<tCol<<" "<<endl;
         }
     }
+
     if (iRow == _maxRow && iCol == _maxCol) {
         MPI_Barrier(MPI_COMM_WORLD);
         int minRow = _pD8Layer->_pMetaData->_localworkBR.minIRow();

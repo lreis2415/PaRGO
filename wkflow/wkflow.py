@@ -12,7 +12,7 @@ cur_dir = os.getcwd()
 #workdir = r"G: & cd egc\\pargo-dev\\wkflow & "
 workdir = "cd wkflow & "
 
-work = r"G:\\egc\\pargo-dev\\wkflow\\"  # 文件存放位置
+work = r"D:\\egc\\pargo-dev-fxc\\wkflow\\"  # 文件存放位置
 nrank = 8  # 进程数
 mpi = r"mpiexec -n " + str(nrank)
 middata = r"data\\process\\"
@@ -126,11 +126,11 @@ def hydroAnalysis(_g, buf):
     hydro.pitremove(demres, demresfel)
     hydro.flowdird8(demresfel, resdirfile)
     hydro.scad8(0, resdirfile, resscafile)
-    hydro.PeukerDouglas(demresfel, weifile)
-    hydro.scad8(1, resdirfile, ssafile, weifile)
-    thresh = hydro.dropanalysis(10, 2, 500, demresfel, resdirfile)
+    #hydro.PeukerDouglas(demresfel, weifile)
+    #hydro.scad8(1, resdirfile, ssafile, weifile)
+    #thresh = hydro.dropanalysis(10, 2, 500, demresfel, resdirfile)
     #print(thresh)
-    hydro.threshold(thresh * 1000, resscafile, resnet)
+    hydro.threshold(20000, resscafile, resnet)
     hydro.stream(resnet, resdirfile, res_so)
     hydro.watershed(res_so, resdirfile, res_ws)
     #largePitremove(_g, buf)
@@ -144,16 +144,19 @@ def hydroAnalysis(_g, buf):
 if __name__ == "__main__":
     _g = 10  # 重采样倍数
     buf = 2  # 缓冲区大小
-    nrank= 12  # 进程数
+    nrank= 1  # 进程数
     mpi = r"mpiexec -n " + str(nrank)
     print(workdir)
     print("rank number:", nrank)
-    dem = r"data\\dem.tif "  # 输入DEM
+    dem = r"data\\XJdem.tif "  # 输入DEM
     #hydroAnalysis(_g, buf)
-    #streamSHP(res_so, netshp, resdirfile, res_ws)
-    #largePitremove(_g, buf, res_ws, dem, demfel)
-    hydro.flowdird8(demfel, dirfile)
-    largearea(_g, buf, res_ws, dirfile, scafile)
+    #hydro.scad8(0, resdirfile, resscafile)
+    streamSHP(res_so, netshp, resdirfile, res_ws)
+    largePitremove(_g, buf, res_ws, dem, demfel)
+    #hydro.threshold(200, resscafile, resnet)
+    #hydro.stream(resnet, resdirfile, res_so)
+    #hydro.watershed(res_so, resdirfile, res_ws)
+    #largearea(_g, buf, res_ws, dirfile, scafile)
 
 
 

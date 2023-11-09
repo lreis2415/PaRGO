@@ -107,6 +107,7 @@ short newOrder(short nOrder[9], bool &junction, bool &source){
 	return oOut;
 }
 
+
 bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
     CellSpace<double>& net = *(_pnetLayer->cellSpace());
 	CellSpace<double>& contribs = *(_contribs.cellSpace());
@@ -124,16 +125,14 @@ bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
 	
 	short d;
 	int nexti,nextj;
-	int minRow = _pDirLayer->_pMetaData->_localworkBR.minIRow();
-	int minCol = _pDirLayer->_pMetaData->_localworkBR.minICol();
+
 
 	double starttime;
 	double endtime;
 	//starttime=MPI_Wtime();
-	//
 	if(num==0)
 	{
-		orderout[iRow][iCol]=0;
+		//orderout[iRow][iCol]=0;
 		if(fabs(net[iRow][iCol] - _noData) > Eps&&net[iRow][iCol]==1&&!fabs(dir[iRow][iCol]-_noData)<Eps&&dir[iRow][iCol]>=0){
 			contribs[iRow][iCol]=0;
 			orderout[iRow][iCol]=0;
@@ -141,19 +140,11 @@ bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
 		else{
 			contribs[iRow][iCol]=-2;//-2 means ending cal.,
 			orderout[iRow][iCol]=_noData;
-		}/*
-		if (area[iRow][iCol] > maxval) {
-			d=dir[iRow][iCol];
-			nexti=iRow+d1[d];
-			nextj=iCol+d2[d];
-			if(fabs(ssa[nexti][nextj]-_noData)<Eps){
-				maxval=area[iRow][iCol];
-			}
-			
-			//cout<<"maxval"<<maxval<<endl;
 		}
-		*/
+		if((net[iRow][iCol]!=1 &&orderout[iRow][iCol]!=_noData))
+			cout<<(net[iRow][iCol]!=1 &&orderout[iRow][iCol]!=_noData) <<endl;
 		if (iRow == _maxrow && iCol == _maxcol) {
+			
 			MPI_Barrier(MPI_COMM_WORLD);
 			num = 1;
 			Termination = 0;
@@ -173,14 +164,11 @@ bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
 						if (d1[d]+tRow==iRow && d2[d]+tCol==iCol&&d + dir[iRow][iCol] != 8&& d != 4 ) {
 						
 							if(net[tRow][tCol]==1)contribs[iRow][iCol]++;
-
 						}
 					}
-
 				}
 			}
-		}
-		
+		}	
 		if (iRow == _maxrow && iCol == _maxcol) {
             MPI_Barrier(MPI_COMM_WORLD);
             num = 2;
@@ -208,23 +196,16 @@ bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
 			
 			for(tRow = iRow - iNeighborCells; tRow <= iRow + iNeighborCells; tRow++) {
 				for (tCol = iCol - iNeighborCells; tCol <= iCol + iNeighborCells; tCol++){
-					if(dir[tRow][tCol]>=0){
-						d=dir[tRow][tCol];
-
-						if(d1[d]+tRow ==iRow&& d2[d]+tCol==iCol &&d + dir[iRow][iCol] != 8&& d != 4  
-							&& !fabs(orderout[tRow][tCol]-_noData)<Eps){				
-							nOrder[k]=orderout[tRow][tCol];
+					//if ((contribs[tRow][tCol] == 0 || contribs[tRow][tCol] == -1) ) {
+						if(dir[tRow][tCol]>=0 &&!fabs(dir[tRow][tCol]-_noData)<Eps){
+							d=dir[tRow][tCol];
 							
-						//  Accumulate length
-							/*
-							pd=k; 
-							pi=tRow;
-							pj=tCol;
-							lenx=abs(tRow-iRow);
-							leny=abs(tCol-iCol);
-							length=length+sqrt(lenx*lenx+leny*leny);
-							*/
-						}
+							if(d1[d]+tRow ==iRow&& d2[d]+tCol==iCol &&d + dir[iRow][iCol] != 8&& d != 4  
+							&& !fabs(orderout[tRow][tCol]-_noData)<Eps){				
+								nOrder[k]=orderout[tRow][tCol];
+
+							
+							}
 					}
 					k++;
 				}
@@ -235,57 +216,41 @@ bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
 			bool source;
 			bool junction; // junction set to true/false in newOrder
 			oOut = newOrder(nOrder,junction,source);
-			
+			//cout<<oOut<<endl;
 			orderout[iRow][iCol]=oOut;
-			/*
-			if(source){
-				elevout[iRow][iCol]=dem[iRow][iCol];
-			}else if(!junction){
-			// if not a junction, transfer elevOut
-				elevout[iRow][iCol]=elevout[pi][pj];
-			}else{
+			contribs[iRow][iCol]=-1;
+			
+    
+			
+			if(dir[iRow][iCol]>=0 &&!fabs(dir[iRow][iCol]-_noData)<Eps){
+				d=dir[iRow][iCol];
+				tRow=iRow+d1[d];
+				tCol=iCol+d2[d];
 
-			// if it is a junction, update global values
-				bool newstream=true;  // Flag to indicate whether the junction results in a new Strahler stream
-				for(tRow = iRow - iNeighborCells; tRow <= iRow + iNeighborCells; tRow++) {
-					for (tCol = iCol - iNeighborCells; tCol <= iCol + iNeighborCells; tCol++){
-						if(dir[tRow][tCol]>=0){
-							d=dir[tRow][tCol];
-							if((d1[d]+tRow ==iRow&& d2[d]+tCol==iCol &&d + dir[iRow][iCol] != 8&& d != 4 )
-								&& !fabs(orderout[tRow][tCol]-_noData)<Eps){
-
-								updateAtJunction(oOut,iRow,tRow,iCol,tCol,dir,orderout
-											,elevout,dem,newstream,s1,s1sq,s2,s2sq,n1,n2);
-							}
-						}
-					}
-				}
-				if(newstream)  // Here all paths terminated at the junction so this is a new stream
-				{
-					elevout[iRow][iCol]=dem[iRow][iCol];
+				if( contribs[tRow][tCol]>0 ){
+					contribs[tRow][tCol]--;
 				}
 			}
-			*/
-			contribs[iRow][iCol]=-1;
-	
-		}/*
-		if(rank == 6){
-			cout<<"max"<<_maxrow<<_maxcol<<rank<<endl;
 		}
-		if(rank == 7){
-			cout<<"max"<<_maxrow<<_maxcol<<rank<<endl;
-		}*/
+		
+    
 		if (iRow == _maxrow && iCol == _maxcol) {
+			MPI_Barrier(MPI_COMM_WORLD);
+			int minRow = _pDirLayer->_pMetaData->_localworkBR.minIRow();
+			int minCol = _pDirLayer->_pMetaData->_localworkBR.minICol();
 			for (int i = minRow; i <= _maxrow; ++i) {
 				for (int j = minCol; j <= _maxcol; ++j) {
 					if (contribs[i][j] >=0) {
 						bool flag=true;
 						for(tRow = i - iNeighborCells; tRow <= i + iNeighborCells; tRow++) {
-							for (tCol = j - iNeighborCells; tCol <= j + iNeighborCells; tCol++){				
-								if(dir[tRow][tCol]>=0){
+							for (tCol = j - iNeighborCells; tCol <= j + iNeighborCells; tCol++){	
+							
+								if(dir[tRow][tCol]>=0 &&!fabs(dir[tRow][tCol]-_noData)<Eps){
 									d=dir[tRow][tCol];
+									
 									if(d1[d]+tRow ==i&& d2[d]+tCol==j &&d + dir[i][j] != 8&& d != 4 &&contribs[tRow][tCol]>-1){
 										flag=false;
+										//contribs[i][j]=0;
 									}
 								}
 							}
@@ -293,12 +258,12 @@ bool streamOperator::Operator(const CellCoord& coord, bool operFlag) {
 						if(flag){
 							contribs[i][j]=0;
 						}
+						
 						Termination = 0;
-						//num++;
-					}		
+						
+					}
 				} 
             }
-	
 		}       
 	}
 	//endtime=MPI_Wtime();

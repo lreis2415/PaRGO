@@ -33,7 +33,7 @@ netfile = finaldata + r"net.tif "
 streamfile = finaldata + r"streamOrder.tif "
 
 def resample(dem, resdem, _g):
-    exe = r" apps\\resample.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\spatial\Release\resample.exe "
     cmd = workdir + mpi + exe + "-input " + dem + "-output " + resdem + "-g " + str(_g)
     print("working process: resample(g=", _g)
     start = time.time()
@@ -42,7 +42,7 @@ def resample(dem, resdem, _g):
     print("process time:", end - start)
 
 def pitremove(dem, demfel):
-    exe = r" apps\\pitremove.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\pitremove.exe "
     cmd = workdir + mpi + exe + dem + nbr + demfel
     print("working process: PitRemove of ", dem)
     start = time.time()
@@ -52,7 +52,7 @@ def pitremove(dem, demfel):
     print("process time:", end - start)
 
 def flowdird8(dem, dir):
-    exe = r" apps\\flowdird8.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\flowdird8.exe "
     cmd = workdir + mpi + exe + dem + nbr + dir + str(8)
     print("working process: calculate d8 of ", dem)
     start = time.time()
@@ -62,7 +62,7 @@ def flowdird8(dem, dir):
     print("process time:", end - start)
 
 def flowdirdinf(dem, dinf):
-    exe = r" apps\\flowdirdinf.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\flowdirdinf.exe "
     cmd = workdir + mpi + exe + dem + nbr + dinf
     print("working process: calculate d-inf of ", dem)
     start = time.time()
@@ -72,7 +72,7 @@ def flowdirdinf(dem, dinf):
     print("process time:", end - start)
 
 def scadinf(dinf, scadinf):
-    exe = r" apps\\scadinf.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\scadinf.exe "
     cmd = workdir + mpi + exe + dinf + nbr + scadinf
     print("working process: calculate sca of ", dinf)
     start = time.time()
@@ -82,7 +82,7 @@ def scadinf(dinf, scadinf):
     print("process time:", end - start)
 
 def scad8(w, dir, sca, wei=weifile):
-    exe = r" apps\\scad8.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\scad8.exe "
     cmd = workdir + mpi + exe + dir + nbr + sca
     wcmd = workdir + mpi + exe + dir + nbr + wei + sca
     start = time.time()
@@ -99,7 +99,7 @@ def scad8(w, dir, sca, wei=weifile):
     print("process time:", end - start)
 
 def PeukerDouglas(dem, weifile):
-    exe = r" apps\\PeukerDouglas.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\PeukerDouglas.exe "
     cmd = workdir + mpi + exe + dem + nbr + weifile
     print("working process: catch possible river net of ", dem)
     start = time.time()
@@ -109,7 +109,7 @@ def PeukerDouglas(dem, weifile):
     print("process time:", end - start)
 
 def dropanalysis(nthresh, threshmin, threshmax, dem, dir):
-    exe = r" apps\\dropanalysis.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\dropanalysis.exe "
     cmd = workdir + mpi + exe + dem + dir + resscafile + ssafile + nbr
     print("working process: drop analysis of ", dem)
     start = time.time()
@@ -130,8 +130,8 @@ def dropanalysis(nthresh, threshmin, threshmax, dem, dir):
 
 
 def threshold(thresh, sca, net):
-    exe = r" apps\\threshold.exe "
-    cmd = workdir + mpi + exe + sca + nbr + net + str(thresh)
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\threshold.exe "
+    cmd = workdir + mpi + exe + sca + net + str(thresh)
     print("working process: extract river net with threshold:", thresh)
     start = time.time()
     g = os.system(cmd)
@@ -140,14 +140,15 @@ def threshold(thresh, sca, net):
     print("process time:", end - start)
 
 def stream(net, dir, sm):
-    exe = r" D:\EGC\PaRGO\build\apps\hydrology\Release\stream.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\stream.exe "
     cmd = workdir + mpi + exe + net + dir + nbr + sm
     print("working process: calculate stream order of ", net)
+    print(cmd)
     g = os.system(cmd)
     print(g)
 
 def watershed(stream, dir, ws):
-    exe = r" D:\EGC\PaRGO\build\apps\hydrology\Release\watershed.exe "
+    exe = r" D:\EGC\PaRGO-dev-fxc\build\apps\hydrology\Release\watershed.exe "
     cmd = workdir + mpi + exe + stream + dir + nbr + ws
     print(cmd)
     print("working process: calculate stream order of ", stream)

@@ -56,7 +56,7 @@ bool wsOperator::Operator(const CellCoord& coord, bool operFlag) {
 
 	if(num==0)
 	{
-		if(dir[iRow][iCol]>=0){
+		if(!fabs(dir[iRow][iCol]-_noData)<Eps&&dir[iRow][iCol]>=0){
 			contribs[iRow][iCol]=0;
 			ws[iRow][iCol]=0;
 		}
@@ -75,13 +75,13 @@ bool wsOperator::Operator(const CellCoord& coord, bool operFlag) {
 	
 	int tRow,tCol;
 	if(num==1){
-		if(net[iRow][iCol]>=1){	
+		if(!fabs(net[iRow][iCol]-_noData)<Eps&&net[iRow][iCol]>=1){	
 			for (tRow = iRow - 1; tRow <= iRow + 1; tRow++) {
 				for (tCol = iCol - 1; tCol <= iCol + 1; tCol++) {
 					if(!fabs(dir[tRow][tCol]-_noData)<Eps&&dir[tRow][tCol]>=0){
 						d=dir[tRow][tCol];
 						if (d1[d]+tRow==iRow && d2[d]+tCol==iCol&&d + dir[iRow][iCol] != 8&& d != 4 ) {
-							if(net[tRow][tCol]>=1)contribs[iRow][iCol]++;
+							if(!fabs(net[tRow][tCol]-_noData)<Eps&&net[tRow][tCol]>=1)contribs[iRow][iCol]++;
 						}
 					}
 				}
@@ -97,7 +97,7 @@ bool wsOperator::Operator(const CellCoord& coord, bool operFlag) {
 	}
 	if(num==2){
 		d=dir[iRow][iCol];
-		if(!fabs(d-_noData)<Eps){
+		if(!fabs(d-_noData)<Eps&&d>=0){
 			tRow=d1[d]+iRow;
 			tCol=d2[d]+iCol;
 			if(contribs[iRow][iCol]>0&&contribs[tRow][tCol]==-2)
@@ -139,7 +139,7 @@ bool wsOperator::Operator(const CellCoord& coord, bool operFlag) {
 	
 
 	d=dir[iRow][iCol];
-	if(!fabs(d-_noData)<Eps){
+	if(!fabs(d-_noData)<Eps&&d>=0){
 		tRow=d1[d]+iRow;
 		tCol=d2[d]+iCol;
 		

@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
     double endtime;
     MPI_Barrier(MPI_COMM_WORLD);
     starttime = MPI_Wtime();
-
+	/*
 	CoordBR subWorkBR;
 	ComputeLayer<double> comptLayer("computLayer");
     comptLayer.addRasterLayerSerial(&d8Layer);
@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
     comptLayer.getCompuLoad(ROWWISE_DCMP, process_nums, subWorkBR); // Decompose the spatial computational domain.
 	if (myRank == 0) cout << "dcmp time is " << MPI_Wtime() - starttime << endl;
     cout << myRank << " subWorkBR " << subWorkBR.minIRow() << " " << subWorkBR.maxIRow() << " " << subWorkBR.nRows() << endl;
-	
+	*/
     SCAOperator scaOper;
     scaOper.d8Layer(d8Layer);
     scaOper.scaLayer(scaLayer);
