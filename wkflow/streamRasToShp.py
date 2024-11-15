@@ -67,6 +67,7 @@ def streamSHP(input_file, output_file, dir_file, watershed_file):
         return upstream
 
     def get_downstream(x, y):
+        global nx, ny
         d = dir_data[y, x]
         if d == 0:
             nx, ny = x - 1, y - 1
@@ -88,6 +89,7 @@ def streamSHP(input_file, output_file, dir_file, watershed_file):
 
     def track_line(x, y, value):
         """追踪线要素"""
+        global ws
         line = []
         stack= [(x, y)]
         while stack:
