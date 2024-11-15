@@ -227,7 +227,7 @@ int main(int argc, char* argv[]) {
 	
 	//write out result of sub-basin
 	string b="subdemfel.tif";
-	string a=to_string(_Longlong(id));
+	string a=to_string(long long(id));
 	string mid="data\\mid\\"+a+b;
 	//string dem="dem\\"+a+"dem.tif";
 	const char* p=mid.data();

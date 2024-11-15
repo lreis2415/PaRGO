@@ -161,9 +161,9 @@ int main(int argc, char *argv[])
 		//return 0;
 	//}
 	//cout<<"max:"<<argv[0];
-	//RasterLayer<double> demLayer("demLayer"); //创建图层
-	//读取分析窗口文件
-	// //读取栅格数据//add rowwise_dcmp
+	//RasterLayer<double> demLayer("demLayer"); //鍒涘缓鍥惧眰
+	//璇诲彇鍒嗘瀽绐楀彛鏂囦欢
+	// //璇诲彇鏍呮牸鏁版嵁//add rowwise_dcmp
 	 
 	//GDALAllRegister();
     //GDALDataset* poDatasetsrc = static_cast<GDALDataset*>(GDALOpen(inputfilename, GA_ReadOnly));
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 
 	//write out result of sub-basin
 	string b="subwssca.tif";
-	string a=to_string(_Longlong(id));
+	string a=to_string(long long(id));
 	string mid="data\\mid\\"+a+b;
 	//string dem="dem\\"+a+"dem.tif";
 	const char* p=mid.data();

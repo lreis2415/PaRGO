@@ -50,11 +50,13 @@ bool ResampleOperator::Operator(const CellCoord& coord, bool operFlag) {
     //     sum+=cells[i];
     // }
     // result=sum/cells.size();
-
+    
     //2. first
     if(_inputLayer->isNodata(in[startLocalRowInInputLayer][startLocalColInInputLayer])) {
+        //cout << _inputLayer->isNodata(in[startLocalRowInInputLayer][startLocalColInInputLayer]) << endl;
         result = _outputLayer->_pMetaData->noData;
     }else {
+        //cout << startLocalRowInInputLayer << endl;
         result = in[startLocalRowInInputLayer][startLocalColInInputLayer];
     }
 
